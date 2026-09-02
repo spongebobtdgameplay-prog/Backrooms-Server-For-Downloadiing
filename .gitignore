@@ -1,0 +1,12 @@
+build/
+build-*/
+.vs/
+.vscode/
+CMakeFiles/
+CMakeCache.txt
+*.exe
+*.pdb
+*.obj
+*.ilk
+*.dSYM/
+.DS_Store
