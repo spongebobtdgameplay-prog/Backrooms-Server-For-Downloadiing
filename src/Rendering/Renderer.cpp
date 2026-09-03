@@ -51,6 +51,41 @@ void main()
 }
 )GLSL";
 
+    const char* ShadowVertexShaderSource = R"GLSL(
+#version 410 core
+
+layout(location = 0) in vec3 aPosition;
+layout(location = 2) in vec4 iModel0;
+layout(location = 3) in vec4 iModel1;
+layout(location = 4) in vec4 iModel2;
+layout(location = 5) in vec4 iModel3;
+
+uniform mat4 uShadowLightMatrix;
+
+void main()
+{
+    mat4 Model = mat4(
+        iModel0,
+        iModel1,
+        iModel2,
+        iModel3
+    );
+
+    gl_Position =
+        uShadowLightMatrix *
+        Model *
+        vec4(aPosition, 1.0);
+}
+)GLSL";
+
+    const char* ShadowFragmentShaderSource = R"GLSL(
+#version 410 core
+
+void main()
+{
+}
+)GLSL";
+
     const char* FragmentShaderSource = R"GLSL(
 #version 410 core
 
@@ -65,6 +100,9 @@ uniform vec3 uCameraPosition;
 uniform int uLightCount;
 uniform vec4 uLightPosition[8];
 uniform vec4 uLightColor[8];
+uniform sampler2D uShadowMap;
+uniform mat4 uShadowMatrix;
+uniform int uShadowEnabled;
 
 out vec4 FragColor;
 
@@ -80,6 +118,64 @@ float CellEdge(float Value, float Width)
     float F = fract(Value);
     float D = min(F, 1.0 - F);
     return 1.0 - smoothstep(Width, Width * 2.25, D);
+}
+
+float ShadowVisibility(
+    vec3 Position,
+    vec3 Normal,
+    vec3 LightDirection
+)
+{
+    if (uShadowEnabled == 0)
+        return 1.0;
+
+    vec4 Clip = uShadowMatrix * vec4(Position, 1.0);
+
+    if (Clip.w <= 0.0001)
+        return 1.0;
+
+    vec3 Projected = Clip.xyz / Clip.w;
+    Projected = Projected * 0.5 + 0.5;
+
+    if (
+        Projected.x <= 0.0 ||
+        Projected.x >= 1.0 ||
+        Projected.y <= 0.0 ||
+        Projected.y >= 1.0 ||
+        Projected.z <= 0.0 ||
+        Projected.z >= 1.0
+    )
+    {
+        return 1.0;
+    }
+
+    float Bias = max(
+        0.0018 * (1.0 - max(dot(Normal, LightDirection), 0.0)),
+        0.00035
+    );
+
+    vec2 Texel = vec2(1.0 / 512.0);
+    float Visibility = 0.0;
+
+    for (int Y = -1; Y <= 1; ++Y)
+    {
+        for (int X = -1; X <= 1; ++X)
+        {
+            float Closest = texture(
+                uShadowMap,
+                Projected.xy + vec2(X, Y) * Texel
+            ).r;
+
+            Visibility +=
+                Projected.z - Bias <= Closest
+                    ? 1.0
+                    : 0.0;
+        }
+    }
+
+    Visibility /= 9.0;
+
+    return mix(0.48, 1.0, Visibility);
 }
 
 vec3 Level0Surface(vec3 BaseColor, vec3 Position, vec3 Normal, int MaterialType)
@@ -199,9 +295,27 @@ void main()
 
         vec3 LightColor = uLightColor[I].rgb * uLightColor[I].w;
 
+        float Visibility = 1.0;
+
+        if (I == 0)
+        {
+            Visibility = ShadowVisibility(
+                vWorldPosition,
+                N,
+                L
+            );
+        }
+
         Lighting +=
-            SurfaceColor * LightColor * Diffuse * Attenuation +
-            LightColor * Specular * Attenuation;
+            SurfaceColor *
+                LightColor *
+                Diffuse *
+                Attenuation *
+                Visibility +
+            LightColor *
+                Specular *
+                Attenuation *
+                Visibility;
     }
 
     if (vMaterialType == 6)
@@ -290,8 +404,276 @@ bool Renderer::CreateShader()
     LightCountLocation = glGetUniformLocation(Program, "uLightCount");
     LightPositionLocation = glGetUniformLocation(Program, "uLightPosition");
     LightColorLocation = glGetUniformLocation(Program, "uLightColor");
+    ShadowMatrixLocation = glGetUniformLocation(Program, "uShadowMatrix");
+    ShadowMapLocation = glGetUniformLocation(Program, "uShadowMap");
+    ShadowEnabledLocation = glGetUniformLocation(Program, "uShadowEnabled");
 
     return true;
+}
+
+bool Renderer::CreateShadowResources()
+{
+    const GLuint Vertex =
+        CompileShader(
+            GL_VERTEX_SHADER,
+            ShadowVertexShaderSource
+        );
+
+    const GLuint Fragment =
+        CompileShader(
+            GL_FRAGMENT_SHADER,
+            ShadowFragmentShaderSource
+        );
+
+    if (Vertex == 0 || Fragment == 0)
+    {
+        if (Vertex != 0)
+            glDeleteShader(Vertex);
+
+        if (Fragment != 0)
+            glDeleteShader(Fragment);
+
+        return false;
+    }
+
+    ShadowProgram = glCreateProgram();
+    glAttachShader(ShadowProgram, Vertex);
+    glAttachShader(ShadowProgram, Fragment);
+    glLinkProgram(ShadowProgram);
+
+    glDeleteShader(Vertex);
+    glDeleteShader(Fragment);
+
+    GLint Success = GL_FALSE;
+    glGetProgramiv(
+        ShadowProgram,
+        GL_LINK_STATUS,
+        &Success
+    );
+
+    if (Success == GL_FALSE)
+    {
+        glDeleteProgram(ShadowProgram);
+        ShadowProgram = 0;
+        return false;
+    }
+
+    ShadowDepthMatrixLocation =
+        glGetUniformLocation(
+            ShadowProgram,
+            "uShadowLightMatrix"
+        );
+
+    glGenFramebuffers(
+        1,
+        &ShadowFramebuffer
+    );
+
+    glGenTextures(
+        1,
+        &ShadowDepthTexture
+    );
+
+    glBindTexture(
+        GL_TEXTURE_2D,
+        ShadowDepthTexture
+    );
+
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_DEPTH_COMPONENT24,
+        512,
+        512,
+        0,
+        GL_DEPTH_COMPONENT,
+        GL_FLOAT,
+        nullptr
+    );
+
+    glTexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_MIN_FILTER,
+        GL_NEAREST
+    );
+
+    glTexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_MAG_FILTER,
+        GL_NEAREST
+    );
+
+    glTexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_WRAP_S,
+        GL_CLAMP_TO_BORDER
+    );
+
+    glTexParameteri(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_WRAP_T,
+        GL_CLAMP_TO_BORDER
+    );
+
+    const float Border[4] = {
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f
+    };
+
+    glTexParameterfv(
+        GL_TEXTURE_2D,
+        GL_TEXTURE_BORDER_COLOR,
+        Border
+    );
+
+    glBindFramebuffer(
+        GL_FRAMEBUFFER,
+        ShadowFramebuffer
+    );
+
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_TEXTURE_2D,
+        ShadowDepthTexture,
+        0
+    );
+
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    const GLenum Status =
+        glCheckFramebufferStatus(
+            GL_FRAMEBUFFER
+        );
+
+    glBindFramebuffer(
+        GL_FRAMEBUFFER,
+        0
+    );
+
+    glBindTexture(
+        GL_TEXTURE_2D,
+        0
+    );
+
+    if (Status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        DestroyShadowResources();
+        return false;
+    }
+
+    return true;
+}
+
+void Renderer::DestroyShadowResources()
+{
+    if (ShadowDepthTexture != 0)
+    {
+        glDeleteTextures(
+            1,
+            &ShadowDepthTexture
+        );
+    }
+
+    if (ShadowFramebuffer != 0)
+    {
+        glDeleteFramebuffers(
+            1,
+            &ShadowFramebuffer
+        );
+    }
+
+    if (ShadowProgram != 0)
+    {
+        glDeleteProgram(
+            ShadowProgram
+        );
+    }
+
+    ShadowDepthTexture = 0;
+    ShadowFramebuffer = 0;
+    ShadowProgram = 0;
+    ShadowDepthMatrixLocation = -1;
+}
+
+void Renderer::RenderShadowMap()
+{
+    if (
+        !ShadowEnabled ||
+        ShadowProgram == 0 ||
+        ShadowFramebuffer == 0 ||
+        Instances.empty()
+    )
+    {
+        return;
+    }
+
+    glBindFramebuffer(
+        GL_FRAMEBUFFER,
+        ShadowFramebuffer
+    );
+
+    glViewport(0, 0, 512, 512);
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(ShadowProgram);
+
+    glUniformMatrix4fv(
+        ShadowDepthMatrixLocation,
+        1,
+        GL_FALSE,
+        glm::value_ptr(
+            ShadowLightMatrix
+        )
+    );
+
+    glBindVertexArray(VertexArray);
+    glBindBuffer(
+        GL_ARRAY_BUFFER,
+        InstanceBuffer
+    );
+
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        static_cast<GLsizeiptr>(
+            Instances.size() *
+            sizeof(InstanceData)
+        ),
+        Instances.data(),
+        GL_DYNAMIC_DRAW
+    );
+
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.8f, 4.0f);
+
+    glDrawArraysInstanced(
+        GL_TRIANGLES,
+        0,
+        36,
+        static_cast<GLsizei>(
+            Instances.size()
+        )
+    );
+
+    glDisable(GL_POLYGON_OFFSET_FILL);
+
+    glBindVertexArray(0);
+
+    glBindFramebuffer(
+        GL_FRAMEBUFFER,
+        0
+    );
+
+    glViewport(
+        0,
+        0,
+        static_cast<GLsizei>(Width),
+        static_cast<GLsizei>(Height)
+    );
 }
 
 bool Renderer::CreateCube()
@@ -414,6 +796,9 @@ bool Renderer::Initialize()
     if (!CreateCube())
         return false;
 
+    if (!CreateShadowResources())
+        return false;
+
     GhostEntityModel.Load(
         "assets/models/entity-ghost.glb",
         2.18f
@@ -442,6 +827,8 @@ void Renderer::Shutdown()
 {
     GhostEntityModel.Shutdown();
     DemonEntityModel.Shutdown();
+
+    DestroyShadowResources();
 
     if (InstanceBuffer != 0)
         glDeleteBuffers(1, &InstanceBuffer);
@@ -563,6 +950,56 @@ void Renderer::SetLights(
     ActiveLightCount = Count;
     ActiveLightPositions = Positions;
     ActiveLightColors = Colors;
+
+    ShadowEnabled = false;
+
+    if (Count > 0)
+    {
+        const glm::vec3 LightPosition =
+            glm::vec3(Positions[0]);
+
+        const glm::vec2 HorizontalDelta{
+            LightPosition.x - ViewerPosition.x,
+            LightPosition.z - ViewerPosition.z
+        };
+
+        if (
+            glm::dot(
+                HorizontalDelta,
+                HorizontalDelta
+            ) < 210.0f
+        )
+        {
+            const glm::mat4 LightProjection =
+                glm::perspective(
+                    glm::radians(118.0f),
+                    1.0f,
+                    0.2f,
+                    16.0f
+                );
+
+            const glm::mat4 LightView =
+                glm::lookAt(
+                    LightPosition,
+                    glm::vec3{
+                        LightPosition.x,
+                        0.08f,
+                        LightPosition.z
+                    },
+                    glm::vec3{
+                        0.0f,
+                        0.0f,
+                        -1.0f
+                    }
+                );
+
+            ShadowLightMatrix =
+                LightProjection *
+                LightView;
+
+            ShadowEnabled = true;
+        }
+    }
 
     glUseProgram(Program);
 
@@ -1113,7 +1550,34 @@ void Renderer::EndFrame(
     bool Escaped
 )
 {
+    RenderShadowMap();
+
     glUseProgram(Program);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(
+        GL_TEXTURE_2D,
+        ShadowDepthTexture
+    );
+
+    glUniform1i(
+        ShadowMapLocation,
+        3
+    );
+
+    glUniform1i(
+        ShadowEnabledLocation,
+        ShadowEnabled ? 1 : 0
+    );
+
+    glUniformMatrix4fv(
+        ShadowMatrixLocation,
+        1,
+        GL_FALSE,
+        glm::value_ptr(
+            ShadowLightMatrix
+        )
+    );
 
     glUniformMatrix4fv(
         ViewLocation,
