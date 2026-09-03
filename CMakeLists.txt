@@ -82,6 +82,14 @@ target_link_libraries(BackroomsOffical PRIVATE
     OpenGL::GL
 )
 
+if(WIN32)
+    target_link_libraries(BackroomsOffical PRIVATE
+        winhttp
+        bcrypt
+        shell32
+    )
+endif()
+
 if(MSVC)
     target_compile_options(BackroomsOffical PRIVATE /W4 /permissive-)
 else()
@@ -113,3 +121,12 @@ add_custom_command(
             "${CMAKE_CURRENT_SOURCE_DIR}/assets"
             "$<TARGET_FILE_DIR:BackroomsOffical>/assets"
 )
+
+if(WIN32)
+    add_custom_command(
+        TARGET BackroomsOffical POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:SDL3::SDL3>"
+            "$<TARGET_FILE_DIR:BackroomsOffical>/SDL3.dll"
+    )
+endif()
