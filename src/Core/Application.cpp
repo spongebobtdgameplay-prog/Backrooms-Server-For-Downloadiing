@@ -174,6 +174,7 @@ void Application::SetMouseCaptured(bool Captured)
     }
 
     MouseCaptured = Captured;
+    Backrooms.OnMouseCaptureChanged(Captured);
 }
 
 void Application::HandleResize()
@@ -227,9 +228,6 @@ void Application::ProcessEvents()
 
         if (UpdateActive)
         {
-            if (MouseCaptured)
-                SetMouseCaptured(false);
-
             const bool Activate =
                 (
                     Event.type ==
@@ -278,43 +276,22 @@ void Application::ProcessEvents()
             continue;
         }
 
-        if (
-            Event.type == SDL_EVENT_KEY_DOWN &&
-            !Event.key.repeat &&
-            Event.key.scancode == SDL_SCANCODE_ESCAPE &&
-            MouseCaptured
-        )
-        {
-            SetMouseCaptured(false);
-        }
-
-        if (
-            Event.type ==
-            SDL_EVENT_MOUSE_BUTTON_DOWN &&
-            !MouseCaptured
-        )
-        {
-            SetMouseCaptured(true);
-        }
-
-        if (
-            Event.type == SDL_EVENT_KEY_DOWN &&
-            !Event.key.repeat &&
-            !MouseCaptured &&
-            (
-                Event.key.scancode == SDL_SCANCODE_RETURN ||
-                Event.key.scancode == SDL_SCANCODE_SPACE
-            )
-        )
-        {
-            SetMouseCaptured(true);
-        }
-
         Backrooms.HandleEvent(
             Event,
             MouseCaptured
         );
     }
+
+    const bool UpdateActive =
+        !UpdateBypassed &&
+        Updater.ShouldBlockGame();
+
+    const bool ShouldCapture =
+        !UpdateActive &&
+        Backrooms.ShouldCaptureMouse();
+
+    if (ShouldCapture != MouseCaptured)
+        SetMouseCaptured(ShouldCapture);
 }
 
 int Application::Run()
