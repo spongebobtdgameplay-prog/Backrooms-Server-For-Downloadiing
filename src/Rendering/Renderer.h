@@ -66,6 +66,9 @@ private:
 
     bool CreateShader();
     bool CreateCube();
+    bool CreateShadowResources();
+    void DestroyShadowResources();
+    void RenderShadowMap();
     GLuint CompileShader(GLenum Type, const char* Source);
     void DrawCrosshair();
     void DrawStamina(float Stamina);
@@ -106,6 +109,14 @@ private:
     GLint LightCountLocation = -1;
     GLint LightPositionLocation = -1;
     GLint LightColorLocation = -1;
+    GLint ShadowMatrixLocation = -1;
+    GLint ShadowMapLocation = -1;
+    GLint ShadowEnabledLocation = -1;
+
+    GLuint ShadowProgram = 0;
+    GLuint ShadowFramebuffer = 0;
+    GLuint ShadowDepthTexture = 0;
+    GLint ShadowDepthMatrixLocation = -1;
 
     uint32_t Width = 1600;
     uint32_t Height = 900;
@@ -113,6 +124,9 @@ private:
     glm::mat4 View{1.0f};
     glm::mat4 Projection{1.0f};
     glm::vec3 CameraPosition{0.0f};
+    glm::mat4 ShadowLightMatrix{1.0f};
+
+    bool ShadowEnabled = false;
 
     std::vector<InstanceData> Instances;
 
