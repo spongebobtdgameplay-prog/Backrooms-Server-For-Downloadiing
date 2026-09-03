@@ -2054,7 +2054,7 @@ void Renderer::DrawUpdateScreen(
     if (State.Stage == UpdateStage::Checking)
         Action = "PLEASE WAIT";
     else if (State.Stage == UpdateStage::UpdateAvailable)
-        Action = "PRESS ENTER TO OPEN DOWNLOAD";
+        Action = "UPDATE NEEDED  PRESS ENTER TO DOWNLOAD";
     else if (State.Stage == UpdateStage::Failed)
         Action = "ENTER RETRY   ESC PLAY OFFLINE";
 
