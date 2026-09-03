@@ -164,6 +164,16 @@ void AudioSystem::PlayDeath()
     if (!Started || !Engine)
         return;
 
+    if (std::filesystem::exists("assets/audio/entity-death.ogg"))
+    {
+        ma_engine_play_sound(
+            Engine,
+            "assets/audio/entity-death.ogg",
+            nullptr
+        );
+        return;
+    }
+
     if (std::filesystem::exists("assets/audio/death.wav"))
     {
         ma_engine_play_sound(
