@@ -118,7 +118,6 @@ void Game::Reset()
 
     InteractPressed = false;
     RestartPressed = false;
-    StartPressed = false;
 
     FrameCounter = 0;
     FpsWindowStart = 0.0f;
@@ -135,36 +134,97 @@ void Game::HandleEvent(
     bool MouseCaptured
 )
 {
-    if (!State.Started)
-    {
-        if (
-            Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN
-        )
-        {
-            StartPressed = true;
-        }
+    const bool KeyDown =
+        Event.type == SDL_EVENT_KEY_DOWN &&
+        !Event.key.repeat;
 
-        if (
-            Event.type == SDL_EVENT_KEY_DOWN &&
-            !Event.key.repeat &&
+    const bool Activate =
+        Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        (
+            KeyDown &&
             (
                 Event.key.scancode == SDL_SCANCODE_RETURN ||
                 Event.key.scancode == SDL_SCANCODE_SPACE
             )
+        );
+
+    if (State.MainMenuOpen)
+    {
+        if (
+            KeyDown &&
+            Event.key.scancode == SDL_SCANCODE_N &&
+            State.Started
         )
         {
-            StartPressed = true;
+            Reset();
+            State.Started = true;
+            State.MainMenuOpen = false;
+            State.Paused = false;
+            return;
+        }
+
+        if (Activate)
+        {
+            State.Started = true;
+            State.MainMenuOpen = false;
+            State.Paused = false;
         }
 
         return;
     }
 
-    GamePlayer.HandleEvent(Event, MouseCaptured);
+    if (State.Paused)
+    {
+        if (
+            KeyDown &&
+            Event.key.scancode == SDL_SCANCODE_M
+        )
+        {
+            State.Paused = false;
+            State.MainMenuOpen = true;
+            return;
+        }
+
+        if (
+            Activate ||
+            (
+                KeyDown &&
+                Event.key.scancode == SDL_SCANCODE_ESCAPE
+            )
+        )
+        {
+            State.Paused = false;
+        }
+
+        return;
+    }
 
     if (
-        Event.type == SDL_EVENT_KEY_DOWN &&
-        !Event.key.repeat
+        State.Started &&
+        !State.Ended &&
+        KeyDown &&
+        Event.key.scancode == SDL_SCANCODE_ESCAPE
     )
+    {
+        State.Paused = true;
+        return;
+    }
+
+    if (
+        State.Started &&
+        !State.Ended &&
+        KeyDown &&
+        Event.key.scancode == SDL_SCANCODE_M
+    )
+    {
+        State.MainMenuOpen = true;
+        State.Paused = false;
+        return;
+    }
+
+    GamePlayer.HandleEvent(Event, MouseCaptured);
+
+    if (KeyDown)
     {
         if (Event.key.scancode == SDL_SCANCODE_E)
             InteractPressed = true;
@@ -172,6 +232,20 @@ void Game::HandleEvent(
         if (Event.key.scancode == SDL_SCANCODE_R)
             RestartPressed = true;
     }
+}
+
+void Game::OnMouseCaptureChanged(bool Captured)
+{
+    GamePlayer.OnMouseCaptureChanged(Captured);
+}
+
+bool Game::ShouldCaptureMouse() const
+{
+    return
+        State.Started &&
+        !State.MainMenuOpen &&
+        !State.Paused &&
+        !State.Ended;
 }
 
 AABB Game::BreakerBounds(const Breaker& BreakerData) const
@@ -313,17 +387,15 @@ void Game::Update(
     bool MouseCaptured
 )
 {
-    if (!State.Started)
+    if (
+        !State.Started ||
+        State.MainMenuOpen ||
+        State.Paused
+    )
     {
-        if (StartPressed)
-        {
-            State.Started = true;
-            StartPressed = false;
-        }
-        else
-        {
-            return;
-        }
+        InteractPressed = false;
+        RestartPressed = false;
+        return;
     }
 
     if (State.Ended)
@@ -515,6 +587,8 @@ void Game::Render(float Time)
         DisplayedFps,
         Message,
         State.Started,
+        State.MainMenuOpen,
+        State.Paused,
         State.Ended,
         State.Escaped
     );
