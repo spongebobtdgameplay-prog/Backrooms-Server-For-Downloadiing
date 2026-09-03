@@ -11,6 +11,7 @@ public:
     void Reset(const glm::vec3& Position);
 
     void HandleEvent(const SDL_Event& Event, bool MouseCaptured);
+    void OnMouseCaptureChanged(bool Captured);
     void Update(
         float DeltaTime,
         const std::vector<AABB>& Colliders,
@@ -36,6 +37,8 @@ private:
 
     float MouseDeltaX = 0.0f;
     float MouseDeltaY = 0.0f;
+    bool MouseCapturedLastFrame = false;
+    int IgnoreMouseMotionEvents = 0;
 
     float Bob = 0.0f;
     float BobTime = 0.0f;
