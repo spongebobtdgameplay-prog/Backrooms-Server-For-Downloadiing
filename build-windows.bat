@@ -26,6 +26,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+if exist "build\_deps\sdl3-build\Release\SDL3.dll" (
+    copy /Y "build\_deps\sdl3-build\Release\SDL3.dll" "build\Release\SDL3.dll" >nul
+)
+
 echo.
 echo Build finished.
 echo EXE: build\Release\Backrooms Offical.exe
