@@ -57,6 +57,8 @@ public:
         float Fps,
         const std::string& Message,
         bool Started,
+        bool MainMenuOpen,
+        bool Paused,
         bool Ended,
         bool Escaped
     );
@@ -86,7 +88,8 @@ private:
         float Fps,
         const std::string& Message
     );
-    void DrawStartScreen();
+    void DrawStartScreen(bool HasSession);
+    void DrawPauseScreen();
     void DrawEndScreen(bool Escaped);
     void DrawText(
         const std::string& Text,
