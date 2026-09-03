@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(BackroomsNative VERSION 0.3.3 LANGUAGES C CXX)
+project(BackroomsOffical VERSION 0.3.4 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -68,14 +68,14 @@ if(APPLE)
     list(APPEND BACKROOMS_SOURCES "${BACKROOMS_MAC_ICON}")
 endif()
 
-add_executable(BackroomsNative ${BACKROOMS_SOURCES})
+add_executable(BackroomsOffical ${BACKROOMS_SOURCES})
 
-target_include_directories(BackroomsNative PRIVATE
+target_include_directories(BackroomsOffical PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${miniaudio_SOURCE_DIR}"
 )
 
-target_link_libraries(BackroomsNative PRIVATE
+target_link_libraries(BackroomsOffical PRIVATE
     SDL3::SDL3
     glm::glm
     BackroomsGlad
@@ -83,21 +83,23 @@ target_link_libraries(BackroomsNative PRIVATE
 )
 
 if(MSVC)
-    target_compile_options(BackroomsNative PRIVATE /W4 /permissive-)
+    target_compile_options(BackroomsOffical PRIVATE /W4 /permissive-)
 else()
-    target_compile_options(BackroomsNative PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(BackroomsOffical PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 if(WIN32)
-    set_target_properties(BackroomsNative PROPERTIES
+    set_target_properties(BackroomsOffical PROPERTIES
         WIN32_EXECUTABLE FALSE
+        OUTPUT_NAME "Backrooms Offical"
     )
 endif()
 
 if(APPLE)
-    set_target_properties(BackroomsNative PROPERTIES
+    set_target_properties(BackroomsOffical PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_BUNDLE_NAME "The Backrooms"
+        MACOSX_BUNDLE_BUNDLE_NAME "Backrooms Offical"
+        OUTPUT_NAME "Backrooms Offical"
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.spongebobtdgameplay.backrooms"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
@@ -106,8 +108,17 @@ if(APPLE)
 endif()
 
 add_custom_command(
-    TARGET BackroomsNative POST_BUILD
+    TARGET BackroomsOffical POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:BackroomsNative>/assets"
+            "$<TARGET_FILE_DIR:BackroomsOffical>/assets"
 )
+
+if(WIN32)
+    add_custom_command(
+        TARGET BackroomsOffical POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:SDL3::SDL3>"
+                "$<TARGET_FILE_DIR:BackroomsOffical>"
+    )
+endif()
