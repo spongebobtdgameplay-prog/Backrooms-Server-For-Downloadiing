@@ -1,4 +1,4 @@
-THE BACKROOMS NATIVE V0.3.2
+THE BACKROOMS NATIVE V0.3.3
 
 This package is the native C++ rewrite of the previous browser Level 0 prototype.
 
@@ -44,7 +44,7 @@ The source package is complete enough to build the current native prototype, but
 The old GLB entity models are not embedded in this ZIP. The native build currently renders the entity procedurally. That keeps the package self-contained while the native model loader is added later.
 
 VERSION
-0.3.2 Native
+0.3.3 Native
 
 
 GAME ICON
@@ -63,3 +63,8 @@ MACOS BUILD
 V0.3.2 BUILD FIX
 - GLAD CMake helper is loaded from glad/cmake so glad_add_library is available.
 - Windows build script now falls back to the standard CMake install path when PATH is stale.
+
+V0.3.3 BUILD STRUCTURE FIX
+- GLAD is now vendored directly under third_party/glad.
+- The build no longer depends on GLAD's Python generator or nested CMake helper structure.
+- This removes the glad_add_library configuration failure.
