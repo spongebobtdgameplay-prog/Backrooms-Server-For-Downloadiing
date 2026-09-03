@@ -62,7 +62,6 @@ bool Application::Initialize()
     SetMouseCaptured(false);
 
     Updater.Initialize(
-        ExecutableDirectory(),
         BuildVersion::UpdateManifestUrl,
         BuildVersion::Text
     );
@@ -276,35 +275,35 @@ void Application::ProcessEvents()
                 );
 
             if (
-                Updater.ReadyToApply() &&
+                Updater.HasUpdate() &&
                 Activate
             )
             {
-                if (Updater.LaunchApplyAndRestart())
-                    Running = false;
+                const std::string Url =
+                    Updater.DownloadUrl();
+
+                if (!Url.empty())
+                    SDL_OpenURL(Url.c_str());
 
                 continue;
             }
 
-            if (Updater.Failed())
+            if (Updater.Failed() && Activate)
             {
-                if (Activate)
-                {
-                    Updater.BeginCheck();
-                    continue;
-                }
+                Updater.BeginCheck();
+                continue;
+            }
 
-                if (
-                    Event.type ==
-                        SDL_EVENT_KEY_DOWN &&
-                    !Event.key.repeat &&
-                    Event.key.scancode ==
-                        SDL_SCANCODE_ESCAPE
-                )
-                {
-                    UpdateBypassed = true;
-                    continue;
-                }
+            if (
+                Event.type ==
+                    SDL_EVENT_KEY_DOWN &&
+                !Event.key.repeat &&
+                Event.key.scancode ==
+                    SDL_SCANCODE_ESCAPE
+            )
+            {
+                UpdateBypassed = true;
+                continue;
             }
 
             continue;
@@ -373,14 +372,6 @@ int Application::Run()
         );
 
         TotalTime += DeltaTime;
-
-        if (
-            !UpdateBypassed &&
-            Updater.HasUpdate()
-        )
-        {
-            Updater.BeginDownload();
-        }
 
         ProcessEvents();
 
