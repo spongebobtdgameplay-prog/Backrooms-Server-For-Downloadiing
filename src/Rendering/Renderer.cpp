@@ -866,7 +866,8 @@ void Renderer::DrawHud(
     int BreakersRequired,
     int InteractionType,
     bool CanExit,
-    float Fps
+    float Fps,
+    const std::string& Message
 )
 {
     const glm::vec3 Primary{0.92f, 0.89f, 0.65f};
@@ -920,6 +921,26 @@ void Renderer::DrawHud(
 
     if (InteractionType == 2)
         Prompt = CanExit ? "E  OPEN EXIT" : "EXIT HAS NO POWER";
+
+    if (!Message.empty())
+    {
+        const int MessageScale =
+            Width >= 1100 ? 4 : 3;
+
+        const int MessageWidth =
+            TextWidth(Message, MessageScale);
+
+        DrawText(
+            Message,
+            static_cast<int>(Width) / 2 -
+                MessageWidth / 2,
+            static_cast<int>(
+                static_cast<float>(Height) * 0.19f
+            ),
+            MessageScale,
+            {0.86f, 0.80f, 0.38f}
+        );
+    }
 
     if (!Prompt.empty())
     {
@@ -1086,6 +1107,7 @@ void Renderer::EndFrame(
     int InteractionType,
     bool CanExit,
     float Fps,
+    const std::string& Message,
     bool Started,
     bool Ended,
     bool Escaped
@@ -1156,6 +1178,7 @@ void Renderer::EndFrame(
         BreakersRequired,
         InteractionType,
         CanExit,
-        Fps
+        Fps,
+        Message
     );
 }
