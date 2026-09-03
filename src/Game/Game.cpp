@@ -123,6 +123,9 @@ void Game::Reset()
     FpsWindowStart = 0.0f;
     DisplayedFps = 0.0f;
 
+    Message.clear();
+    MessageTimer = 0.0f;
+
     UpdateTitle();
 }
 
@@ -264,7 +267,20 @@ void Game::Interact()
         State.ActivateBreaker();
 
         if (State.BreakersActive == 1)
+        {
             Hunter.Release();
+            Message = "SOMETHING HEARD THAT";
+        }
+        else if (State.CanExit())
+        {
+            Message = "EXIT POWER RESTORED";
+        }
+        else
+        {
+            Message = "BREAKER ONLINE";
+        }
+
+        MessageTimer = 1.7f;
 
         Audio.PlayShift();
         UpdateTitle();
@@ -352,6 +368,17 @@ void Game::Update(
             EndGame(false);
     }
 
+    if (MessageTimer > 0.0f)
+    {
+        MessageTimer = std::max(
+            0.0f,
+            MessageTimer - DeltaTime
+        );
+
+        if (MessageTimer <= 0.0f)
+            Message.clear();
+    }
+
     Audio.Update(EntityDistance);
     UpdateTitle();
 }
@@ -365,7 +392,7 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
         Boxes.push_back({
             BreakerData.Position + glm::vec3{0.0f, 1.35f, 0.0f},
             {0.7f, 1.0f, 0.18f},
-            {0.16f, 0.15f, 0.11f},
+            {0.0409f, 0.0382f, 0.0203f},
             {0.0f, 0.0f, 0.0f},
             0.8f
         });
@@ -374,11 +401,11 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
             BreakerData.Position + glm::vec3{0.0f, 1.35f, -0.14f},
             {0.18f, 0.34f, 0.1f},
             BreakerData.Active
-                ? glm::vec3{0.12f, 0.62f, 0.18f}
-                : glm::vec3{0.64f, 0.12f, 0.08f},
+                ? glm::vec3{0.0437f, 0.4564f, 0.0723f}
+                : glm::vec3{0.4735f, 0.0513f, 0.0273f},
             BreakerData.Active
-                ? glm::vec3{0.01f, 0.08f, 0.015f}
-                : glm::vec3{0.06f, 0.002f, 0.001f},
+                ? glm::vec3{0.00212f, 0.04667f, 0.00518f}
+                : glm::vec3{0.04231f, 0.00273f, 0.00121f},
             0.7f
         });
     }
@@ -386,7 +413,7 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
     Boxes.push_back({
         ExitPosition + glm::vec3{0.0f, 1.3f, 0.0f},
         {1.8f, 2.6f, 0.3f},
-        {0.09f, 0.09f, 0.065f},
+        {0.0185f, 0.0185f, 0.0116f},
         {0.0f, 0.0f, 0.0f},
         0.75f
     });
@@ -394,9 +421,9 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
     Boxes.push_back({
         ExitPosition + glm::vec3{0.0f, 1.18f, -0.2f},
         {1.38f, 2.25f, 0.08f},
-        {0.42f, 0.39f, 0.22f},
+        {0.2423f, 0.2159f, 0.0762f},
         State.CanExit()
-            ? glm::vec3{0.015f, 0.13f, 0.02f}
+            ? glm::vec3{0.00802f, 0.04667f, 0.00857f}
             : glm::vec3{0.0f},
         0.9f
     });
@@ -479,6 +506,7 @@ void Game::Render(float Time)
         InteractionType,
         State.CanExit(),
         DisplayedFps,
+        Message,
         State.Started,
         State.Ended,
         State.Escaped
