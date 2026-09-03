@@ -5,37 +5,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <filesystem>
-
-#ifdef _WIN32
-#define NOMINMAX
-#include <windows.h>
-#endif
-
-namespace
-{
-    std::filesystem::path ExecutableDirectory()
-    {
-#ifdef _WIN32
-        std::wstring Buffer;
-        Buffer.resize(32768);
-
-        const DWORD Length = GetModuleFileNameW(
-            nullptr,
-            Buffer.data(),
-            static_cast<DWORD>(Buffer.size())
-        );
-
-        if (Length > 0 && Length < Buffer.size())
-        {
-            Buffer.resize(Length);
-            return std::filesystem::path(Buffer).parent_path();
-        }
-#endif
-
-        return std::filesystem::current_path();
-    }
-}
 
 Application::~Application()
 {
