@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cctype>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
