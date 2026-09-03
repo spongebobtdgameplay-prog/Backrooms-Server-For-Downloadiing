@@ -4,4 +4,4 @@ set -e
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 
-echo "Build finished: build/BackroomsNative"
+echo "Build finished: build/Backrooms Offical"
