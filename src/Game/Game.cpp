@@ -117,6 +117,7 @@ void Game::Reset()
 
     InteractPressed = false;
     RestartPressed = false;
+    StartPressed = false;
 
     FrameCounter = 0;
     FpsWindowStart = 0.0f;
@@ -130,6 +131,30 @@ void Game::HandleEvent(
     bool MouseCaptured
 )
 {
+    if (!State.Started)
+    {
+        if (
+            Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN
+        )
+        {
+            StartPressed = true;
+        }
+
+        if (
+            Event.type == SDL_EVENT_KEY_DOWN &&
+            !Event.key.repeat &&
+            (
+                Event.key.scancode == SDL_SCANCODE_RETURN ||
+                Event.key.scancode == SDL_SCANCODE_SPACE
+            )
+        )
+        {
+            StartPressed = true;
+        }
+
+        return;
+    }
+
     GamePlayer.HandleEvent(Event, MouseCaptured);
 
     if (
@@ -272,6 +297,19 @@ void Game::Update(
     bool MouseCaptured
 )
 {
+    if (!State.Started)
+    {
+        if (StartPressed)
+        {
+            State.Started = true;
+            StartPressed = false;
+        }
+        else
+        {
+            return;
+        }
+    }
+
     if (State.Ended)
     {
         if (RestartPressed)
@@ -441,6 +479,7 @@ void Game::Render(float Time)
         InteractionType,
         State.CanExit(),
         DisplayedFps,
+        State.Started,
         State.Ended,
         State.Escaped
     );
