@@ -158,8 +158,8 @@ void WorldGenerator::AddWall(
     World.Boxes.push_back({
         Position,
         Size,
-        {0.86f, 0.82f, 0.53f},
-        {0.045f, 0.042f, 0.018f},
+        {0.5984f, 0.4937f, 0.1029f},
+        {0.01227f, 0.01090f, 0.00443f},
         0.99f,
         static_cast<int>(SurfaceMaterial::Wallpaper)
     });
@@ -178,8 +178,8 @@ void WorldGenerator::AddWall(
     World.Boxes.push_back({
         {X, 0.065f, Z},
         TrimSize,
-        {0.69f, 0.66f, 0.53f},
-        {0.015f, 0.014f, 0.01f},
+        {0.6240f, 0.5711f, 0.3864f},
+        {0.00327f, 0.00306f, 0.00193f},
         1.0f,
         static_cast<int>(SurfaceMaterial::Trim)
     });
@@ -195,8 +195,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
     World.Boxes.push_back({
         {CenterX, -0.06f, CenterZ},
         {Width, 0.12f, Depth},
-        {0.47f, 0.45f, 0.38f},
-        {0.008f, 0.008f, 0.006f},
+        {0.1904f, 0.1611f, 0.0884f},
+        {0.00412f, 0.00397f, 0.00290f},
         1.0f,
         static_cast<int>(SurfaceMaterial::Carpet)
     });
@@ -204,8 +204,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
     World.Boxes.push_back({
         {CenterX, World.WallHeight + 0.06f, CenterZ},
         {Width, 0.12f, Depth},
-        {0.78f, 0.76f, 0.65f},
-        {0.03f, 0.029f, 0.022f},
+        {0.5595f, 0.5004f, 0.2800f},
+        {0.01831f, 0.01674f, 0.00952f},
         0.97f,
         static_cast<int>(SurfaceMaterial::Ceiling)
     });
@@ -267,7 +267,7 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     World.WallHeight - 0.18f,
                     CellZ + OffsetZ
                 };
-                Light.Color = {1.0f, 0.93f, 0.72f};
+                Light.Color = {1.0f, 0.8796f, 0.5520f};
                 Light.BaseIntensity = 1.25f + Random() * 0.65f;
                 Light.FlickerSpeed = 20.0f + Random() * 22.0f;
                 Light.FlickerStrength = 0.015f + Random() * 0.055f;
@@ -287,8 +287,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     Rotate
                         ? glm::vec3{0.52f, 0.04f, 1.42f}
                         : glm::vec3{1.42f, 0.04f, 0.52f},
-                    {0.66f, 0.63f, 0.52f},
-                    {0.025f, 0.024f, 0.018f},
+                    {0.4793f, 0.4342f, 0.3185f},
+                    {0.00206f, 0.00191f, 0.00127f},
                     0.95f,
                     static_cast<int>(SurfaceMaterial::Fixture)
                 });
@@ -302,8 +302,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     Rotate
                         ? glm::vec3{0.34f, 0.022f, 1.19f}
                         : glm::vec3{1.19f, 0.022f, 0.34f},
-                    {1.0f, 0.94f, 0.74f},
-                    {0.52f, 0.47f, 0.31f},
+                    {1.0f, 0.9047f, 0.6240f},
+                    {0.0f, 0.0f, 0.0f},
                     0.8f,
                     static_cast<int>(SurfaceMaterial::LightPanel)
                 });
@@ -329,8 +329,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
             World.Boxes.push_back({
                 {ColumnX, World.WallHeight * 0.5f, ColumnZ},
                 {0.52f, World.WallHeight, 0.52f},
-                {0.86f, 0.82f, 0.53f},
-                {0.04f, 0.037f, 0.018f},
+                {0.5984f, 0.4937f, 0.1029f},
+                {0.01227f, 0.01090f, 0.00443f},
                 0.99f,
                 static_cast<int>(SurfaceMaterial::Wallpaper)
             });
