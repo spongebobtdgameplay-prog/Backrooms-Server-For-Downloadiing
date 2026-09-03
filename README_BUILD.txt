@@ -1,6 +1,6 @@
-THE BACKROOMS NATIVE V0.3.3
+BACKROOMS OFFICAL V0.3.4
 
-This package is the native C++ rewrite of the previous browser Level 0 prototype.
+This is the native desktop build of Backrooms Offical Level 0.
 
 WHAT IS INCLUDED
 - SDL3 native window and relative mouse input
@@ -28,7 +28,7 @@ WINDOWS BUILD
 2. Install CMake.
 3. Run build-windows.bat.
 4. First build downloads SDL3, GLM, GLAD and miniaudio.
-5. The executable appears at build\Release\BackroomsNative.exe.
+5. The executable appears at build\Release\Backrooms Offical.exe.
 
 CONTROLS
 WASD      Move
@@ -41,10 +41,10 @@ R         Restart after escaping or being caught
 IMPORTANT
 The source package is complete enough to build the current native prototype, but it has not been compiled inside ChatGPT's runtime because the external C++ dependencies are not installed here.
 
-The old GLB entity models are not embedded in this ZIP. The native build currently renders the entity procedurally. That keeps the package self-contained while the native model loader is added later.
+The original entity-ghost.glb and entity-demon.glb assets are restored under assets/models. The renderer restoration is bringing the native build back to the original Level 0 presentation instead of the temporary flat-box look.
 
 VERSION
-0.3.3 Native
+0.3.4
 
 
 GAME ICON
@@ -57,7 +57,7 @@ GAME ICON
 MACOS BUILD
 1. Install Xcode Command Line Tools and CMake.
 2. Run: ./build-macos.sh
-3. The app bundle is created at: build-macos/BackroomsNative.app
+3. The app bundle is created at: build-macos/Backrooms Offical.app
 4. Current script targets Apple Silicon arm64.
 
 V0.3.2 BUILD FIX
@@ -68,3 +68,12 @@ V0.3.3 BUILD STRUCTURE FIX
 - GLAD is now vendored directly under third_party/glad.
 - The build no longer depends on GLAD's Python generator or nested CMake helper structure.
 - This removes the glad_add_library configuration failure.
+
+V0.3.4 PRESENTATION RESTORATION
+- Game/executable/window renamed to Backrooms Offical.
+- Original entity GLB files restored from Backrooms-Offical.
+- Original entity death/laugh audio files restored.
+- Procedural Level 0 wallpaper, carpet, ceiling tiles and fixture variation restored in the native shader.
+- Native HUD restored: Level 0, objective, FPS, version, prompts and sprint.
+- Native end screen restored.
+- Windows build now copies SDL3.dll beside the executable automatically.
