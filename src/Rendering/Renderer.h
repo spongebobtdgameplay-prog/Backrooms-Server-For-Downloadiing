@@ -48,6 +48,7 @@ public:
         int InteractionType,
         bool CanExit,
         float Fps,
+        bool Started,
         bool Ended,
         bool Escaped
     );
@@ -73,6 +74,7 @@ private:
         bool CanExit,
         float Fps
     );
+    void DrawStartScreen();
     void DrawEndScreen(bool Escaped);
     void DrawText(
         const std::string& Text,
