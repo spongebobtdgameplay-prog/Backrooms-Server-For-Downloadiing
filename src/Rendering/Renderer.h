@@ -40,6 +40,7 @@ private:
         glm::mat4 Model{1.0f};
         glm::vec4 Color{1.0f};
         glm::vec4 EmissiveRoughness{0.0f};
+        glm::vec4 SurfaceData{0.0f};
     };
 
     bool CreateShader();
