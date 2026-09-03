@@ -76,5 +76,9 @@ private:
     bool InteractPressed = false;
     bool RestartPressed = false;
 
+    int FrameCounter = 0;
+    float FpsWindowStart = 0.0f;
+    float DisplayedFps = 0.0f;
+
     std::string Title = "Backrooms Offical";
 };
