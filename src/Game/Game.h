@@ -14,6 +14,8 @@
 #include <string>
 #include <vector>
 
+struct UpdateVisualState;
+
 class Game
 {
 public:
@@ -33,6 +35,7 @@ public:
     );
 
     void Render(float Time);
+    void RenderUpdateScreen(const UpdateVisualState& State);
 
     const std::string& WindowTitle() const;
 
