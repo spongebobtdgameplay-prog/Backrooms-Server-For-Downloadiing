@@ -5,7 +5,7 @@ struct GameState
     int BreakersRequired = 3;
     int BreakersActive = 0;
 
-    bool Started = true;
+    bool Started = false;
     bool Ended = false;
     bool Escaped = false;
     bool EntityReleased = false;
