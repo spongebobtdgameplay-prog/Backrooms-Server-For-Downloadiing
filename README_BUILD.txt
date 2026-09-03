@@ -1,4 +1,4 @@
-BACKROOMS OFFICAL V0.3.4
+BACKROOMS OFFICAL V0.3.5
 
 This is the native desktop build of Backrooms Offical Level 0.
 
@@ -44,7 +44,7 @@ The source package is complete enough to build the current native prototype, but
 The original entity-ghost.glb and entity-demon.glb assets are restored under assets/models. The renderer restoration is bringing the native build back to the original Level 0 presentation instead of the temporary flat-box look.
 
 VERSION
-0.3.4
+0.3.5
 
 
 GAME ICON
@@ -77,3 +77,10 @@ V0.3.4 PRESENTATION RESTORATION
 - Native HUD restored: Level 0, objective, FPS, version, prompts and sprint.
 - Native end screen restored.
 - Windows build now copies SDL3.dll beside the executable automatically.
+
+V0.3.5 LEVEL 0 VISUAL PARITY
+- Rebalanced ambient and hemisphere lighting to match the original web build.
+- Restored the original five-nearest-fluorescent light pool behavior.
+- Corrected fog from linear space so distance haze matches the original #b7b08b look.
+- Matched the original wallpaper stripe scale and motif spacing more closely.
+- Matched wall, carpet, ceiling, trim, fixture and fluorescent-panel material colors to the original Level 0 build.
