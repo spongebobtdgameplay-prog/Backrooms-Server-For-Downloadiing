@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+struct UpdateVisualState;
+
 class Renderer
 {
 public:
@@ -40,6 +42,10 @@ public:
         const glm::vec3& Position,
         const glm::vec3& Forward,
         bool DemonForm
+    );
+
+    void DrawUpdateScreen(
+        const UpdateVisualState& State
     );
 
     void EndFrame(
