@@ -405,7 +405,7 @@ void Game::UpdateTitle()
 {
     std::ostringstream Stream;
 
-    Stream << "THE BACKROOMS | V0.3.1 | ";
+    Stream << "THE BACKROOMS | V0.3.2 | ";
 
     if (State.Ended)
     {
