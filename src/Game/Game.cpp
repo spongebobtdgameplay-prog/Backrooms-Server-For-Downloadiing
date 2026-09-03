@@ -363,14 +363,17 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
         0.9f
     });
 
-    const std::vector<SceneBox> EntityBoxes =
-        Hunter.BuildRenderBoxes();
+    if (!GameRenderer.HasEntityModels())
+    {
+        const std::vector<SceneBox> EntityBoxes =
+            Hunter.BuildRenderBoxes();
 
-    Boxes.insert(
-        Boxes.end(),
-        EntityBoxes.begin(),
-        EntityBoxes.end()
-    );
+        Boxes.insert(
+            Boxes.end(),
+            EntityBoxes.begin(),
+            EntityBoxes.end()
+        );
+    }
 
     return Boxes;
 }
@@ -418,6 +421,18 @@ void Game::Render(float Time)
         BuildDynamicBoxes();
 
     GameRenderer.DrawBoxes(Dynamic);
+
+    if (
+        Hunter.IsActive() &&
+        GameRenderer.HasEntityModels()
+    )
+    {
+        GameRenderer.DrawEntity(
+            Hunter.Position(),
+            Hunter.Forward(),
+            Hunter.IsDemonForm()
+        );
+    }
 
     GameRenderer.EndFrame(
         GamePlayer.Stamina(),
