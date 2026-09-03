@@ -5,6 +5,37 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
+
+namespace
+{
+    std::filesystem::path ExecutableDirectory()
+    {
+#ifdef _WIN32
+        std::wstring Buffer;
+        Buffer.resize(32768);
+
+        const DWORD Length = GetModuleFileNameW(
+            nullptr,
+            Buffer.data(),
+            static_cast<DWORD>(Buffer.size())
+        );
+
+        if (Length > 0 && Length < Buffer.size())
+        {
+            Buffer.resize(Length);
+            return std::filesystem::path(Buffer).parent_path();
+        }
+#endif
+
+        return std::filesystem::current_path();
+    }
+}
 
 Application::~Application()
 {
@@ -31,6 +62,7 @@ bool Application::Initialize()
     SetMouseCaptured(false);
 
     Updater.Initialize(
+        ExecutableDirectory(),
         BuildVersion::UpdateManifestUrl,
         BuildVersion::Text
     );
@@ -223,34 +255,28 @@ void Application::ProcessEvents()
         }
 
         const bool UpdateActive =
-            !UpdateBypassed &&
             Updater.ShouldBlockGame();
 
         if (UpdateActive)
         {
+            if (MouseCaptured)
+                SetMouseCaptured(false);
+
             const bool Activate =
+                Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
                 (
-                    Event.type ==
-                    SDL_EVENT_MOUSE_BUTTON_DOWN
-                ) ||
-                (
-                    Event.type ==
-                    SDL_EVENT_KEY_DOWN &&
+                    Event.type == SDL_EVENT_KEY_DOWN &&
                     !Event.key.repeat &&
-                    Event.key.scancode ==
-                        SDL_SCANCODE_RETURN
+                    Event.key.scancode == SDL_SCANCODE_RETURN
                 );
 
             if (
-                Updater.HasUpdate() &&
+                Updater.ReadyToInstall() &&
                 Activate
             )
             {
-                const std::string Url =
-                    Updater.DownloadUrl();
-
-                if (!Url.empty())
-                    SDL_OpenURL(Url.c_str());
+                if (Updater.LaunchInstaller())
+                    Running = false;
 
                 continue;
             }
@@ -258,18 +284,6 @@ void Application::ProcessEvents()
             if (Updater.Failed() && Activate)
             {
                 Updater.BeginCheck();
-                continue;
-            }
-
-            if (
-                Event.type ==
-                    SDL_EVENT_KEY_DOWN &&
-                !Event.key.repeat &&
-                Event.key.scancode ==
-                    SDL_SCANCODE_ESCAPE
-            )
-            {
-                UpdateBypassed = true;
                 continue;
             }
 
@@ -282,12 +296,8 @@ void Application::ProcessEvents()
         );
     }
 
-    const bool UpdateActive =
-        !UpdateBypassed &&
-        Updater.ShouldBlockGame();
-
     const bool ShouldCapture =
-        !UpdateActive &&
+        !Updater.ShouldBlockGame() &&
         Backrooms.ShouldCaptureMouse();
 
     if (ShouldCapture != MouseCaptured)
@@ -324,8 +334,10 @@ int Application::Run()
         if (!Running)
             break;
 
+        if (Updater.HasUpdate())
+            Updater.BeginDownload();
+
         const bool UpdateActive =
-            !UpdateBypassed &&
             Updater.ShouldBlockGame();
 
         if (UpdateActive)
