@@ -321,8 +321,8 @@ void UpdaterService::CheckWorker()
         std::scoped_lock Lock(Mutex);
 
         CurrentStage = UpdateStage::UpdateAvailable;
-        Headline = "UPDATE AVAILABLE";
-        Message = "PRESS ENTER TO GET THE NEW BUILD";
+        Headline = "UPDATE NEEDED";
+        Message = "YOUR VERSION IS OUTDATED  UPDATE REQUIRED";
     }
 #else
     std::scoped_lock Lock(Mutex);
