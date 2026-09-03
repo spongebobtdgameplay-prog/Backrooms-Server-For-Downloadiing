@@ -118,6 +118,10 @@ void Game::Reset()
     InteractPressed = false;
     RestartPressed = false;
 
+    FrameCounter = 0;
+    FpsWindowStart = 0.0f;
+    DisplayedFps = 0.0f;
+
     UpdateTitle();
 }
 
@@ -373,6 +377,23 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
 
 void Game::Render(float Time)
 {
+    ++FrameCounter;
+
+    if (FpsWindowStart <= 0.0f)
+        FpsWindowStart = Time;
+
+    const float FpsElapsed = Time - FpsWindowStart;
+
+    if (FpsElapsed >= 0.5f)
+    {
+        DisplayedFps =
+            static_cast<float>(FrameCounter) /
+            std::max(FpsElapsed, 0.001f);
+
+        FrameCounter = 0;
+        FpsWindowStart = Time;
+    }
+
     GameRenderer.BeginFrame();
 
     const float Aspect =
@@ -398,44 +419,29 @@ void Game::Render(float Time)
 
     GameRenderer.DrawBoxes(Dynamic);
 
-    GameRenderer.EndFrame(GamePlayer.Stamina());
+    GameRenderer.EndFrame(
+        GamePlayer.Stamina(),
+        State.BreakersActive,
+        State.BreakersRequired,
+        InteractionType,
+        State.CanExit(),
+        DisplayedFps,
+        State.Ended,
+        State.Escaped
+    );
 }
 
 void Game::UpdateTitle()
 {
     std::ostringstream Stream;
-
-    Stream << "Backrooms Offical | V0.3.4 | ";
+    Stream << "Backrooms Offical | V0.3.4";
 
     if (State.Ended)
     {
         Stream << (
             State.Escaped
-                ? "YOU ESCAPED"
-                : "YOU WERE FOUND"
-        );
-
-        Stream << " | R = NEW SESSION";
-
-        Title = Stream.str();
-        return;
-    }
-
-    Stream
-        << "RESTORE POWER "
-        << State.BreakersActive
-        << "/"
-        << State.BreakersRequired;
-
-    if (InteractionType == 1)
-        Stream << " | E = ACTIVATE BREAKER";
-
-    if (InteractionType == 2)
-    {
-        Stream << (
-            State.CanExit()
-                ? " | E = OPEN EXIT"
-                : " | EXIT HAS NO POWER"
+                ? " | YOU ESCAPED"
+                : " | YOU WERE FOUND"
         );
     }
 
