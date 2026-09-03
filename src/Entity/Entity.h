@@ -22,6 +22,11 @@ public:
     float DistanceTo(const glm::vec3& Point) const;
     std::vector<SceneBox> BuildRenderBoxes() const;
 
+    bool IsActive() const { return Active; }
+    bool IsDemonForm() const { return DemonForm; }
+    const glm::vec3& Position() const { return EntityPosition; }
+    const glm::vec3& Forward() const { return Direction; }
+
 private:
     int CellIndex(
         const glm::vec3& Position,
