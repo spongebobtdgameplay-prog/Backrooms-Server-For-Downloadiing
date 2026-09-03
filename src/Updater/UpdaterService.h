@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
 #include <filesystem>
 #include <mutex>
 #include <string>
@@ -11,6 +13,9 @@ enum class UpdateStage
     Checking,
     UpToDate,
     UpdateAvailable,
+    Downloading,
+    Verifying,
+    ReadyToInstall,
     Failed
 };
 
@@ -25,6 +30,10 @@ struct UpdateVisualState
     std::string Message;
     std::string PackageName;
     std::string ReleaseNotes;
+
+    float Progress = 0.0f;
+    std::uint64_t DownloadedBytes = 0;
+    std::uint64_t TotalBytes = 0;
 };
 
 class UpdaterService
@@ -37,58 +46,74 @@ public:
     UpdaterService& operator=(const UpdaterService&) = delete;
 
     void Initialize(
+        const std::filesystem::path& InstallDirectory,
         const std::wstring& ManifestUrl,
         const std::string& CurrentVersion
     );
 
     void Shutdown();
+
     void BeginCheck();
+    void BeginDownload();
 
     UpdateStage Stage() const;
     UpdateVisualState VisualState() const;
 
     bool ShouldBlockGame() const;
     bool HasUpdate() const;
+    bool ReadyToInstall() const;
     bool Failed() const;
 
-    std::string DownloadUrl() const;
+    bool LaunchInstaller() const;
 
 private:
     void JoinWorker();
     void CheckWorker();
+    void DownloadWorker();
 
     bool DownloadText(
         const std::wstring& Url,
         std::string& OutText
     ) const;
 
+    bool DownloadPackage(
+        const std::wstring& Url,
+        const std::filesystem::path& Destination
+    );
+
     bool ParseManifest(const std::string& Text);
+    bool VerifyDownloadedPackage() const;
 
-    void SetFailure(
-        const std::string& Message
-    );
+    void SetFailure(const std::string& Message);
 
-    static int ParseVersion(
-        const std::string& Version
-    );
+    static int ParseVersion(const std::string& Version);
+    static std::string Trim(const std::string& Text);
+    static std::wstring Utf8ToWide(const std::string& Text);
+    static std::string Sha256File(const std::filesystem::path& Path);
 
-    static std::string Trim(
-        const std::string& Text
-    );
+    std::filesystem::path InstallDirectory;
+    std::filesystem::path TempDirectory;
+    std::filesystem::path PendingPackage;
 
     std::wstring ManifestUrl;
 
     mutable std::mutex Mutex;
     std::thread Worker;
+    mutable std::atomic<bool> CancelRequested{false};
 
     UpdateStage CurrentStage = UpdateStage::Idle;
 
     std::string CurrentVersion;
     std::string RemoteVersion;
     std::string PackageName;
-    std::string PackageUrl;
+    std::wstring PackageUrl;
+    std::string PackageSha256;
     std::string ReleaseNotes;
 
     std::string Headline;
     std::string Message;
+
+    float Progress = 0.0f;
+    std::uint64_t DownloadedBytes = 0;
+    std::uint64_t TotalBytes = 0;
 };
