@@ -9,4 +9,4 @@ cmake --build build-macos -j
 
 echo
 echo "Build finished."
-echo "App bundle: build-macos/BackroomsNative.app"
+echo "App bundle: build-macos/Backrooms Offical.app"
