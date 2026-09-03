@@ -160,7 +160,8 @@ void WorldGenerator::AddWall(
         Size,
         {0.86f, 0.82f, 0.53f},
         {0.045f, 0.042f, 0.018f},
-        0.99f
+        0.99f,
+        static_cast<int>(SurfaceMaterial::Wallpaper)
     });
 
     World.Colliders.push_back({
@@ -179,7 +180,8 @@ void WorldGenerator::AddWall(
         TrimSize,
         {0.69f, 0.66f, 0.53f},
         {0.015f, 0.014f, 0.01f},
-        1.0f
+        1.0f,
+        static_cast<int>(SurfaceMaterial::Trim)
     });
 }
 
@@ -195,7 +197,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
         {Width, 0.12f, Depth},
         {0.47f, 0.45f, 0.38f},
         {0.008f, 0.008f, 0.006f},
-        1.0f
+        1.0f,
+        static_cast<int>(SurfaceMaterial::Carpet)
     });
 
     World.Boxes.push_back({
@@ -203,7 +206,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
         {Width, 0.12f, Depth},
         {0.78f, 0.76f, 0.65f},
         {0.03f, 0.029f, 0.022f},
-        0.97f
+        0.97f,
+        static_cast<int>(SurfaceMaterial::Ceiling)
     });
 
     for (int Z = 0; Z < World.Rows; ++Z)
@@ -285,7 +289,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                         : glm::vec3{1.42f, 0.04f, 0.52f},
                     {0.66f, 0.63f, 0.52f},
                     {0.025f, 0.024f, 0.018f},
-                    0.95f
+                    0.95f,
+                    static_cast<int>(SurfaceMaterial::Fixture)
                 });
 
                 World.Boxes.push_back({
@@ -299,7 +304,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                         : glm::vec3{1.19f, 0.022f, 0.34f},
                     {1.0f, 0.94f, 0.74f},
                     {0.52f, 0.47f, 0.31f},
-                    0.8f
+                    0.8f,
+                    static_cast<int>(SurfaceMaterial::LightPanel)
                 });
             }
         }
@@ -325,7 +331,8 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                 {0.52f, World.WallHeight, 0.52f},
                 {0.86f, 0.82f, 0.53f},
                 {0.04f, 0.037f, 0.018f},
-                0.99f
+                0.99f,
+                static_cast<int>(SurfaceMaterial::Wallpaper)
             });
 
             World.Colliders.push_back({
