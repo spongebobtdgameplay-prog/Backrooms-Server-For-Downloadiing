@@ -1,9 +1,41 @@
 #include "Application.h"
+#include "Version.h"
 
 #include <glad/gl.h>
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
+
+namespace
+{
+    std::filesystem::path ExecutableDirectory()
+    {
+#ifdef _WIN32
+        std::wstring Buffer;
+        Buffer.resize(32768);
+
+        const DWORD Length = GetModuleFileNameW(
+            nullptr,
+            Buffer.data(),
+            static_cast<DWORD>(Buffer.size())
+        );
+
+        if (Length > 0 && Length < Buffer.size())
+        {
+            Buffer.resize(Length);
+            return std::filesystem::path(Buffer).parent_path();
+        }
+#endif
+
+        return std::filesystem::current_path();
+    }
+}
 
 Application::~Application()
 {
@@ -28,6 +60,13 @@ bool Application::Initialize()
     }
 
     SetMouseCaptured(false);
+
+    Updater.Initialize(
+        ExecutableDirectory(),
+        BuildVersion::UpdateManifestUrl,
+        BuildVersion::Text
+    );
+    Updater.BeginCheck();
 
     CounterFrequency =
         static_cast<double>(SDL_GetPerformanceFrequency());
@@ -214,6 +253,63 @@ void Application::ProcessEvents()
             HandleResize();
         }
 
+        const bool UpdateActive =
+            !UpdateBypassed &&
+            Updater.ShouldBlockGame();
+
+        if (UpdateActive)
+        {
+            if (MouseCaptured)
+                SetMouseCaptured(false);
+
+            const bool Activate =
+                (
+                    Event.type ==
+                    SDL_EVENT_MOUSE_BUTTON_DOWN
+                ) ||
+                (
+                    Event.type ==
+                    SDL_EVENT_KEY_DOWN &&
+                    !Event.key.repeat &&
+                    Event.key.scancode ==
+                        SDL_SCANCODE_RETURN
+                );
+
+            if (
+                Updater.ReadyToApply() &&
+                Activate
+            )
+            {
+                if (Updater.LaunchApplyAndRestart())
+                    Running = false;
+
+                continue;
+            }
+
+            if (Updater.Failed())
+            {
+                if (Activate)
+                {
+                    Updater.BeginCheck();
+                    continue;
+                }
+
+                if (
+                    Event.type ==
+                        SDL_EVENT_KEY_DOWN &&
+                    !Event.key.repeat &&
+                    Event.key.scancode ==
+                        SDL_SCANCODE_ESCAPE
+                )
+                {
+                    UpdateBypassed = true;
+                    continue;
+                }
+            }
+
+            continue;
+        }
+
         if (
             Event.type == SDL_EVENT_KEY_DOWN &&
             !Event.key.repeat &&
@@ -278,14 +374,38 @@ int Application::Run()
 
         TotalTime += DeltaTime;
 
+        if (
+            !UpdateBypassed &&
+            Updater.HasUpdate()
+        )
+        {
+            Updater.BeginDownload();
+        }
+
         ProcessEvents();
 
-        Backrooms.Update(
-            DeltaTime,
-            MouseCaptured
-        );
+        if (!Running)
+            break;
 
-        Backrooms.Render(TotalTime);
+        const bool UpdateActive =
+            !UpdateBypassed &&
+            Updater.ShouldBlockGame();
+
+        if (UpdateActive)
+        {
+            Backrooms.RenderUpdateScreen(
+                Updater.VisualState()
+            );
+        }
+        else
+        {
+            Backrooms.Update(
+                DeltaTime,
+                MouseCaptured
+            );
+
+            Backrooms.Render(TotalTime);
+        }
 
         SDL_SetWindowTitle(
             Window,
@@ -305,6 +425,7 @@ void Application::Shutdown()
     if (!Window && !GLContext)
         return;
 
+    Updater.Shutdown();
     Backrooms.Shutdown();
 
     if (GLContext)
