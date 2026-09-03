@@ -1474,100 +1474,367 @@ void Renderer::DrawHud(
     }
 }
 
-void Renderer::DrawStartScreen()
+void Renderer::DrawStartScreen(bool HasSession)
 {
+    const glm::vec3 Background{
+        0.784f,
+        0.733f,
+        0.380f
+    };
+
+    const glm::vec3 WallpaperBand{
+        0.748f,
+        0.690f,
+        0.330f
+    };
+
+    const glm::vec3 Ink{
+        0.153f,
+        0.137f,
+        0.059f
+    };
+
+    const glm::vec3 Muted{
+        0.255f,
+        0.225f,
+        0.083f
+    };
+
     DrawRect(
         0,
         0,
         static_cast<int>(Width),
         static_cast<int>(Height),
-        {0.035f, 0.033f, 0.020f}
+        Background
     );
 
-    const glm::vec3 Primary{0.90f, 0.85f, 0.55f};
-    const glm::vec3 Muted{0.49f, 0.46f, 0.30f};
-    const glm::vec3 Panel{0.085f, 0.080f, 0.048f};
+    for (
+        int X = 24;
+        X < static_cast<int>(Width);
+        X += 24
+    )
+    {
+        DrawRect(
+            X,
+            0,
+            1,
+            static_cast<int>(Height),
+            WallpaperBand
+        );
+    }
 
-    DrawText("BACKROOMS OFFICAL", 46, 42, 4, Primary);
+    const int Margin = 34;
 
     DrawText(
-        std::string("V") + BuildVersion::Text,
-        48,
-        72,
+        "THE BACKROOMS",
+        Margin,
+        28,
         2,
         Muted
     );
 
-    const int CardWidth =
-        std::min(700, static_cast<int>(Width) - 92);
+    const std::string Version =
+        std::string("V") +
+        BuildVersion::Text;
 
-    const int CardHeight = 260;
-    const int CardX = 46;
-    const int CardY =
+    const int VersionWidth =
+        TextWidth(Version, 2);
+
+    DrawText(
+        Version,
+        static_cast<int>(Width) / 2 -
+            VersionWidth / 2,
+        28,
+        2,
+        Muted
+    );
+
+    const std::string Status =
+        HasSession
+            ? "SESSION ACTIVE"
+            : "UNSTABLE SESSION";
+
+    const int StatusWidth =
+        TextWidth(Status, 2);
+
+    DrawText(
+        Status,
+        static_cast<int>(Width) -
+            Margin -
+            StatusWidth,
+        28,
+        2,
+        Muted
+    );
+
+    const int ContentX =
         std::max(
-            112,
-            static_cast<int>(Height) / 2 - 130
+            34,
+            static_cast<int>(
+                static_cast<float>(Width) *
+                0.07f
+            )
         );
 
-    DrawRect(
-        CardX,
-        CardY,
-        CardWidth,
-        CardHeight,
-        Panel
-    );
-
-    DrawText("LEVEL 0", CardX + 28, CardY + 28, 3, Muted);
-    DrawText("THE LOBBY", CardX + 28, CardY + 56, 5, Primary);
+    const int ContentY =
+        std::max(
+            150,
+            static_cast<int>(
+                static_cast<float>(Height) *
+                0.39f
+            )
+        );
 
     DrawText(
-        "RESTORE THREE BREAKERS",
-        CardX + 28,
-        CardY + 108,
-        2,
-        Muted
-    );
-
-    DrawText(
-        "FIND THE POWERED EXIT",
-        CardX + 28,
-        CardY + 128,
-        2,
-        Muted
-    );
-
-    const std::string Start = "CLICK OR ENTER TO START";
-    const int StartWidth = TextWidth(Start, 3);
-
-    DrawRect(
-        CardX + 28,
-        CardY + 170,
-        StartWidth + 26,
-        34,
-        {0.19f, 0.17f, 0.085f}
-    );
-
-    DrawText(
-        Start,
-        CardX + 41,
-        CardY + 179,
+        "LEVEL 0",
+        ContentX,
+        ContentY,
         3,
-        Primary
+        Muted
+    );
+
+    DrawRect(
+        ContentX,
+        ContentY + 24,
+        112,
+        1,
+        Muted
+    );
+
+    const int LobbyScale =
+        Width >= 1300 ? 10 :
+        Width >= 900 ? 8 : 6;
+
+    DrawText(
+        "THE LOBBY",
+        ContentX,
+        ContentY + 46,
+        LobbyScale,
+        Ink
     );
 
     DrawText(
-        "WASD  SHIFT  MOUSE  E",
-        CardX + 28,
-        CardY + 224,
+        "MONO YELLOW ROOMS DAMP CARPET",
+        ContentX,
+        ContentY + 118,
         2,
         Muted
     );
 
-    const std::string Cursor = "ESC RELEASES CURSOR";
     DrawText(
-        Cursor,
-        48,
-        static_cast<int>(Height) - 42,
+        "RESTORE THREE BREAKERS AND FIND THE POWERED EXIT",
+        ContentX,
+        ContentY + 140,
+        2,
+        Muted
+    );
+
+    const std::string PrimaryAction =
+        HasSession
+            ? "ENTER  RESUME SESSION"
+            : "ENTER  ENTER LEVEL 0";
+
+    DrawRect(
+        ContentX,
+        ContentY + 188,
+        360,
+        1,
+        Muted
+    );
+
+    DrawText(
+        PrimaryAction,
+        ContentX,
+        ContentY + 204,
+        3,
+        Ink
+    );
+
+    DrawRect(
+        ContentX,
+        ContentY + 232,
+        360,
+        1,
+        Muted
+    );
+
+    if (HasSession)
+    {
+        DrawText(
+            "N  NEW SESSION",
+            ContentX,
+            ContentY + 250,
+            2,
+            Muted
+        );
+    }
+    else
+    {
+        DrawText(
+            "WASD  SHIFT  MOUSE  E",
+            ContentX,
+            ContentY + 250,
+            2,
+            Muted
+        );
+    }
+
+    DrawText(
+        "NOCLIP DESTINATION",
+        Margin,
+        static_cast<int>(Height) - 30,
+        2,
+        Muted
+    );
+
+    const std::string Footer =
+        "ESC PAUSE   M MAIN MENU";
+
+    const int FooterWidth =
+        TextWidth(Footer, 2);
+
+    DrawText(
+        Footer,
+        static_cast<int>(Width) -
+            Margin -
+            FooterWidth,
+        static_cast<int>(Height) - 30,
+        2,
+        Muted
+    );
+}
+
+void Renderer::DrawPauseScreen()
+{
+    const glm::vec3 Background{
+        0.784f,
+        0.733f,
+        0.380f
+    };
+
+    const glm::vec3 WallpaperBand{
+        0.748f,
+        0.690f,
+        0.330f
+    };
+
+    const glm::vec3 Ink{
+        0.153f,
+        0.137f,
+        0.059f
+    };
+
+    const glm::vec3 Muted{
+        0.255f,
+        0.225f,
+        0.083f
+    };
+
+    DrawRect(
+        0,
+        0,
+        static_cast<int>(Width),
+        static_cast<int>(Height),
+        Background
+    );
+
+    for (
+        int X = 24;
+        X < static_cast<int>(Width);
+        X += 24
+    )
+    {
+        DrawRect(
+            X,
+            0,
+            1,
+            static_cast<int>(Height),
+            WallpaperBand
+        );
+    }
+
+    const int ContentX =
+        std::max(
+            34,
+            static_cast<int>(
+                static_cast<float>(Width) *
+                0.07f
+            )
+        );
+
+    const int ContentY =
+        std::max(
+            150,
+            static_cast<int>(
+                static_cast<float>(Height) *
+                0.42f
+            )
+        );
+
+    DrawText(
+        "THE BACKROOMS",
+        34,
+        28,
+        2,
+        Muted
+    );
+
+    DrawText(
+        "LEVEL 0",
+        ContentX,
+        ContentY,
+        3,
+        Muted
+    );
+
+    const int TitleScale =
+        Width >= 1200 ? 9 :
+        Width >= 900 ? 7 : 5;
+
+    DrawText(
+        "SESSION PAUSED",
+        ContentX,
+        ContentY + 42,
+        TitleScale,
+        Ink
+    );
+
+    DrawRect(
+        ContentX,
+        ContentY + 132,
+        410,
+        1,
+        Muted
+    );
+
+    DrawText(
+        "ENTER  RESUME",
+        ContentX,
+        ContentY + 150,
+        3,
+        Ink
+    );
+
+    DrawRect(
+        ContentX,
+        ContentY + 180,
+        410,
+        1,
+        Muted
+    );
+
+    DrawText(
+        "M  MAIN MENU",
+        ContentX,
+        ContentY + 200,
+        3,
+        Ink
+    );
+
+    DrawText(
+        "ESC ALSO RESUMES",
+        ContentX,
+        ContentY + 246,
         2,
         Muted
     );
@@ -1878,6 +2145,8 @@ void Renderer::EndFrame(
     float Fps,
     const std::string& Message,
     bool Started,
+    bool MainMenuOpen,
+    bool Paused,
     bool Ended,
     bool Escaped
 )
@@ -1955,9 +2224,21 @@ void Renderer::EndFrame(
 
     glBindVertexArray(0);
 
+    if (MainMenuOpen)
+    {
+        DrawStartScreen(Started);
+        return;
+    }
+
+    if (Paused)
+    {
+        DrawPauseScreen();
+        return;
+    }
+
     if (!Started)
     {
-        DrawStartScreen();
+        DrawStartScreen(false);
         return;
     }
 
