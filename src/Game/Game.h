@@ -29,6 +29,9 @@ public:
         bool MouseCaptured
     );
 
+    void OnMouseCaptureChanged(bool Captured);
+    bool ShouldCaptureMouse() const;
+
     void Update(
         float DeltaTime,
         bool MouseCaptured
@@ -78,7 +81,6 @@ private:
 
     bool InteractPressed = false;
     bool RestartPressed = false;
-    bool StartPressed = false;
 
     int FrameCounter = 0;
     float FpsWindowStart = 0.0f;
