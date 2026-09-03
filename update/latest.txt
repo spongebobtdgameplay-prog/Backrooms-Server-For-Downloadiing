@@ -1,6 +1,6 @@
 # Generated only after the Windows installer is published successfully.
-version=0.3.5
+version=0.3.6
 package=Backrooms-Offical-Windows-x64.exe
 url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe
-sha256=1ce7a8b56646535f9da1b89d7ad5df74ee217aa8c64fbdd981a801b7df8b9d68
-notes=Restored Level 0 presentation, native entity models, lighting, HUD, and Windows build support.
+sha256=9efb517693345793ead929bbf3c3b99997105d17a30f0b29e4011ec349bac318
+notes=Removed the self-installing updater behavior that triggered antivirus heuristics. Updates are now checked in-game and opened through the public trusted download page.
