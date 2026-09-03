@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(BackroomsNative VERSION 0.3.2 LANGUAGES C CXX)
+project(BackroomsNative VERSION 0.3.3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -24,14 +24,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
-FetchContent_Declare(
-    glad
-    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-    GIT_TAG v2.0.8
-    SOURCE_SUBDIR cmake
+add_library(BackroomsGlad STATIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/glad/src/gl.c"
 )
-FetchContent_MakeAvailable(glad)
-glad_add_library(glad_gl_core_41 REPRODUCIBLE API gl:core=4.1)
+target_include_directories(BackroomsGlad PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/glad/include"
+)
+target_link_libraries(BackroomsGlad PUBLIC
+    ${CMAKE_DL_LIBS}
+)
 
 FetchContent_Declare(
     miniaudio
@@ -77,7 +78,7 @@ target_include_directories(BackroomsNative PRIVATE
 target_link_libraries(BackroomsNative PRIVATE
     SDL3::SDL3
     glm::glm
-    glad_gl_core_41
+    BackroomsGlad
     OpenGL::GL
 )
 
