@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../World/WorldTypes.h"
+#include "EntityModel.h"
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -32,6 +33,14 @@ public:
 
     void DrawBox(const SceneBox& Box);
     void DrawBoxes(const std::vector<SceneBox>& Boxes);
+
+    bool HasEntityModels() const;
+    void DrawEntity(
+        const glm::vec3& Position,
+        const glm::vec3& Forward,
+        bool DemonForm
+    );
+
     void EndFrame(
         float Stamina,
         int BreakersActive,
@@ -101,4 +110,11 @@ private:
     glm::vec3 CameraPosition{0.0f};
 
     std::vector<InstanceData> Instances;
+
+    EntityModel GhostEntityModel;
+    EntityModel DemonEntityModel;
+
+    std::array<glm::vec4, 8> ActiveLightPositions{};
+    std::array<glm::vec4, 8> ActiveLightColors{};
+    int ActiveLightCount = 0;
 };
