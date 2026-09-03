@@ -1,5 +1,8 @@
 #include "Renderer.h"
 
+#include "../Core/Version.h"
+#include "../Updater/UpdaterService.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -7,6 +10,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 
 namespace
@@ -1189,8 +1193,90 @@ namespace
         case '/': return {0b001,0b001,0b010,0b100,0b100};
         case '-': return {0,0,0b111,0,0};
         case ':': return {0,0b010,0,0b010,0};
+        case '%': return {0b101,0b001,0b010,0b100,0b101};
         default:  return {0,0,0,0,0};
         }
+    }
+
+    std::string SafeHudText(
+        const std::string& Text,
+        std::size_t MaxLength = 0
+    )
+    {
+        std::string Result;
+        Result.reserve(Text.size());
+
+        bool PreviousSpace = false;
+
+        for (unsigned char Raw : Text)
+        {
+            char Character =
+                static_cast<char>(
+                    std::toupper(Raw)
+                );
+
+            const bool Allowed =
+                (Character >= 'A' && Character <= 'Z') ||
+                (Character >= '0' && Character <= '9') ||
+                Character == ' ' ||
+                Character == '.' ||
+                Character == '/' ||
+                Character == '-' ||
+                Character == ':';
+
+            if (!Allowed)
+                Character = ' ';
+
+            if (Character == ' ')
+            {
+                if (PreviousSpace)
+                    continue;
+
+                PreviousSpace = true;
+            }
+            else
+            {
+                PreviousSpace = false;
+            }
+
+            Result.push_back(Character);
+
+            if (
+                MaxLength > 0 &&
+                Result.size() >= MaxLength
+            )
+            {
+                break;
+            }
+        }
+
+        while (
+            !Result.empty() &&
+            Result.back() == ' '
+        )
+        {
+            Result.pop_back();
+        }
+
+        return Result;
+    }
+
+    std::string FormatBytes(
+        std::uint64_t Bytes
+    )
+    {
+        const double Megabytes =
+            static_cast<double>(Bytes) /
+            (1024.0 * 1024.0);
+
+        std::ostringstream Stream;
+        Stream
+            << std::fixed
+            << std::setprecision(1)
+            << Megabytes
+            << " MB";
+
+        return Stream.str();
     }
 }
 
@@ -1333,7 +1419,9 @@ void Renderer::DrawHud(
         Muted
     );
 
-    const std::string Version = "V0.3.5";
+    const std::string Version =
+        std::string("V") +
+        BuildVersion::Text;
     const int VersionWidth = TextWidth(Version, 2);
     DrawText(
         Version,
@@ -1417,7 +1505,14 @@ void Renderer::DrawStartScreen()
     const glm::vec3 Panel{0.085f, 0.080f, 0.048f};
 
     DrawText("BACKROOMS OFFICAL", 46, 42, 4, Primary);
-    DrawText("V0.3.5", 48, 72, 2, Muted);
+
+    DrawText(
+        std::string("V") + BuildVersion::Text,
+        48,
+        72,
+        2,
+        Muted
+    );
 
     const int CardWidth =
         std::min(700, static_cast<int>(Width) - 92);
@@ -1492,6 +1587,387 @@ void Renderer::DrawStartScreen()
         2,
         Muted
     );
+}
+
+void Renderer::DrawUpdateScreen(
+    const UpdateVisualState& State
+)
+{
+    glDisable(GL_DEPTH_TEST);
+
+    const glm::vec3 Background{
+        0.022f,
+        0.021f,
+        0.014f
+    };
+
+    const glm::vec3 Panel{
+        0.070f,
+        0.066f,
+        0.038f
+    };
+
+    const glm::vec3 Border{
+        0.19f,
+        0.17f,
+        0.085f
+    };
+
+    const glm::vec3 Primary{
+        0.92f,
+        0.86f,
+        0.53f
+    };
+
+    const glm::vec3 Muted{
+        0.52f,
+        0.49f,
+        0.31f
+    };
+
+    const glm::vec3 Track{
+        0.13f,
+        0.12f,
+        0.075f
+    };
+
+    DrawRect(
+        0,
+        0,
+        static_cast<int>(Width),
+        static_cast<int>(Height),
+        Background
+    );
+
+    DrawRect(
+        0,
+        0,
+        static_cast<int>(Width),
+        6,
+        Border
+    );
+
+    const int Margin = 44;
+
+    const int PanelWidth =
+        std::min(
+            900,
+            static_cast<int>(Width) -
+                Margin * 2
+        );
+
+    const int PanelHeight =
+        std::min(
+            500,
+            static_cast<int>(Height) -
+                Margin * 2
+        );
+
+    const int PanelX =
+        static_cast<int>(Width) / 2 -
+        PanelWidth / 2;
+
+    const int PanelY =
+        static_cast<int>(Height) / 2 -
+        PanelHeight / 2;
+
+    DrawRect(
+        PanelX - 2,
+        PanelY - 2,
+        PanelWidth + 4,
+        PanelHeight + 4,
+        Border
+    );
+
+    DrawRect(
+        PanelX,
+        PanelY,
+        PanelWidth,
+        PanelHeight,
+        Panel
+    );
+
+    DrawText(
+        "BACKROOMS OFFICAL",
+        PanelX + 30,
+        PanelY + 26,
+        3,
+        Primary
+    );
+
+    DrawText(
+        "UPDATE SYSTEM",
+        PanelX + 30,
+        PanelY + 52,
+        2,
+        Muted
+    );
+
+    const int HeaderScale =
+        Width >= 1200 ? 5 : 4;
+
+    DrawText(
+        SafeHudText(
+            State.Headline,
+            34
+        ),
+        PanelX + 30,
+        PanelY + 92,
+        HeaderScale,
+        Primary
+    );
+
+    std::string VersionLine =
+        "CURRENT V" +
+        State.CurrentVersion;
+
+    if (!State.RemoteVersion.empty())
+    {
+        VersionLine +=
+            " / LATEST V" +
+            State.RemoteVersion;
+    }
+
+    DrawText(
+        SafeHudText(
+            VersionLine,
+            64
+        ),
+        PanelX + 30,
+        PanelY + 138,
+        2,
+        Muted
+    );
+
+    DrawText(
+        SafeHudText(
+            State.Message,
+            72
+        ),
+        PanelX + 30,
+        PanelY + 164,
+        2,
+        Primary
+    );
+
+    const int PackageY =
+        PanelY + 208;
+
+    DrawText(
+        "GETTING",
+        PanelX + 30,
+        PackageY,
+        2,
+        Muted
+    );
+
+    std::string Package =
+        State.PackageName.empty()
+            ? "WAITING FOR PACKAGE INFO"
+            : SafeHudText(
+                State.PackageName,
+                76
+            );
+
+    DrawText(
+        Package,
+        PanelX + 30,
+        PackageY + 24,
+        2,
+        Primary
+    );
+
+    const int BarX =
+        PanelX + 30;
+
+    const int BarY =
+        PackageY + 62;
+
+    const int BarWidth =
+        PanelWidth - 60;
+
+    const int BarHeight = 14;
+
+    DrawRect(
+        BarX,
+        BarY,
+        BarWidth,
+        BarHeight,
+        Track
+    );
+
+    const int Fill =
+        static_cast<int>(
+            static_cast<float>(
+                BarWidth
+            ) *
+            std::clamp(
+                State.Progress,
+                0.0f,
+                1.0f
+            )
+        );
+
+    if (Fill > 0)
+    {
+        DrawRect(
+            BarX,
+            BarY,
+            Fill,
+            BarHeight,
+            Primary
+        );
+    }
+
+    const int Percent =
+        static_cast<int>(
+            std::round(
+                std::clamp(
+                    State.Progress,
+                    0.0f,
+                    1.0f
+                ) *
+                100.0f
+            )
+        );
+
+    std::ostringstream ProgressText;
+    ProgressText
+        << Percent
+        << "%";
+
+    if (State.TotalBytes > 0)
+    {
+        ProgressText
+            << "   "
+            << FormatBytes(
+                State.DownloadedBytes
+            )
+            << " / "
+            << FormatBytes(
+                State.TotalBytes
+            );
+    }
+
+    DrawText(
+        ProgressText.str(),
+        BarX,
+        BarY + 24,
+        2,
+        Muted
+    );
+
+    const int StepsY =
+        PanelY + PanelHeight - 106;
+
+    const int StepWidth =
+        (PanelWidth - 80) / 3;
+
+    const std::array<std::string, 3> Steps = {
+        "1 CHECK",
+        "2 DOWNLOAD",
+        "3 INSTALL"
+    };
+
+    int ActiveStep = 0;
+
+    if (
+        State.Stage ==
+            UpdateStage::Downloading ||
+        State.Stage ==
+            UpdateStage::UpdateAvailable
+    )
+    {
+        ActiveStep = 1;
+    }
+    else if (
+        State.Stage ==
+            UpdateStage::ReadyToApply
+    )
+    {
+        ActiveStep = 2;
+    }
+
+    for (int I = 0; I < 3; ++I)
+    {
+        const int X =
+            PanelX +
+            30 +
+            I * (StepWidth + 10);
+
+        DrawRect(
+            X,
+            StepsY,
+            StepWidth,
+            28,
+            I <= ActiveStep
+                ? Border
+                : Track
+        );
+
+        DrawText(
+            Steps[static_cast<std::size_t>(I)],
+            X + 10,
+            StepsY + 8,
+            2,
+            I <= ActiveStep
+                ? Primary
+                : Muted
+        );
+    }
+
+    std::string Action;
+
+    if (State.Stage == UpdateStage::Checking)
+        Action = "PLEASE WAIT";
+    else if (State.Stage == UpdateStage::UpdateAvailable)
+        Action = "PREPARING DOWNLOAD";
+    else if (State.Stage == UpdateStage::Downloading)
+        Action = "DOWNLOADING...";
+    else if (State.Stage == UpdateStage::ReadyToApply)
+        Action = "PRESS ENTER TO RESTART AND INSTALL";
+    else if (State.Stage == UpdateStage::Failed)
+        Action = "ENTER RETRY   ESC PLAY OFFLINE";
+
+    if (!State.ReleaseNotes.empty())
+    {
+        DrawText(
+            SafeHudText(
+                State.ReleaseNotes,
+                78
+            ),
+            PanelX + 30,
+            StepsY - 34,
+            2,
+            Muted
+        );
+    }
+
+    if (!Action.empty())
+    {
+        const int Scale =
+            Width >= 1050 ? 3 : 2;
+
+        const int ActionWidth =
+            TextWidth(
+                Action,
+                Scale
+            );
+
+        DrawText(
+            Action,
+            PanelX +
+                PanelWidth / 2 -
+                ActionWidth / 2,
+            PanelY +
+                PanelHeight -
+                42,
+            Scale,
+            Primary
+        );
+    }
+
+    glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::DrawEndScreen(bool Escaped)
