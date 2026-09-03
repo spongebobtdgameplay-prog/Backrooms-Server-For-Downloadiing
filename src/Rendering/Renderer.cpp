@@ -913,6 +913,98 @@ void Renderer::DrawHud(
     }
 }
 
+void Renderer::DrawStartScreen()
+{
+    DrawRect(
+        0,
+        0,
+        static_cast<int>(Width),
+        static_cast<int>(Height),
+        {0.035f, 0.033f, 0.020f}
+    );
+
+    const glm::vec3 Primary{0.90f, 0.85f, 0.55f};
+    const glm::vec3 Muted{0.49f, 0.46f, 0.30f};
+    const glm::vec3 Panel{0.085f, 0.080f, 0.048f};
+
+    DrawText("BACKROOMS OFFICAL", 46, 42, 4, Primary);
+    DrawText("V0.3.4", 48, 72, 2, Muted);
+
+    const int CardWidth =
+        std::min(700, static_cast<int>(Width) - 92);
+
+    const int CardHeight = 260;
+    const int CardX = 46;
+    const int CardY =
+        std::max(
+            112,
+            static_cast<int>(Height) / 2 - 130
+        );
+
+    DrawRect(
+        CardX,
+        CardY,
+        CardWidth,
+        CardHeight,
+        Panel
+    );
+
+    DrawText("LEVEL 0", CardX + 28, CardY + 28, 3, Muted);
+    DrawText("THE LOBBY", CardX + 28, CardY + 56, 5, Primary);
+
+    DrawText(
+        "RESTORE THREE BREAKERS",
+        CardX + 28,
+        CardY + 108,
+        2,
+        Muted
+    );
+
+    DrawText(
+        "FIND THE POWERED EXIT",
+        CardX + 28,
+        CardY + 128,
+        2,
+        Muted
+    );
+
+    const std::string Start = "CLICK OR ENTER TO START";
+    const int StartWidth = TextWidth(Start, 3);
+
+    DrawRect(
+        CardX + 28,
+        CardY + 170,
+        StartWidth + 26,
+        34,
+        {0.19f, 0.17f, 0.085f}
+    );
+
+    DrawText(
+        Start,
+        CardX + 41,
+        CardY + 179,
+        3,
+        Primary
+    );
+
+    DrawText(
+        "WASD  SHIFT  MOUSE  E",
+        CardX + 28,
+        CardY + 224,
+        2,
+        Muted
+    );
+
+    const std::string Cursor = "ESC RELEASES CURSOR";
+    DrawText(
+        Cursor,
+        48,
+        static_cast<int>(Height) - 42,
+        2,
+        Muted
+    );
+}
+
 void Renderer::DrawEndScreen(bool Escaped)
 {
     DrawRect(
@@ -963,6 +1055,7 @@ void Renderer::EndFrame(
     int InteractionType,
     bool CanExit,
     float Fps,
+    bool Started,
     bool Ended,
     bool Escaped
 )
@@ -1012,6 +1105,12 @@ void Renderer::EndFrame(
     }
 
     glBindVertexArray(0);
+
+    if (!Started)
+    {
+        DrawStartScreen();
+        return;
+    }
 
     if (Ended)
     {
