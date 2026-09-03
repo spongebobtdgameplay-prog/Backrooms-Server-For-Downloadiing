@@ -77,7 +77,7 @@ bool Application::InitializeWindow()
     );
 
     Window = SDL_CreateWindow(
-        "THE BACKROOMS",
+        "Backrooms Offical",
         static_cast<int>(Width),
         static_cast<int>(Height),
         SDL_WINDOW_OPENGL |
