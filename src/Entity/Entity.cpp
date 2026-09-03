@@ -20,6 +20,7 @@ void Entity::Reset(const glm::vec3& StartPosition)
 
     Active = false;
     DemonForm = false;
+    ShiftedThisFrame = false;
 
     TargetCell = -1;
     Path.clear();
@@ -231,6 +232,8 @@ bool Entity::Update(
     const WorldData& World
 )
 {
+    ShiftedThisFrame = false;
+
     if (!Active)
         return false;
 
@@ -323,6 +326,7 @@ bool Entity::Update(
         DemonForm = DesiredDemon;
         ShiftProgress = 0.0f;
         ShiftTimer = 6.0f;
+        ShiftedThisFrame = true;
     }
 
     ShiftProgress = std::min(
