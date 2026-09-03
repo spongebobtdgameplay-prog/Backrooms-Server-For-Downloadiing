@@ -144,7 +144,7 @@ void AudioSystem::Update(float EntityDistance)
         );
 }
 
-void AudioSystem::PlayShift()
+void AudioSystem::PlayShift(bool DemonForm)
 {
     if (!Started || !Engine)
         return;
@@ -154,6 +154,20 @@ void AudioSystem::PlayShift()
         ma_engine_play_sound(
             Engine,
             "assets/audio/shift.wav",
+            nullptr
+        );
+    }
+
+    if (
+        DemonForm &&
+        std::filesystem::exists(
+            "assets/audio/entity-laugh.ogg"
+        )
+    )
+    {
+        ma_engine_play_sound(
+            Engine,
+            "assets/audio/entity-laugh.ogg",
             nullptr
         );
     }
