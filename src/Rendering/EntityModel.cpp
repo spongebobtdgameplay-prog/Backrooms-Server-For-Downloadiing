@@ -72,7 +72,21 @@ void main()
     vec3 N = normalize(vNormal);
     vec3 V = normalize(uCameraPosition - vWorldPosition);
 
-    vec3 Lighting = Texel.rgb * vec3(0.20, 0.19, 0.15);
+    float UpFacing =
+        clamp(N.y * 0.5 + 0.5, 0.0, 1.0);
+
+    vec3 AmbientLight =
+        vec3(1.0, 0.8879, 0.6240) * 0.46;
+
+    vec3 HemisphereLight = mix(
+        vec3(0.1221, 0.1144, 0.0802),
+        vec3(1.0, 0.9216, 0.7157),
+        UpFacing
+    ) * 0.34;
+
+    vec3 Lighting =
+        Texel.rgb *
+        (AmbientLight + HemisphereLight);
 
     for (int I = 0; I < uLightCount; ++I)
     {
@@ -98,7 +112,7 @@ void main()
 
     float DistanceToCamera = length(vWorldPosition - uCameraPosition);
     float FogAmount = smoothstep(26.0, 72.0, DistanceToCamera);
-    vec3 FogColor = vec3(0.718, 0.690, 0.545);
+    vec3 FogColor = vec3(0.4735, 0.4342, 0.2582);
 
     vec3 FinalColor = mix(Lighting, FogColor, FogAmount);
     FinalColor = pow(max(FinalColor, vec3(0.0)), vec3(1.0 / 2.2));
