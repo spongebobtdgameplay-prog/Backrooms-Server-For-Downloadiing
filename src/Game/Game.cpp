@@ -1,6 +1,7 @@
 #include "Game.h"
 
 #include "../Physics/Raycast.h"
+#include "../Updater/UpdaterService.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -517,6 +518,14 @@ void Game::Render(float Time)
         State.Ended,
         State.Escaped
     );
+}
+
+void Game::RenderUpdateScreen(
+    const UpdateVisualState& State
+)
+{
+    GameRenderer.BeginFrame();
+    GameRenderer.DrawUpdateScreen(State);
 }
 
 void Game::UpdateTitle()
