@@ -85,6 +85,8 @@ target_link_libraries(BackroomsOffical PRIVATE
 if(WIN32)
     target_link_libraries(BackroomsOffical PRIVATE
         winhttp
+        bcrypt
+        shell32
     )
 endif()
 
