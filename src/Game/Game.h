@@ -81,5 +81,8 @@ private:
     float FpsWindowStart = 0.0f;
     float DisplayedFps = 0.0f;
 
+    std::string Message;
+    float MessageTimer = 0.0f;
+
     std::string Title = "Backrooms Offical";
 };
