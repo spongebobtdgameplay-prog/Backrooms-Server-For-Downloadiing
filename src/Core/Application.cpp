@@ -27,7 +27,7 @@ bool Application::Initialize()
         return false;
     }
 
-    SetMouseCaptured(true);
+    SetMouseCaptured(false);
 
     CounterFrequency =
         static_cast<double>(SDL_GetPerformanceFrequency());
