@@ -15,7 +15,7 @@ public:
     void Shutdown();
 
     void Update(float EntityDistance);
-    void PlayShift();
+    void PlayShift(bool DemonForm);
     void PlayDeath();
 
 private:
