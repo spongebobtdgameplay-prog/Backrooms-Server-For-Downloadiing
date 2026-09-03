@@ -282,7 +282,6 @@ void Game::Interact()
 
         MessageTimer = 1.7f;
 
-        Audio.PlayShift();
         UpdateTitle();
 
         return;
@@ -363,6 +362,13 @@ void Game::Update(
 
         EntityDistance =
             Hunter.DistanceTo(GamePlayer.Position());
+
+        if (Hunter.ConsumeShifted())
+        {
+            Audio.PlayShift(
+                Hunter.IsDemonForm()
+            );
+        }
 
         if (Caught)
             EndGame(false);
