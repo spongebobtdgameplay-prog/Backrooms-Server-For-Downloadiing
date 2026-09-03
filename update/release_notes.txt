@@ -1,1 +1,1 @@
-Restored Level 0 presentation, native entity models, lighting, HUD, and Windows build support.
+Removed the self-installing updater behavior that triggered antivirus heuristics. Updates are now checked in-game and opened through the public trusted download page.
