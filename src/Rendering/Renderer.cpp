@@ -22,6 +22,7 @@ layout(location = 4) in vec4 iModel2;
 layout(location = 5) in vec4 iModel3;
 layout(location = 6) in vec4 iColor;
 layout(location = 7) in vec4 iEmissiveRoughness;
+layout(location = 8) in vec4 iSurfaceData;
 
 uniform mat4 uView;
 uniform mat4 uProjection;
@@ -31,6 +32,7 @@ out vec3 vNormal;
 out vec3 vColor;
 out vec3 vEmissive;
 out float vRoughness;
+flat out int vMaterialType;
 
 void main()
 {
@@ -42,6 +44,7 @@ void main()
     vColor = iColor.rgb;
     vEmissive = iEmissiveRoughness.rgb;
     vRoughness = iEmissiveRoughness.a;
+    vMaterialType = int(iSurfaceData.x + 0.5);
 
     gl_Position = uProjection * uView * World;
 }
@@ -55,6 +58,7 @@ in vec3 vNormal;
 in vec3 vColor;
 in vec3 vEmissive;
 in float vRoughness;
+flat in int vMaterialType;
 
 uniform vec3 uCameraPosition;
 uniform int uLightCount;
@@ -63,13 +67,87 @@ uniform vec4 uLightColor[8];
 
 out vec4 FragColor;
 
+float Hash21(vec2 P)
+{
+    P = fract(P * vec2(123.34, 456.21));
+    P += dot(P, P + 45.32);
+    return fract(P.x * P.y);
+}
+
+float CellEdge(float Value, float Width)
+{
+    float F = fract(Value);
+    float D = min(F, 1.0 - F);
+    return 1.0 - smoothstep(Width, Width * 2.25, D);
+}
+
+vec3 Level0Surface(vec3 BaseColor, vec3 Position, vec3 Normal, int MaterialType)
+{
+    vec3 Result = BaseColor;
+
+    if (MaterialType == 1)
+    {
+        float Axis = abs(Normal.x) > 0.55 ? Position.z : Position.x;
+        float StripeWave = 0.5 + 0.5 * cos(Axis * 8.37758040957);
+        float Seam = CellEdge(Axis / 0.75, 0.022);
+        float Fiber = Hash21(floor(vec2(Axis * 20.0, Position.y * 22.0)));
+        float Motif = 0.5 + 0.5 * sin(Axis * 12.0 + Position.y * 19.0);
+
+        Result *= 0.92 + StripeWave * 0.085;
+        Result *= 0.965 + (Fiber - 0.5) * 0.085;
+        Result *= 0.975 + Motif * 0.035;
+        Result *= mix(1.0, 0.82, Seam * 0.42);
+    }
+    else if (MaterialType == 2)
+    {
+        vec2 Carpet = Position.xz;
+        float Fiber = Hash21(floor(Carpet * 24.0));
+        float Fine = 0.5 + 0.5 * sin((Carpet.x + Carpet.y) * 72.0);
+        float Bands = 0.5 + 0.5 * sin(Carpet.y * 21.0);
+
+        Result *= 0.84 + Fiber * 0.20;
+        Result *= 0.965 + Fine * 0.055;
+        Result *= 0.975 + Bands * 0.035;
+    }
+    else if (MaterialType == 3)
+    {
+        vec2 Tile = Position.xz / 1.22;
+        float GridX = CellEdge(Tile.x, 0.018);
+        float GridY = CellEdge(Tile.y, 0.018);
+        float Grid = max(GridX, GridY);
+        float Speckle = Hash21(floor(Position.xz * 16.0));
+
+        Result *= 0.96 + Speckle * 0.07;
+        Result *= mix(1.0, 0.74, Grid * 0.48);
+    }
+    else if (MaterialType == 4)
+    {
+        float Grain = Hash21(floor(Position.xz * 36.0 + Position.yy * 7.0));
+        Result *= 0.94 + Grain * 0.08;
+    }
+    else if (MaterialType == 5)
+    {
+        float Wear = Hash21(floor(Position.xz * 28.0));
+        Result *= 0.94 + Wear * 0.08;
+    }
+
+    return max(Result, vec3(0.0));
+}
+
 void main()
 {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(uCameraPosition - vWorldPosition);
+    vec3 SurfaceColor = Level0Surface(vColor, vWorldPosition, N, vMaterialType);
 
-    vec3 Ambient = vColor * vec3(0.26, 0.245, 0.19);
-    vec3 Lighting = Ambient;
+    float UpFacing = clamp(N.y * 0.5 + 0.5, 0.0, 1.0);
+    vec3 AmbientTint = mix(
+        vec3(0.205, 0.195, 0.155),
+        vec3(0.37, 0.35, 0.255),
+        UpFacing
+    );
+
+    vec3 Lighting = SurfaceColor * AmbientTint;
 
     for (int I = 0; I < uLightCount; ++I)
     {
@@ -84,22 +162,27 @@ void main()
         float Diffuse = max(dot(N, L), 0.0);
 
         vec3 H = normalize(L + V);
-        float SpecPower = mix(48.0, 6.0, clamp(vRoughness, 0.0, 1.0));
+        float SpecPower = mix(46.0, 5.0, clamp(vRoughness, 0.0, 1.0));
         float Specular = pow(max(dot(N, H), 0.0), SpecPower);
-        Specular *= (1.0 - clamp(vRoughness, 0.0, 1.0)) * 0.35;
+        Specular *= (1.0 - clamp(vRoughness, 0.0, 1.0)) * 0.28;
 
         vec3 LightColor = uLightColor[I].rgb * uLightColor[I].w;
 
         Lighting +=
-            vColor * LightColor * Diffuse * Attenuation +
+            SurfaceColor * LightColor * Diffuse * Attenuation +
             LightColor * Specular * Attenuation;
+    }
+
+    if (vMaterialType == 6)
+    {
+        Lighting = max(Lighting, SurfaceColor * 0.82);
     }
 
     Lighting += vEmissive;
 
     float DistanceToCamera = length(vWorldPosition - uCameraPosition);
-    float FogAmount = smoothstep(28.0, 74.0, DistanceToCamera);
-    vec3 FogColor = vec3(0.56, 0.54, 0.43);
+    float FogAmount = smoothstep(26.0, 72.0, DistanceToCamera);
+    vec3 FogColor = vec3(0.718, 0.690, 0.545);
 
     vec3 FinalColor = mix(Lighting, FogColor, FogAmount);
     FinalColor = pow(max(FinalColor, vec3(0.0)), vec3(1.0 / 2.2));
@@ -273,6 +356,19 @@ bool Renderer::CreateCube()
     );
     glVertexAttribDivisor(7, 1);
 
+    glEnableVertexAttribArray(8);
+    glVertexAttribPointer(
+        8,
+        4,
+        GL_FLOAT,
+        GL_FALSE,
+        Stride,
+        reinterpret_cast<void*>(
+            sizeof(glm::mat4) + sizeof(glm::vec4) * 2
+        )
+    );
+    glVertexAttribDivisor(8, 1);
+
     glBindVertexArray(0);
 
     return true;
@@ -337,7 +433,7 @@ void Renderer::BeginFrame()
 {
     Instances.clear();
 
-    glClearColor(0.56f, 0.54f, 0.43f, 1.0f);
+    glClearColor(0.718f, 0.690f, 0.545f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -450,6 +546,12 @@ void Renderer::DrawBox(const SceneBox& Box)
     Instance.Color = glm::vec4(Box.Color, 1.0f);
     Instance.EmissiveRoughness =
         glm::vec4(Box.Emissive, Box.Roughness);
+    Instance.SurfaceData = glm::vec4(
+        static_cast<float>(Box.MaterialType),
+        0.0f,
+        0.0f,
+        0.0f
+    );
 
     Instances.push_back(Instance);
 }
