@@ -1,2 +1,33 @@
+#include <winver.h>
+
 #define IDI_BACKROOMS 101
 IDI_BACKROOMS ICON "../../../assets/icon/Backrooms.ico"
+
+1 VERSIONINFO
+FILEVERSION 0,3,4,0
+PRODUCTVERSION 0,3,4,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "spongebobtdgameplay-prog\0"
+            VALUE "FileDescription", "Backrooms Offical\0"
+            VALUE "FileVersion", "0.3.4\0"
+            VALUE "InternalName", "Backrooms Offical\0"
+            VALUE "OriginalFilename", "Backrooms Offical.exe\0"
+            VALUE "ProductName", "Backrooms Offical\0"
+            VALUE "ProductVersion", "0.3.4\0"
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
