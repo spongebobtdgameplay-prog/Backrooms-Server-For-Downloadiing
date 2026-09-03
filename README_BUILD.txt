@@ -1,4 +1,4 @@
-THE BACKROOMS NATIVE V0.3.1
+THE BACKROOMS NATIVE V0.3.2
 
 This package is the native C++ rewrite of the previous browser Level 0 prototype.
 
@@ -44,7 +44,7 @@ The source package is complete enough to build the current native prototype, but
 The old GLB entity models are not embedded in this ZIP. The native build currently renders the entity procedurally. That keeps the package self-contained while the native model loader is added later.
 
 VERSION
-0.3.1 Native
+0.3.2 Native
 
 
 GAME ICON
@@ -59,3 +59,7 @@ MACOS BUILD
 2. Run: ./build-macos.sh
 3. The app bundle is created at: build-macos/BackroomsNative.app
 4. Current script targets Apple Silicon arm64.
+
+V0.3.2 BUILD FIX
+- GLAD CMake helper is loaded from glad/cmake so glad_add_library is available.
+- Windows build script now falls back to the standard CMake install path when PATH is stale.
