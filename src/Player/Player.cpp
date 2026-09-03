@@ -19,6 +19,8 @@ void Player::Reset(const glm::vec3& Position)
 
     MouseDeltaX = 0.0f;
     MouseDeltaY = 0.0f;
+    MouseCapturedLastFrame = false;
+    IgnoreMouseMotionEvents = 0;
 
     Bob = 0.0f;
     BobTime = 0.0f;
@@ -35,9 +37,51 @@ void Player::HandleEvent(const SDL_Event& Event, bool MouseCaptured)
 
     if (Event.type == SDL_EVENT_MOUSE_MOTION)
     {
-        MouseDeltaX += Event.motion.xrel;
-        MouseDeltaY += Event.motion.yrel;
+        if (IgnoreMouseMotionEvents > 0)
+        {
+            --IgnoreMouseMotionEvents;
+            return;
+        }
+
+        const float DeltaX = std::clamp(
+            static_cast<float>(Event.motion.xrel),
+            -120.0f,
+            120.0f
+        );
+
+        const float DeltaY = std::clamp(
+            static_cast<float>(Event.motion.yrel),
+            -120.0f,
+            120.0f
+        );
+
+        MouseDeltaX = std::clamp(
+            MouseDeltaX + DeltaX,
+            -240.0f,
+            240.0f
+        );
+
+        MouseDeltaY = std::clamp(
+            MouseDeltaY + DeltaY,
+            -240.0f,
+            240.0f
+        );
     }
+}
+
+void Player::OnMouseCaptureChanged(bool Captured)
+{
+    MouseCapturedLastFrame = Captured;
+    MouseDeltaX = 0.0f;
+    MouseDeltaY = 0.0f;
+
+    TargetYaw = Yaw;
+    TargetPitch = Pitch;
+
+    if (Captured)
+        IgnoreMouseMotionEvents = 2;
+    else
+        IgnoreMouseMotionEvents = 0;
 }
 
 glm::vec3 Player::Forward() const
@@ -66,6 +110,9 @@ void Player::Update(
     bool MouseCaptured
 )
 {
+    if (MouseCaptured != MouseCapturedLastFrame)
+        OnMouseCaptureChanged(MouseCaptured);
+
     if (MouseCaptured)
     {
         TargetYaw -= MouseDeltaX * 0.00175f;
@@ -160,7 +207,7 @@ void Player::Update(
     const float TargetBob =
         Moving
             ? std::sin(BobTime * 2.0f) *
-                (WantsSprint ? 0.026f : 0.018f)
+                (WantsSprint ? 0.018f : 0.012f)
             : 0.0f;
 
     const float TargetRoll =
@@ -187,23 +234,30 @@ glm::mat4 Player::ViewMatrix() const
     glm::vec3 Eye = PlayerPosition;
     Eye.y += Bob;
 
-    const glm::vec3 ForwardDirection = Forward();
-    const glm::vec3 WorldUp{0.0f, 1.0f, 0.0f};
+    glm::mat4 View{1.0f};
 
-    glm::mat4 View = glm::lookAt(
-        Eye,
-        Eye + ForwardDirection,
-        WorldUp
+    View = glm::rotate(
+        View,
+        -Roll,
+        glm::vec3{0.0f, 0.0f, 1.0f}
     );
 
-    if (std::abs(Roll) > 0.00001f)
-    {
-        View = glm::rotate(
-            View,
-            Roll,
-            glm::vec3{0.0f, 0.0f, 1.0f}
-        );
-    }
+    View = glm::rotate(
+        View,
+        -Pitch,
+        glm::vec3{1.0f, 0.0f, 0.0f}
+    );
+
+    View = glm::rotate(
+        View,
+        -Yaw,
+        glm::vec3{0.0f, 1.0f, 0.0f}
+    );
+
+    View = glm::translate(
+        View,
+        -Eye
+    );
 
     return View;
 }
