@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: windows-build-main
+  cancel-in-progress: true
+
 jobs:
   build-windows:
     runs-on: windows-2022
