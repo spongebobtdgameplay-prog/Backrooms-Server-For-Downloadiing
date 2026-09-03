@@ -1,20 +1,26 @@
 @echo off
 setlocal
 
+set "CMAKE_EXE=cmake"
+
 where cmake >nul 2>nul
 if errorlevel 1 (
-    echo CMake is not installed or is not in PATH.
-    pause
-    exit /b 1
+    if exist "C:\Program Files\CMake\bin\cmake.exe" (
+        set "CMAKE_EXE=C:\Program Files\CMake\bin\cmake.exe"
+    ) else (
+        echo CMake was not found in PATH or at C:\Program Files\CMake\bin\cmake.exe
+        pause
+        exit /b 1
+    )
 )
 
-cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+"%CMAKE_EXE%" -S . -B build -G "Visual Studio 17 2022" -A x64
 if errorlevel 1 (
     pause
     exit /b 1
 )
 
-cmake --build build --config Release
+"%CMAKE_EXE%" --build build --config Release
 if errorlevel 1 (
     pause
     exit /b 1
