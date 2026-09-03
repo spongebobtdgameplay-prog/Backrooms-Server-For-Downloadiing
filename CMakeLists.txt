@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(BackroomsNative VERSION 0.3.1 LANGUAGES C CXX)
+project(BackroomsNative VERSION 0.3.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,6 +28,7 @@ FetchContent_Declare(
     glad
     GIT_REPOSITORY https://github.com/Dav1dde/glad.git
     GIT_TAG v2.0.8
+    SOURCE_SUBDIR cmake
 )
 FetchContent_MakeAvailable(glad)
 glad_add_library(glad_gl_core_41 REPRODUCIBLE API gl:core=4.1)
