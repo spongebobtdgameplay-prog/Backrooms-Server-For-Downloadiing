@@ -6,6 +6,8 @@ struct GameState
     int BreakersActive = 0;
 
     bool Started = false;
+    bool MainMenuOpen = true;
+    bool Paused = false;
     bool Ended = false;
     bool Escaped = false;
     bool EntityReleased = false;
