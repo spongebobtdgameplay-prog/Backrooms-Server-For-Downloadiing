@@ -32,7 +32,16 @@ public:
 
     void DrawBox(const SceneBox& Box);
     void DrawBoxes(const std::vector<SceneBox>& Boxes);
-    void EndFrame(float Stamina);
+    void EndFrame(
+        float Stamina,
+        int BreakersActive,
+        int BreakersRequired,
+        int InteractionType,
+        bool CanExit,
+        float Fps,
+        bool Ended,
+        bool Escaped
+    );
 
 private:
     struct InstanceData
@@ -48,6 +57,29 @@ private:
     GLuint CompileShader(GLenum Type, const char* Source);
     void DrawCrosshair();
     void DrawStamina(float Stamina);
+    void DrawHud(
+        int BreakersActive,
+        int BreakersRequired,
+        int InteractionType,
+        bool CanExit,
+        float Fps
+    );
+    void DrawEndScreen(bool Escaped);
+    void DrawText(
+        const std::string& Text,
+        int X,
+        int Y,
+        int Scale,
+        const glm::vec3& Color
+    );
+    int TextWidth(const std::string& Text, int Scale) const;
+    void DrawRect(
+        int X,
+        int Y,
+        int RectWidth,
+        int RectHeight,
+        const glm::vec3& Color
+    );
 
     GLuint Program = 0;
     GLuint VertexArray = 0;
