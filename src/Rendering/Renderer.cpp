@@ -11,7 +11,6 @@
 #include <cmath>
 #include <cctype>
 #include <iostream>
-#include <iomanip>
 #include <sstream>
 
 namespace
@@ -1262,23 +1261,7 @@ namespace
         return Result;
     }
 
-    std::string FormatBytes(
-        std::uint64_t Bytes
-    )
-    {
-        const double Megabytes =
-            static_cast<double>(Bytes) /
-            (1024.0 * 1024.0);
 
-        std::ostringstream Stream;
-        Stream
-            << std::fixed
-            << std::setprecision(1)
-            << Megabytes
-            << " MB";
-
-        return Stream.str();
-    }
 }
 
 void Renderer::DrawRect(
@@ -1626,12 +1609,6 @@ void Renderer::DrawUpdateScreen(
         0.31f
     };
 
-    const glm::vec3 Track{
-        0.13f,
-        0.12f,
-        0.075f
-    };
-
     DrawRect(
         0,
         0,
@@ -1659,7 +1636,7 @@ void Renderer::DrawUpdateScreen(
 
     const int PanelHeight =
         std::min(
-            500,
+            470,
             static_cast<int>(Height) -
                 Margin * 2
         );
@@ -1755,14 +1732,14 @@ void Renderer::DrawUpdateScreen(
         PanelY + 208;
 
     DrawText(
-        "GETTING",
+        "DOWNLOAD FILE",
         PanelX + 30,
         PackageY,
         2,
         Muted
     );
 
-    std::string Package =
+    const std::string Package =
         State.PackageName.empty()
             ? "WAITING FOR PACKAGE INFO"
             : SafeHudText(
@@ -1778,171 +1755,41 @@ void Renderer::DrawUpdateScreen(
         Primary
     );
 
-    const int BarX =
-        PanelX + 30;
-
-    const int BarY =
-        PackageY + 62;
-
-    const int BarWidth =
-        PanelWidth - 60;
-
-    const int BarHeight = 14;
-
-    DrawRect(
-        BarX,
-        BarY,
-        BarWidth,
-        BarHeight,
-        Track
-    );
-
-    const int Fill =
-        static_cast<int>(
-            static_cast<float>(
-                BarWidth
-            ) *
-            std::clamp(
-                State.Progress,
-                0.0f,
-                1.0f
-            )
-        );
-
-    if (Fill > 0)
-    {
-        DrawRect(
-            BarX,
-            BarY,
-            Fill,
-            BarHeight,
-            Primary
-        );
-    }
-
-    const int Percent =
-        static_cast<int>(
-            std::round(
-                std::clamp(
-                    State.Progress,
-                    0.0f,
-                    1.0f
-                ) *
-                100.0f
-            )
-        );
-
-    std::ostringstream ProgressText;
-    ProgressText
-        << Percent
-        << "%";
-
-    if (State.TotalBytes > 0)
-    {
-        ProgressText
-            << "   "
-            << FormatBytes(
-                State.DownloadedBytes
-            )
-            << " / "
-            << FormatBytes(
-                State.TotalBytes
-            );
-    }
+    const int NotesY =
+        PackageY + 72;
 
     DrawText(
-        ProgressText.str(),
-        BarX,
-        BarY + 24,
+        "WHATS IN THIS UPDATE",
+        PanelX + 30,
+        NotesY,
         2,
         Muted
     );
 
-    const int StepsY =
-        PanelY + PanelHeight - 106;
+    std::string Notes =
+        State.ReleaseNotes.empty()
+            ? "NO RELEASE NOTES PROVIDED"
+            : SafeHudText(
+                State.ReleaseNotes,
+                88
+            );
 
-    const int StepWidth =
-        (PanelWidth - 80) / 3;
-
-    const std::array<std::string, 3> Steps = {
-        "1 CHECK",
-        "2 DOWNLOAD",
-        "3 INSTALL"
-    };
-
-    int ActiveStep = 0;
-
-    if (
-        State.Stage ==
-            UpdateStage::Downloading ||
-        State.Stage ==
-            UpdateStage::UpdateAvailable
-    )
-    {
-        ActiveStep = 1;
-    }
-    else if (
-        State.Stage ==
-            UpdateStage::ReadyToApply
-    )
-    {
-        ActiveStep = 2;
-    }
-
-    for (int I = 0; I < 3; ++I)
-    {
-        const int X =
-            PanelX +
-            30 +
-            I * (StepWidth + 10);
-
-        DrawRect(
-            X,
-            StepsY,
-            StepWidth,
-            28,
-            I <= ActiveStep
-                ? Border
-                : Track
-        );
-
-        DrawText(
-            Steps[static_cast<std::size_t>(I)],
-            X + 10,
-            StepsY + 8,
-            2,
-            I <= ActiveStep
-                ? Primary
-                : Muted
-        );
-    }
+    DrawText(
+        Notes,
+        PanelX + 30,
+        NotesY + 24,
+        2,
+        Primary
+    );
 
     std::string Action;
 
     if (State.Stage == UpdateStage::Checking)
         Action = "PLEASE WAIT";
     else if (State.Stage == UpdateStage::UpdateAvailable)
-        Action = "PREPARING DOWNLOAD";
-    else if (State.Stage == UpdateStage::Downloading)
-        Action = "DOWNLOADING...";
-    else if (State.Stage == UpdateStage::ReadyToApply)
-        Action = "PRESS ENTER TO RESTART AND INSTALL";
+        Action = "PRESS ENTER TO OPEN DOWNLOAD";
     else if (State.Stage == UpdateStage::Failed)
         Action = "ENTER RETRY   ESC PLAY OFFLINE";
-
-    if (!State.ReleaseNotes.empty())
-    {
-        DrawText(
-            SafeHudText(
-                State.ReleaseNotes,
-                78
-            ),
-            PanelX + 30,
-            StepsY - 34,
-            2,
-            Muted
-        );
-    }
 
     if (!Action.empty())
     {
@@ -1955,6 +1802,14 @@ void Renderer::DrawUpdateScreen(
                 Scale
             );
 
+        DrawRect(
+            PanelX + 30,
+            PanelY + PanelHeight - 74,
+            PanelWidth - 60,
+            42,
+            Border
+        );
+
         DrawText(
             Action,
             PanelX +
@@ -1962,7 +1817,7 @@ void Renderer::DrawUpdateScreen(
                 ActionWidth / 2,
             PanelY +
                 PanelHeight -
-                42,
+                62,
             Scale,
             Primary
         );
