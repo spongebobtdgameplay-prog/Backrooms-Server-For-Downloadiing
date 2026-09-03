@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Game/Game.h"
+#include "../Updater/UpdaterService.h"
 
 #include <SDL3/SDL.h>
 
@@ -28,10 +29,12 @@ private:
     SDL_GLContext GLContext = nullptr;
 
     Game Backrooms;
+    UpdaterService Updater;
 
     bool Running = false;
     bool MouseCaptured = false;
     bool Initialized = false;
+    bool UpdateBypassed = false;
 
     uint32_t Width = 1600;
     uint32_t Height = 900;
