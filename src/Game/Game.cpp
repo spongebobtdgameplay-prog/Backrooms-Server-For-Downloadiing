@@ -487,19 +487,7 @@ void Game::Render(float Time)
 
 void Game::UpdateTitle()
 {
-    std::ostringstream Stream;
-    Stream << "Backrooms Offical | V0.3.4";
-
-    if (State.Ended)
-    {
-        Stream << (
-            State.Escaped
-                ? " | YOU ESCAPED"
-                : " | YOU WERE FOUND"
-        );
-    }
-
-    Title = Stream.str();
+    Title = "Backrooms Offical";
 }
 
 const std::string& Game::WindowTitle() const
