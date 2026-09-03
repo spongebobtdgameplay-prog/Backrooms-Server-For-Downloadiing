@@ -49,6 +49,7 @@ public:
         int InteractionType,
         bool CanExit,
         float Fps,
+        const std::string& Message,
         bool Started,
         bool Ended,
         bool Escaped
@@ -73,7 +74,8 @@ private:
         int BreakersRequired,
         int InteractionType,
         bool CanExit,
-        float Fps
+        float Fps,
+        const std::string& Message
     );
     void DrawStartScreen();
     void DrawEndScreen(bool Escaped);
