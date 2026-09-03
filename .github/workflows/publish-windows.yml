@@ -1,0 +1,133 @@
+name: Publish Windows Download
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - update/latest.txt
+      - DOWNLOAD.md
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-windows-main
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $Text = Get-Content "src/Core/Version.h" -Raw
+          $Match = [regex]::Match($Text, 'inline constexpr const char\* Text = "([^"]+)";')
+          if (!$Match.Success) { throw "Could not read BuildVersion::Text" }
+          $Version = $Match.Groups[1].Value
+          "version=$Version" >> $env:GITHUB_OUTPUT
+          "BACKROOMS_VERSION=$Version" >> $env:GITHUB_ENV
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify runtime
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) { throw "Backrooms Offical.exe was not produced." }
+          if (!(Test-Path "build\Release\SDL3.dll")) { throw "SDL3.dll was not copied beside the game." }
+          if (!(Test-Path "build\Release\assets\icon\Backrooms.ico")) { throw "The game icon was not packaged." }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build icon-branded public installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "dist" | Out-Null
+          $Candidates = @("C:\Program Files (x86)\Inno Setup 6\ISCC.exe", "C:\Program Files\Inno Setup 6\ISCC.exe")
+          $Iscc = $Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (!$Iscc) { throw "ISCC.exe was not found after installing Inno Setup." }
+          & $Iscc "installer\BackroomsOffical.iss"
+          if (!(Test-Path "dist\Backrooms-Offical-Windows-x64.exe")) { throw "The public installer was not produced." }
+
+      - name: Calculate package hash
+        id: package
+        shell: pwsh
+        run: |
+          $Hash = (Get-FileHash "dist\Backrooms-Offical-Windows-x64.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "sha256=$Hash" >> $env:GITHUB_OUTPUT
+
+      - name: Publish stable release asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $Tag = "latest-windows"
+          $Asset = "dist\Backrooms-Offical-Windows-x64.exe"
+          $Version = "${{ steps.version.outputs.version }}"
+          $Notes = Get-Content "update\release_notes.txt" -Raw
+
+          gh release view $Tag *> $null
+          $Exists = $LASTEXITCODE -eq 0
+
+          if (!$Exists) {
+            gh release create $Tag $Asset --target "${{ github.sha }}" --title "Backrooms Offical V$Version" --notes $Notes --latest
+          }
+          else {
+            git tag -f $Tag "${{ github.sha }}"
+            git push origin "refs/tags/$Tag" --force
+            gh release upload $Tag $Asset --clobber
+            gh release edit $Tag --title "Backrooms Offical V$Version" --notes $Notes --latest
+          }
+
+      - name: Publish updater manifest
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA256: ${{ steps.package.outputs.sha256 }}
+        run: |
+          $Notes = ((Get-Content "update\release_notes.txt" -Raw).Trim() -replace '\r?\n', ' ')
+          $Lines = @(
+            "# Generated only after the Windows installer is published successfully.",
+            "version=$env:VERSION",
+            "package=Backrooms-Offical-Windows-x64.exe",
+            "url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe",
+            "sha256=$env:SHA256",
+            "notes=$Notes"
+          )
+          Set-Content "update\latest.txt" $Lines
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "update\latest.txt"
+
+          if (git diff --cached --quiet) {
+            Write-Host "Updater manifest already matches this release."
+            exit 0
+          }
+
+          git commit -m "Publish updater manifest for V$env:VERSION [skip ci]"
+          git push origin main
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Backrooms-Offical-Windows-x64
+          path: dist/Backrooms-Offical-Windows-x64.exe
+          if-no-files-found: error
