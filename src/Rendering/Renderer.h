@@ -6,6 +6,7 @@
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
