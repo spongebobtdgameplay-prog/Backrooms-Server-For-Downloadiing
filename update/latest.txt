@@ -1,0 +1,7 @@
+# This file is replaced by the Windows publish workflow only after
+# the public installer is uploaded successfully.
+version=0.3.5
+package=Backrooms-Offical-Windows-x64.exe
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe
+sha256=
+notes=BACKROOMS OFFICAL V0.3.5
