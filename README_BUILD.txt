@@ -1,4 +1,4 @@
-BACKROOMS OFFICAL V0.3.5
+BACKROOMS OFFICAL V0.3.7
 
 This is the native desktop build of Backrooms Offical Level 0.
 
@@ -35,7 +35,10 @@ WASD      Move
 Shift     Sprint
 Mouse     Look
 E         Interact
-Escape    Release/capture mouse
+Escape    Pause / resume
+M         Main menu during gameplay or from pause
+Enter     Start / resume
+N         New session from main menu when a session exists
 R         Restart after escaping or being caught
 
 IMPORTANT
@@ -44,7 +47,7 @@ The source package is complete enough to build the current native prototype, but
 The original entity-ghost.glb and entity-demon.glb assets are restored under assets/models. The renderer restoration is bringing the native build back to the original Level 0 presentation instead of the temporary flat-box look.
 
 VERSION
-0.3.5
+0.3.7
 
 
 GAME ICON
@@ -84,3 +87,14 @@ V0.3.5 LEVEL 0 VISUAL PARITY
 - Corrected fog from linear space so distance haze matches the original #b7b08b look.
 - Matched the original wallpaper stripe scale and motif spacing more closely.
 - Matched wall, carpet, ceiling, trim, fixture and fluorescent-panel material colors to the original Level 0 build.
+
+
+V0.3.7 MENU AND CAMERA FIX
+- Replaced the temporary dark/arcade-looking start card with the original web game's bright mono-yellow Level 0 menu direction.
+- Added pause menu with Resume and Main Menu.
+- Main Menu preserves the active session and offers Resume Session or New Session.
+- Escape pauses/resumes; M opens Main Menu while playing.
+- Mouse capture is now controlled by game/menu state instead of generic window clicks.
+- Camera input discards capture-transition mouse spikes and clamps abnormal relative-motion bursts.
+- Native camera view now uses the same Y-X-Z rotation structure as the original browser camera instead of lookAt near-vertical behavior.
+- Reduced vertical head-bob amplitude to remove sudden-looking camera jumps.
