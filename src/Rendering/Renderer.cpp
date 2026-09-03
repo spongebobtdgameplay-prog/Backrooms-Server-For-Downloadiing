@@ -383,6 +383,16 @@ bool Renderer::Initialize()
     if (!CreateCube())
         return false;
 
+    GhostEntityModel.Load(
+        "assets/models/entity-ghost.glb",
+        2.18f
+    );
+
+    DemonEntityModel.Load(
+        "assets/models/entity-demon.glb",
+        2.35f
+    );
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
@@ -399,6 +409,9 @@ bool Renderer::Initialize()
 
 void Renderer::Shutdown()
 {
+    GhostEntityModel.Shutdown();
+    DemonEntityModel.Shutdown();
+
     if (InstanceBuffer != 0)
         glDeleteBuffers(1, &InstanceBuffer);
 
@@ -516,6 +529,10 @@ void Renderer::SetLights(
             glm::vec4(Light.Color, Intensity);
     }
 
+    ActiveLightCount = Count;
+    ActiveLightPositions = Positions;
+    ActiveLightColors = Colors;
+
     glUseProgram(Program);
 
     glUniform1i(LightCountLocation, Count);
@@ -561,6 +578,47 @@ void Renderer::DrawBoxes(const std::vector<SceneBox>& Boxes)
 {
     for (const SceneBox& Box : Boxes)
         DrawBox(Box);
+}
+
+bool Renderer::HasEntityModels() const
+{
+    return
+        GhostEntityModel.IsReady() &&
+        DemonEntityModel.IsReady();
+}
+
+void Renderer::DrawEntity(
+    const glm::vec3& Position,
+    const glm::vec3& Forward,
+    bool DemonForm
+)
+{
+    const EntityModel* Model =
+        DemonForm
+            ? &DemonEntityModel
+            : &GhostEntityModel;
+
+    if (!Model->IsReady())
+    {
+        Model =
+            DemonForm
+                ? &GhostEntityModel
+                : &DemonEntityModel;
+    }
+
+    if (!Model->IsReady())
+        return;
+
+    Model->Draw(
+        View,
+        Projection,
+        CameraPosition,
+        Position,
+        Forward,
+        ActiveLightPositions,
+        ActiveLightColors,
+        ActiveLightCount
+    );
 }
 
 void Renderer::DrawCrosshair()
