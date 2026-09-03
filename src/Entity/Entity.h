@@ -27,6 +27,13 @@ public:
     const glm::vec3& Position() const { return EntityPosition; }
     const glm::vec3& Forward() const { return Direction; }
 
+    bool ConsumeShifted()
+    {
+        const bool Result = ShiftedThisFrame;
+        ShiftedThisFrame = false;
+        return Result;
+    }
+
 private:
     int CellIndex(
         const glm::vec3& Position,
@@ -56,6 +63,7 @@ private:
 
     bool Active = false;
     bool DemonForm = false;
+    bool ShiftedThisFrame = false;
 
     int TargetCell = -1;
     std::vector<glm::vec3> Path;
