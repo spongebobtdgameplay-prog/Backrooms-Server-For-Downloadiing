@@ -28,5 +28,5 @@ if errorlevel 1 (
 
 echo.
 echo Build finished.
-echo EXE: build\Release\BackroomsNative.exe
+echo EXE: build\Release\Backrooms Offical.exe
 pause
