@@ -1,1 +1,1 @@
-Removed the self-installing updater behavior that triggered antivirus heuristics. Updates are now checked in-game and opened through the public trusted download page.
+Restored the original yellow Level 0 menu style, added pause, Main Menu and Resume session flow, and fixed sudden camera vertical/pitch jumps when mouse capture changes.
