@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <sstream>
 
 namespace
 {
@@ -582,8 +583,8 @@ void Renderer::DrawCrosshair()
 void Renderer::DrawStamina(float Stamina)
 {
     const int Margin = 24;
-    const int BarWidth = 240;
-    const int BarHeight = 8;
+    const int BarWidth = 118;
+    const int BarHeight = 4;
     const int Fill = static_cast<int>(
         static_cast<float>(BarWidth) *
         std::clamp(Stamina, 0.0f, 1.0f)
@@ -615,7 +616,298 @@ void Renderer::DrawStamina(float Stamina)
     glDisable(GL_SCISSOR_TEST);
 }
 
-void Renderer::EndFrame(float Stamina)
+
+namespace
+{
+    std::array<unsigned char, 5> GlyphRows(char C)
+    {
+        switch (C)
+        {
+        case 'A': return {0b010,0b101,0b111,0b101,0b101};
+        case 'B': return {0b110,0b101,0b110,0b101,0b110};
+        case 'C': return {0b011,0b100,0b100,0b100,0b011};
+        case 'D': return {0b110,0b101,0b101,0b101,0b110};
+        case 'E': return {0b111,0b100,0b110,0b100,0b111};
+        case 'F': return {0b111,0b100,0b110,0b100,0b100};
+        case 'G': return {0b011,0b100,0b101,0b101,0b011};
+        case 'H': return {0b101,0b101,0b111,0b101,0b101};
+        case 'I': return {0b111,0b010,0b010,0b010,0b111};
+        case 'J': return {0b001,0b001,0b001,0b101,0b010};
+        case 'K': return {0b101,0b101,0b110,0b101,0b101};
+        case 'L': return {0b100,0b100,0b100,0b100,0b111};
+        case 'M': return {0b101,0b111,0b111,0b101,0b101};
+        case 'N': return {0b101,0b111,0b111,0b111,0b101};
+        case 'O': return {0b010,0b101,0b101,0b101,0b010};
+        case 'P': return {0b110,0b101,0b110,0b100,0b100};
+        case 'Q': return {0b010,0b101,0b101,0b111,0b011};
+        case 'R': return {0b110,0b101,0b110,0b101,0b101};
+        case 'S': return {0b011,0b100,0b010,0b001,0b110};
+        case 'T': return {0b111,0b010,0b010,0b010,0b010};
+        case 'U': return {0b101,0b101,0b101,0b101,0b111};
+        case 'V': return {0b101,0b101,0b101,0b101,0b010};
+        case 'W': return {0b101,0b101,0b111,0b111,0b101};
+        case 'X': return {0b101,0b101,0b010,0b101,0b101};
+        case 'Y': return {0b101,0b101,0b010,0b010,0b010};
+        case 'Z': return {0b111,0b001,0b010,0b100,0b111};
+        case '0': return {0b111,0b101,0b101,0b101,0b111};
+        case '1': return {0b010,0b110,0b010,0b010,0b111};
+        case '2': return {0b110,0b001,0b010,0b100,0b111};
+        case '3': return {0b110,0b001,0b010,0b001,0b110};
+        case '4': return {0b101,0b101,0b111,0b001,0b001};
+        case '5': return {0b111,0b100,0b110,0b001,0b110};
+        case '6': return {0b011,0b100,0b111,0b101,0b111};
+        case '7': return {0b111,0b001,0b010,0b010,0b010};
+        case '8': return {0b111,0b101,0b111,0b101,0b111};
+        case '9': return {0b111,0b101,0b111,0b001,0b110};
+        case '.': return {0,0,0,0,0b010};
+        case '/': return {0b001,0b001,0b010,0b100,0b100};
+        case '-': return {0,0,0b111,0,0};
+        case ':': return {0,0b010,0,0b010,0};
+        default:  return {0,0,0,0,0};
+        }
+    }
+}
+
+void Renderer::DrawRect(
+    int X,
+    int Y,
+    int RectWidth,
+    int RectHeight,
+    const glm::vec3& Color
+)
+{
+    if (RectWidth <= 0 || RectHeight <= 0)
+        return;
+
+    const int Left = std::max(X, 0);
+    const int Top = std::max(Y, 0);
+    const int Right = std::min(
+        X + RectWidth,
+        static_cast<int>(Width)
+    );
+    const int Bottom = std::min(
+        Y + RectHeight,
+        static_cast<int>(Height)
+    );
+
+    if (Right <= Left || Bottom <= Top)
+        return;
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(
+        Left,
+        static_cast<int>(Height) - Bottom,
+        Right - Left,
+        Bottom - Top
+    );
+    glClearColor(Color.r, Color.g, Color.b, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
+}
+
+int Renderer::TextWidth(const std::string& Text, int Scale) const
+{
+    if (Text.empty())
+        return 0;
+
+    return static_cast<int>(Text.size()) * 4 * Scale - Scale;
+}
+
+void Renderer::DrawText(
+    const std::string& Text,
+    int X,
+    int Y,
+    int Scale,
+    const glm::vec3& Color
+)
+{
+    if (Scale <= 0)
+        return;
+
+    glEnable(GL_SCISSOR_TEST);
+    glClearColor(Color.r, Color.g, Color.b, 1.0f);
+
+    int CursorX = X;
+
+    for (char C : Text)
+    {
+        const auto Rows = GlyphRows(C);
+
+        for (int Row = 0; Row < 5; ++Row)
+        {
+            for (int Column = 0; Column < 3; ++Column)
+            {
+                const unsigned char Mask =
+                    static_cast<unsigned char>(1u << (2 - Column));
+
+                if ((Rows[static_cast<std::size_t>(Row)] & Mask) == 0)
+                    continue;
+
+                const int PixelX = CursorX + Column * Scale;
+                const int PixelY = Y + Row * Scale;
+
+                if (
+                    PixelX < 0 ||
+                    PixelY < 0 ||
+                    PixelX + Scale > static_cast<int>(Width) ||
+                    PixelY + Scale > static_cast<int>(Height)
+                )
+                {
+                    continue;
+                }
+
+                glScissor(
+                    PixelX,
+                    static_cast<int>(Height) - PixelY - Scale,
+                    Scale,
+                    Scale
+                );
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+        }
+
+        CursorX += 4 * Scale;
+    }
+
+    glDisable(GL_SCISSOR_TEST);
+}
+
+void Renderer::DrawHud(
+    int BreakersActive,
+    int BreakersRequired,
+    int InteractionType,
+    bool CanExit,
+    float Fps
+)
+{
+    const glm::vec3 Primary{0.92f, 0.89f, 0.65f};
+    const glm::vec3 Muted{0.56f, 0.54f, 0.39f};
+
+    DrawText("LEVEL 0", 26, 24, 2, Muted);
+
+    std::ostringstream Objective;
+    Objective
+        << "RESTORE POWER  "
+        << BreakersActive
+        << "/"
+        << BreakersRequired;
+
+    DrawText(Objective.str(), 26, 42, 2, Primary);
+
+    std::ostringstream FpsText;
+    FpsText << static_cast<int>(std::round(Fps)) << " FPS";
+
+    const int FpsWidth = TextWidth(FpsText.str(), 2);
+    DrawText(
+        FpsText.str(),
+        static_cast<int>(Width) - FpsWidth - 26,
+        24,
+        2,
+        Muted
+    );
+
+    const std::string Version = "V0.3.4";
+    const int VersionWidth = TextWidth(Version, 2);
+    DrawText(
+        Version,
+        static_cast<int>(Width) - VersionWidth - 26,
+        42,
+        2,
+        Muted
+    );
+
+    DrawText(
+        "SPRINT",
+        24,
+        static_cast<int>(Height) - 46,
+        2,
+        Muted
+    );
+
+    std::string Prompt;
+
+    if (InteractionType == 1)
+        Prompt = "E  ACTIVATE BREAKER";
+
+    if (InteractionType == 2)
+        Prompt = CanExit ? "E  OPEN EXIT" : "EXIT HAS NO POWER";
+
+    if (!Prompt.empty())
+    {
+        const int PromptWidth = TextWidth(Prompt, 2);
+        const int BoxWidth = PromptWidth + 22;
+
+        DrawRect(
+            static_cast<int>(Width) / 2 - BoxWidth / 2,
+            static_cast<int>(Height) - 88,
+            BoxWidth,
+            28,
+            {0.055f, 0.05f, 0.028f}
+        );
+
+        DrawText(
+            Prompt,
+            static_cast<int>(Width) / 2 - PromptWidth / 2,
+            static_cast<int>(Height) - 81,
+            2,
+            Primary
+        );
+    }
+}
+
+void Renderer::DrawEndScreen(bool Escaped)
+{
+    DrawRect(
+        0,
+        0,
+        static_cast<int>(Width),
+        static_cast<int>(Height),
+        {0.032f, 0.03f, 0.018f}
+    );
+
+    const glm::vec3 Primary{0.88f, 0.84f, 0.56f};
+    const glm::vec3 Muted{0.48f, 0.46f, 0.32f};
+
+    const std::string Eyebrow =
+        Escaped ? "LEVEL 0 COMPLETE" : "LEVEL 0";
+
+    const std::string Main =
+        Escaped ? "YOU ESCAPED" : "YOU WERE FOUND";
+
+    const int MainScale = 6;
+    const int MainWidth = TextWidth(Main, MainScale);
+
+    DrawText(Eyebrow, 48, 52, 3, Muted);
+    DrawText(
+        Main,
+        static_cast<int>(Width) / 2 - MainWidth / 2,
+        static_cast<int>(Height) / 2 - 46,
+        MainScale,
+        Primary
+    );
+
+    const std::string Restart = "R  NEW SESSION";
+    const int RestartWidth = TextWidth(Restart, 3);
+
+    DrawText(
+        Restart,
+        static_cast<int>(Width) / 2 - RestartWidth / 2,
+        static_cast<int>(Height) / 2 + 28,
+        3,
+        Muted
+    );
+}
+
+void Renderer::EndFrame(
+    float Stamina,
+    int BreakersActive,
+    int BreakersRequired,
+    int InteractionType,
+    bool CanExit,
+    float Fps,
+    bool Ended,
+    bool Escaped
+)
 {
     glUseProgram(Program);
 
@@ -663,6 +955,19 @@ void Renderer::EndFrame(float Stamina)
 
     glBindVertexArray(0);
 
+    if (Ended)
+    {
+        DrawEndScreen(Escaped);
+        return;
+    }
+
     DrawCrosshair();
     DrawStamina(Stamina);
+    DrawHud(
+        BreakersActive,
+        BreakersRequired,
+        InteractionType,
+        CanExit,
+        Fps
+    );
 }
