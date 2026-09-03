@@ -89,15 +89,39 @@ vec3 Level0Surface(vec3 BaseColor, vec3 Position, vec3 Normal, int MaterialType)
     if (MaterialType == 1)
     {
         float Axis = abs(Normal.x) > 0.55 ? Position.z : Position.x;
-        float StripeWave = 0.5 + 0.5 * cos(Axis * 8.37758040957);
-        float Seam = CellEdge(Axis / 0.75, 0.022);
-        float Fiber = Hash21(floor(vec2(Axis * 20.0, Position.y * 22.0)));
-        float Motif = 0.5 + 0.5 * sin(Axis * 12.0 + Position.y * 19.0);
 
-        Result *= 0.92 + StripeWave * 0.085;
-        Result *= 0.965 + (Fiber - 0.5) * 0.085;
-        Result *= 0.975 + Motif * 0.035;
-        Result *= mix(1.0, 0.82, Seam * 0.42);
+        // Match the original 192 px wallpaper:
+        // 24 px vertical repeat, 3.1 texture repeats across a 6 m wall.
+        float StripeCell = fract(Axis / 0.24194);
+        float DarkStripe =
+            1.0 - smoothstep(0.06, 0.12, StripeCell);
+
+        float BrightStripe =
+            smoothstep(0.43, 0.48, StripeCell) *
+            (1.0 - smoothstep(0.67, 0.72, StripeCell));
+
+        float VerticalCell = fract(Position.y / 0.39259);
+        float MotifCenter =
+            1.0 - smoothstep(
+                0.02,
+                0.18,
+                abs(VerticalCell - 0.25)
+            );
+
+        float Fiber =
+            Hash21(
+                floor(
+                    vec2(
+                        Axis * 23.0,
+                        Position.y * 31.0
+                    )
+                )
+            );
+
+        Result *= mix(1.0, 0.955, DarkStripe);
+        Result *= mix(1.0, 1.075, BrightStripe);
+        Result *= mix(1.0, 0.975, MotifCenter * 0.5);
+        Result *= 0.97 + (Fiber - 0.5) * 0.07;
     }
     else if (MaterialType == 2)
     {
@@ -142,13 +166,19 @@ void main()
     vec3 SurfaceColor = Level0Surface(vColor, vWorldPosition, N, vMaterialType);
 
     float UpFacing = clamp(N.y * 0.5 + 0.5, 0.0, 1.0);
-    vec3 AmbientTint = mix(
-        vec3(0.205, 0.195, 0.155),
-        vec3(0.37, 0.35, 0.255),
-        UpFacing
-    );
 
-    vec3 Lighting = SurfaceColor * AmbientTint;
+    vec3 AmbientLight =
+        vec3(1.0, 0.8879, 0.6240) * 0.46;
+
+    vec3 HemisphereLight = mix(
+        vec3(0.1221, 0.1144, 0.0802),
+        vec3(1.0, 0.9216, 0.7157),
+        UpFacing
+    ) * 0.34;
+
+    vec3 Lighting =
+        SurfaceColor *
+        (AmbientLight + HemisphereLight);
 
     for (int I = 0; I < uLightCount; ++I)
     {
@@ -176,14 +206,15 @@ void main()
 
     if (vMaterialType == 6)
     {
-        Lighting = max(Lighting, SurfaceColor * 0.82);
+        // The original fluorescent panel used an unlit material.
+        Lighting = max(Lighting, SurfaceColor);
     }
 
     Lighting += vEmissive;
 
     float DistanceToCamera = length(vWorldPosition - uCameraPosition);
     float FogAmount = smoothstep(26.0, 72.0, DistanceToCamera);
-    vec3 FogColor = vec3(0.718, 0.690, 0.545);
+    vec3 FogColor = vec3(0.4735, 0.4342, 0.2582);
 
     vec3 FinalColor = mix(Lighting, FogColor, FogAmount);
     FinalColor = pow(max(FinalColor, vec3(0.0)), vec3(1.0 / 2.2));
@@ -496,7 +527,7 @@ void Renderer::SetLights(
     std::array<glm::vec4, 8> Colors{};
 
     const int Count = static_cast<int>(
-        std::min<std::size_t>(8, Candidates.size())
+        std::min<std::size_t>(5, Candidates.size())
     );
 
     for (int I = 0; I < Count; ++I)
@@ -864,7 +895,7 @@ void Renderer::DrawHud(
         Muted
     );
 
-    const std::string Version = "V0.3.4";
+    const std::string Version = "V0.3.5";
     const int VersionWidth = TextWidth(Version, 2);
     DrawText(
         Version,
@@ -928,7 +959,7 @@ void Renderer::DrawStartScreen()
     const glm::vec3 Panel{0.085f, 0.080f, 0.048f};
 
     DrawText("BACKROOMS OFFICAL", 46, 42, 4, Primary);
-    DrawText("V0.3.4", 48, 72, 2, Muted);
+    DrawText("V0.3.5", 48, 72, 2, Muted);
 
     const int CardWidth =
         std::min(700, static_cast<int>(Width) - 92);
