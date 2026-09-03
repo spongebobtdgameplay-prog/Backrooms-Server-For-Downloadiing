@@ -217,16 +217,30 @@ void Application::ProcessEvents()
         if (
             Event.type == SDL_EVENT_KEY_DOWN &&
             !Event.key.repeat &&
-            Event.key.scancode == SDL_SCANCODE_ESCAPE
+            Event.key.scancode == SDL_SCANCODE_ESCAPE &&
+            MouseCaptured
         )
         {
-            SetMouseCaptured(!MouseCaptured);
+            SetMouseCaptured(false);
         }
 
         if (
             Event.type ==
             SDL_EVENT_MOUSE_BUTTON_DOWN &&
             !MouseCaptured
+        )
+        {
+            SetMouseCaptured(true);
+        }
+
+        if (
+            Event.type == SDL_EVENT_KEY_DOWN &&
+            !Event.key.repeat &&
+            !MouseCaptured &&
+            (
+                Event.key.scancode == SDL_SCANCODE_RETURN ||
+                Event.key.scancode == SDL_SCANCODE_SPACE
+            )
         )
         {
             SetMouseCaptured(true);
