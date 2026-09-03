@@ -75,6 +75,7 @@ private:
 
     bool InteractPressed = false;
     bool RestartPressed = false;
+    bool StartPressed = false;
 
     int FrameCounter = 0;
     float FpsWindowStart = 0.0f;
