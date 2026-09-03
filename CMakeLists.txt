@@ -113,12 +113,3 @@ add_custom_command(
             "${CMAKE_CURRENT_SOURCE_DIR}/assets"
             "$<TARGET_FILE_DIR:BackroomsOffical>/assets"
 )
-
-if(WIN32)
-    add_custom_command(
-        TARGET BackroomsOffical POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "$<TARGET_FILE:SDL3::SDL3>"
-                "$<TARGET_FILE_DIR:BackroomsOffical>"
-    )
-endif()
