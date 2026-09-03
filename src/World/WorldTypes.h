@@ -12,6 +12,17 @@ struct AABB
     glm::vec3 Max{0.0f};
 };
 
+enum class SurfaceMaterial : int
+{
+    Generic = 0,
+    Wallpaper = 1,
+    Carpet = 2,
+    Ceiling = 3,
+    Trim = 4,
+    Fixture = 5,
+    LightPanel = 6
+};
+
 struct SceneBox
 {
     glm::vec3 Position{0.0f};
@@ -19,6 +30,7 @@ struct SceneBox
     glm::vec3 Color{1.0f};
     glm::vec3 Emissive{0.0f};
     float Roughness = 1.0f;
+    int MaterialType = static_cast<int>(SurfaceMaterial::Generic);
 };
 
 struct LightPoint
