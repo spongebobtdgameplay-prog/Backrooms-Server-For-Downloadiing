@@ -34,7 +34,6 @@ private:
     bool Running = false;
     bool MouseCaptured = false;
     bool Initialized = false;
-    bool UpdateBypassed = false;
 
     uint32_t Width = 1600;
     uint32_t Height = 900;
