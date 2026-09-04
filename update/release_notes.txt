@@ -1,1 +1,1 @@
-Restored the original yellow Level 0 menu style, added pause, Main Menu and Resume session flow, and fixed sudden camera vertical/pitch jumps when mouse capture changes.
+V0.3.8 replaces the GitHub redirect with an automatic in-game download, verifies the installer SHA-256, installs back into the current game folder without asking for a location, restarts the game after applying, and replaces the old dark updater card with a full Level 0 yellow update screen and progress display.
