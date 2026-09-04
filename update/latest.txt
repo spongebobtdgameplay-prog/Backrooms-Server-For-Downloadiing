@@ -1,6 +1,6 @@
 # Generated only after the Windows installer is published successfully.
-version=0.3.7
+version=0.3.8
 package=Backrooms-Offical-Windows-x64.exe
 url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe
-sha256=5803791b4fb663a2a94e74540aa037f3b9c5b020e80ba47a8314ac8acb81d8bd
-notes=Restored the original yellow Level 0 menu style, added pause, Main Menu and Resume session flow, and fixed sudden camera vertical/pitch jumps when mouse capture changes.
+sha256=b938b33cac5723c3eb22edaa8c82334f39a5b8fab19dac99bcce986ab78bb411
+notes=V0.3.8 replaces the GitHub redirect with an automatic in-game download, verifies the installer SHA-256, installs back into the current game folder without asking for a location, restarts the game after applying, and replaces the old dark updater card with a full Level 0 yellow update screen and progress display.
