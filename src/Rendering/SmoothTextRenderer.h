@@ -10,6 +10,12 @@
 class SmoothTextRenderer
 {
 public:
+    SmoothTextRenderer() = default;
+    ~SmoothTextRenderer();
+
+    SmoothTextRenderer(const SmoothTextRenderer&) = delete;
+    SmoothTextRenderer& operator=(const SmoothTextRenderer&) = delete;
+
     bool Initialize();
     void Shutdown();
     void Resize(uint32_t Width, uint32_t Height);
