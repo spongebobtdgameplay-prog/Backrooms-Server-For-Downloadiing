@@ -1,6 +1,3 @@
 #include "SmoothTextRenderer.h"
 
-SmoothTextRenderer::~SmoothTextRenderer()
-{
-    Shutdown();
-}
+SmoothTextRenderer::~SmoothTextRenderer() = default;
