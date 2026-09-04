@@ -32,6 +32,21 @@ public:
     void OnMouseCaptureChanged(bool Captured);
     bool ShouldCaptureMouse() const;
 
+    bool HasMenuOverlay() const
+    {
+        return State.MainMenuOpen || State.Paused;
+    }
+
+    void RenderMenuOverlay()
+    {
+        GameRenderer.BeginFrame();
+
+        if (State.Paused)
+            GameRenderer.DrawPauseMenuV2();
+        else
+            GameRenderer.DrawMainMenuV2(State.Started);
+    }
+
     void Update(
         float DeltaTime,
         bool MouseCaptured
