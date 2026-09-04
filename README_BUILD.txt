@@ -1,9 +1,11 @@
-BACKROOMS OFFICAL V0.3.7
+BACKROOMS OFFICAL V0.3.10
 
 This is the native desktop build of Backrooms Offical Level 0.
 
 WHAT IS INCLUDED
 - SDL3 native window and relative mouse input
+- Windows GameInput raw keyboard/mouse path when available
+- Precision Touchpad gameplay override for W + touchpad look on supported Windows 11 systems
 - OpenGL 4.1 core renderer
 - GPU instanced box renderer
 - Dynamic fluorescent point lights
@@ -17,8 +19,10 @@ WHAT IS INCLUDED
 - Powered exit
 - A* entity pathfinding through the generated maze
 - Entity collision
-- Entity near/far form change
-- Procedural hum, static, shift and death audio
+- Entity near/far form change with restored squash-grow transition
+- Procedural hum, static, shift, laugh and death audio
+- Smooth native menu/HUD/pause/updater/end-screen text on Windows
+- Windows GUI-subsystem executable with no console window during normal play
 - Windows build script
 - Linux build script
 - CMake dependency fetching
@@ -27,7 +31,7 @@ WINDOWS BUILD
 1. Install Visual Studio 2022 with "Desktop development with C++".
 2. Install CMake.
 3. Run build-windows.bat.
-4. First build downloads SDL3, GLM, GLAD and miniaudio.
+4. First build downloads SDL3, GLM and miniaudio. GLAD is vendored in the repository.
 5. The executable appears at build\Release\Backrooms Offical.exe.
 
 CONTROLS
@@ -42,13 +46,12 @@ N         New session from main menu when a session exists
 R         Restart after escaping or being caught
 
 IMPORTANT
-The source package is complete enough to build the current native prototype, but it has not been compiled inside ChatGPT's runtime because the external C++ dependencies are not installed here.
+The current Windows source is compiled by GitHub Actions before release. V0.3.10 was also compiled successfully in its dedicated validation workflow before promotion to main.
 
-The original entity-ghost.glb and entity-demon.glb assets are restored under assets/models. The renderer restoration is bringing the native build back to the original Level 0 presentation instead of the temporary flat-box look.
+The original entity-ghost.glb and entity-demon.glb assets are restored under assets/models. The native renderer uses the original model assets instead of the temporary flat-box entity whenever those models load successfully.
 
 VERSION
-0.3.7
-
+0.3.10
 
 GAME ICON
 - assets/icon/Backrooms.png   Exact uploaded game icon
@@ -88,13 +91,21 @@ V0.3.5 LEVEL 0 VISUAL PARITY
 - Matched the original wallpaper stripe scale and motif spacing more closely.
 - Matched wall, carpet, ceiling, trim, fixture and fluorescent-panel material colors to the original Level 0 build.
 
-
 V0.3.7 MENU AND CAMERA FIX
 - Replaced the temporary dark/arcade-looking start card with the original web game's bright mono-yellow Level 0 menu direction.
 - Added pause menu with Resume and Main Menu.
 - Main Menu preserves the active session and offers Resume Session or New Session.
 - Escape pauses/resumes; M opens Main Menu while playing.
-- Mouse capture is now controlled by game/menu state instead of generic window clicks.
+- Mouse capture is controlled by game/menu state instead of generic window clicks.
 - Camera input discards capture-transition mouse spikes and clamps abnormal relative-motion bursts.
-- Native camera view now uses the same Y-X-Z rotation structure as the original browser camera instead of lookAt near-vertical behavior.
-- Reduced vertical head-bob amplitude to remove sudden-looking camera jumps.
+- Native camera view uses the same Y-X-Z rotation structure as the original browser camera instead of lookAt near-vertical behavior.
+
+V0.3.10 INPUT, TEXT AND MOTION RESTORATION
+- Windows executable now uses the GUI subsystem, so playing the game no longer opens a console/Windows Terminal window.
+- SDL GameInput raw keyboard/mouse handling is enabled before SDL initialization when Windows supports it.
+- While gameplay owns relative mouse mode, supported Windows 11 Precision Touchpads are temporarily switched to the most-sensitive keyboard coexistence mode so holding W no longer asks Windows to suppress touchpad mouse generation. The previous touchpad setting is restored on pause/menu/exit.
+- The smooth antialiased text renderer is now wired through the shared text path, replacing the leftover 3x5 arcade glyphs across the start menu, HUD, pause screen, updater and end screen on Windows.
+- Fixed the duplicate ENTER ENTER LEVEL 0 label.
+- Restored the original stronger walk/sprint head-bob amplitudes.
+- Restored the original 0.42-second ghost/demon squash-grow shapeshift transition on the real GLB models.
+- Full skeletal run/walk animation playback is still a separate native renderer task; the GLB loader currently renders the model meshes without skinning animation.
