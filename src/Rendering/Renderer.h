@@ -48,6 +48,10 @@ public:
         const UpdateVisualState& State
     );
 
+    void DrawUpdateScreenV2(
+        const UpdateVisualState& State
+    );
+
     void EndFrame(
         float Stamina,
         int BreakersActive,
