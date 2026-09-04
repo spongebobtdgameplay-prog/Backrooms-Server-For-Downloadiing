@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(BackroomsOffical VERSION 0.3.8 LANGUAGES C CXX)
+project(BackroomsOffical VERSION 0.3.9 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -87,6 +87,7 @@ if(WIN32)
         winhttp
         bcrypt
         shell32
+        gdi32
     )
 endif()
 
