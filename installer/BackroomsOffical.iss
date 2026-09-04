@@ -36,4 +36,4 @@ Name: "{autoprograms}\Backrooms Offical"; Filename: "{app}\{#MyAppExeName}"; Wor
 Name: "{autodesktop}\Backrooms Offical"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch Backrooms Offical"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Description: "Launch Backrooms Offical"; Flags: nowait skipifdoesntexist
