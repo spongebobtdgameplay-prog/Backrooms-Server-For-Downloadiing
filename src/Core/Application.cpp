@@ -353,7 +353,14 @@ int Application::Run()
                 MouseCaptured
             );
 
-            Backrooms.Render(TotalTime);
+            if (Backrooms.HasMenuOverlay())
+            {
+                Backrooms.RenderMenuOverlay();
+            }
+            else
+            {
+                Backrooms.Render(TotalTime);
+            }
         }
 
         SDL_SetWindowTitle(
