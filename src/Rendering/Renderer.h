@@ -2,6 +2,7 @@
 
 #include "../World/WorldTypes.h"
 #include "EntityModel.h"
+#include "SmoothTextRenderer.h"
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -95,6 +96,22 @@ private:
     void DrawStartScreen(bool HasSession);
     void DrawPauseScreen();
     void DrawEndScreen(bool Escaped);
+    void DrawMenuBackdrop();
+    void DrawMenuText(
+        const std::string& Text,
+        int X,
+        int Y,
+        int PixelHeight,
+        int Weight,
+        float TrackingEm,
+        const glm::vec3& Color
+    );
+    int MenuTextWidth(
+        const std::string& Text,
+        int PixelHeight,
+        int Weight,
+        float TrackingEm
+    );
     void DrawText(
         const std::string& Text,
         int X,
@@ -145,6 +162,7 @@ private:
 
     EntityModel GhostEntityModel;
     EntityModel DemonEntityModel;
+    SmoothTextRenderer MenuTextRenderer;
 
     std::array<glm::vec4, 8> ActiveLightPositions{};
     std::array<glm::vec4, 8> ActiveLightColors{};
