@@ -342,7 +342,7 @@ int Application::Run()
 
         if (UpdateActive)
         {
-            Backrooms.RenderUpdateScreen(
+            Backrooms.RenderUpdateScreenV2(
                 Updater.VisualState()
             );
         }
