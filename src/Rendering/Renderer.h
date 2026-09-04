@@ -42,7 +42,9 @@ public:
     void DrawEntity(
         const glm::vec3& Position,
         const glm::vec3& Forward,
-        bool DemonForm
+        bool DemonForm,
+        bool PreviousDemonForm,
+        float ShiftProgress
     );
 
     void DrawMainMenuV2(bool HasSession);
@@ -122,7 +124,7 @@ private:
         int Scale,
         const glm::vec3& Color
     );
-    int TextWidth(const std::string& Text, int Scale) const;
+    int TextWidth(const std::string& Text, int Scale);
     void DrawRect(
         int X,
         int Y,

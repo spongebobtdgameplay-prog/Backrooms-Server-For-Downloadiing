@@ -20,6 +20,7 @@ void Entity::Reset(const glm::vec3& StartPosition)
 
     Active = false;
     DemonForm = false;
+    PreviousDemonForm = false;
     ShiftedThisFrame = false;
 
     TargetCell = -1;
@@ -323,6 +324,7 @@ bool Entity::Update(
 
     if (DesiredDemon != DemonForm)
     {
+        PreviousDemonForm = DemonForm;
         DemonForm = DesiredDemon;
         ShiftProgress = 0.0f;
         ShiftTimer = 6.0f;

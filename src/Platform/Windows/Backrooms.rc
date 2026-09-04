@@ -4,8 +4,8 @@
 IDI_BACKROOMS ICON "../../../assets/icon/Backrooms.ico"
 
 1 VERSIONINFO
-FILEVERSION 0,3,9,0
-PRODUCTVERSION 0,3,9,0
+FILEVERSION 0,3,10,0
+PRODUCTVERSION 0,3,10,0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0x0L
 FILEOS VOS_NT_WINDOWS32
@@ -18,11 +18,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "spongebobtdgameplay-prog\0"
             VALUE "FileDescription", "Backrooms Offical\0"
-            VALUE "FileVersion", "0.3.9\0"
+            VALUE "FileVersion", "0.3.10\0"
             VALUE "InternalName", "Backrooms Offical\0"
             VALUE "OriginalFilename", "Backrooms Offical.exe\0"
             VALUE "ProductName", "Backrooms Offical\0"
-            VALUE "ProductVersion", "0.3.9\0"
+            VALUE "ProductVersion", "0.3.10\0"
         END
     END
 

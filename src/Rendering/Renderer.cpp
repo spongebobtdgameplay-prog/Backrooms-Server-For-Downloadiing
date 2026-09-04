@@ -803,6 +803,9 @@ bool Renderer::Initialize()
     if (!CreateShadowResources())
         return false;
 
+    MenuTextRenderer.Initialize();
+    MenuTextRenderer.Resize(Width, Height);
+
     GhostEntityModel.Load(
         "assets/models/entity-ghost.glb",
         2.18f
@@ -829,6 +832,8 @@ bool Renderer::Initialize()
 
 void Renderer::Shutdown()
 {
+    MenuTextRenderer.Shutdown();
+
     GhostEntityModel.Shutdown();
     DemonEntityModel.Shutdown();
 
@@ -856,6 +861,7 @@ void Renderer::Resize(uint32_t NewWidth, uint32_t NewHeight)
 {
     Width = std::max(NewWidth, 1u);
     Height = std::max(NewHeight, 1u);
+    MenuTextRenderer.Resize(Width, Height);
 
     glViewport(
         0,
@@ -1062,35 +1068,78 @@ bool Renderer::HasEntityModels() const
 void Renderer::DrawEntity(
     const glm::vec3& Position,
     const glm::vec3& Forward,
-    bool DemonForm
+    bool DemonForm,
+    bool PreviousDemonForm,
+    float ShiftProgress
 )
 {
-    const EntityModel* Model =
-        DemonForm
-            ? &DemonEntityModel
-            : &GhostEntityModel;
-
-    if (!Model->IsReady())
+    auto ResolveModel = [&](bool UseDemon) -> const EntityModel*
     {
-        Model =
-            DemonForm
-                ? &GhostEntityModel
-                : &DemonEntityModel;
+        const EntityModel* Model =
+            UseDemon
+                ? &DemonEntityModel
+                : &GhostEntityModel;
+
+        if (!Model->IsReady())
+        {
+            Model =
+                UseDemon
+                    ? &GhostEntityModel
+                    : &DemonEntityModel;
+        }
+
+        return Model->IsReady() ? Model : nullptr;
+    };
+
+    auto DrawForm = [&](bool UseDemon, const glm::vec3& VisualScale)
+    {
+        const EntityModel* Model = ResolveModel(UseDemon);
+
+        if (Model == nullptr)
+            return;
+
+        Model->Draw(
+            View,
+            Projection,
+            CameraPosition,
+            Position,
+            Forward,
+            VisualScale,
+            ActiveLightPositions,
+            ActiveLightColors,
+            ActiveLightCount
+        );
+    };
+
+    const float Progress =
+        std::clamp(ShiftProgress, 0.0f, 1.0f);
+
+    if (
+        Progress < 1.0f &&
+        PreviousDemonForm != DemonForm)
+    {
+        const float Ease =
+            Progress * Progress *
+            (3.0f - 2.0f * Progress);
+
+        const glm::vec3 PreviousScale{
+            1.0f + Ease * 0.22f,
+            std::max(0.02f, 1.0f - Ease),
+            1.0f + Ease * 0.22f
+        };
+
+        const glm::vec3 CurrentScale{
+            0.76f + Ease * 0.24f,
+            0.48f + Ease * 0.52f,
+            0.76f + Ease * 0.24f
+        };
+
+        DrawForm(PreviousDemonForm, PreviousScale);
+        DrawForm(DemonForm, CurrentScale);
+        return;
     }
 
-    if (!Model->IsReady())
-        return;
-
-    Model->Draw(
-        View,
-        Projection,
-        CameraPosition,
-        Position,
-        Forward,
-        ActiveLightPositions,
-        ActiveLightColors,
-        ActiveLightCount
-    );
+    DrawForm(DemonForm, glm::vec3{1.0f});
 }
 
 void Renderer::DrawCrosshair()
@@ -1301,10 +1350,31 @@ void Renderer::DrawRect(
     glDisable(GL_SCISSOR_TEST);
 }
 
-int Renderer::TextWidth(const std::string& Text, int Scale) const
+int Renderer::TextWidth(const std::string& Text, int Scale)
 {
-    if (Text.empty())
+    if (Text.empty() || Scale <= 0)
         return 0;
+
+    if (MenuTextRenderer.IsReady())
+    {
+        const int PixelHeight = std::max(10, Scale * 8);
+        const int Weight =
+            Scale >= 6 ? 900 :
+            Scale >= 3 ? 750 : 600;
+        const float Tracking =
+            Scale >= 6 ? -0.04f :
+            Scale >= 3 ? 0.035f : 0.10f;
+
+        const int WidthResult = MenuTextRenderer.Measure(
+            Text,
+            PixelHeight,
+            Weight,
+            Tracking
+        );
+
+        if (WidthResult > 0)
+            return WidthResult;
+    }
 
     return static_cast<int>(Text.size()) * 4 * Scale - Scale;
 }
@@ -1317,8 +1387,30 @@ void Renderer::DrawText(
     const glm::vec3& Color
 )
 {
-    if (Scale <= 0)
+    if (Scale <= 0 || Text.empty())
         return;
+
+    if (MenuTextRenderer.IsReady())
+    {
+        const int PixelHeight = std::max(10, Scale * 8);
+        const int Weight =
+            Scale >= 6 ? 900 :
+            Scale >= 3 ? 750 : 600;
+        const float Tracking =
+            Scale >= 6 ? -0.04f :
+            Scale >= 3 ? 0.035f : 0.10f;
+
+        MenuTextRenderer.Draw(
+            Text,
+            X,
+            Y,
+            PixelHeight,
+            Weight,
+            Tracking,
+            Color
+        );
+        return;
+    }
 
     glEnable(GL_SCISSOR_TEST);
     glClearColor(Color.r, Color.g, Color.b, 1.0f);
@@ -1327,7 +1419,13 @@ void Renderer::DrawText(
 
     for (char C : Text)
     {
-        const auto Rows = GlyphRows(C);
+        const auto Rows = GlyphRows(
+            static_cast<char>(
+                std::toupper(
+                    static_cast<unsigned char>(C)
+                )
+            )
+        );
 
         for (int Row = 0; Row < 5; ++Row)
         {
@@ -1614,7 +1712,7 @@ void Renderer::DrawStartScreen(bool HasSession)
     );
 
     DrawText(
-        "MONO YELLOW ROOMS DAMP CARPET",
+        "Mono-yellow rooms, damp carpet and fluorescent light",
         ContentX,
         ContentY + 118,
         2,
@@ -1622,7 +1720,7 @@ void Renderer::DrawStartScreen(bool HasSession)
     );
 
     DrawText(
-        "RESTORE THREE BREAKERS AND FIND THE POWERED EXIT",
+        "Restore three breakers and find the powered exit",
         ContentX,
         ContentY + 140,
         2,
@@ -1632,7 +1730,7 @@ void Renderer::DrawStartScreen(bool HasSession)
     const std::string PrimaryAction =
         HasSession
             ? "ENTER  RESUME SESSION"
-            : "ENTER  ENTER LEVEL 0";
+            : "ENTER LEVEL 0";
 
     DrawRect(
         ContentX,

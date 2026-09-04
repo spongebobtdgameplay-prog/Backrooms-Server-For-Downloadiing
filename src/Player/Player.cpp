@@ -207,7 +207,7 @@ void Player::Update(
     const float TargetBob =
         Moving
             ? std::sin(BobTime * 2.0f) *
-                (WantsSprint ? 0.018f : 0.012f)
+                (WantsSprint ? 0.026f : 0.018f)
             : 0.0f;
 
     const float TargetRoll =

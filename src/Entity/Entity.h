@@ -24,6 +24,8 @@ public:
 
     bool IsActive() const { return Active; }
     bool IsDemonForm() const { return DemonForm; }
+    bool PreviousWasDemonForm() const { return PreviousDemonForm; }
+    float ShiftAmount() const { return ShiftProgress; }
     const glm::vec3& Position() const { return EntityPosition; }
     const glm::vec3& Forward() const { return Direction; }
 
@@ -63,6 +65,7 @@ private:
 
     bool Active = false;
     bool DemonForm = false;
+    bool PreviousDemonForm = false;
     bool ShiftedThisFrame = false;
 
     int TargetCell = -1;

@@ -35,6 +35,88 @@ namespace
 
         return std::filesystem::current_path();
     }
+
+#ifdef _WIN32
+#if defined(SPI_GETTOUCHPADPARAMETERS) && \
+    defined(SPI_SETTOUCHPADPARAMETERS) && \
+    defined(TOUCHPAD_PARAMETERS_VERSION_1)
+    TOUCHPAD_PARAMETERS_V1 SavedTouchpadParameters{};
+    bool HasSavedTouchpadParameters = false;
+    bool GameplayTouchpadOverrideActive = false;
+
+    void SetGameplayTouchpadMode(bool Enabled)
+    {
+        if (Enabled)
+        {
+            if (GameplayTouchpadOverrideActive)
+                return;
+
+            TOUCHPAD_PARAMETERS_V1 Current{};
+            Current.versionNumber = TOUCHPAD_PARAMETERS_VERSION_1;
+
+            if (!SystemParametersInfoW(
+                    SPI_GETTOUCHPADPARAMETERS,
+                    static_cast<UINT>(sizeof(Current)),
+                    &Current,
+                    0))
+            {
+                return;
+            }
+
+            if (!Current.touchpadPresent)
+                return;
+
+            SavedTouchpadParameters = Current;
+            HasSavedTouchpadParameters = true;
+
+            Current.sensitivityLevel =
+                TOUCHPAD_SENSITIVITY_LEVEL_MOST_SENSITIVE;
+
+            if (SystemParametersInfoW(
+                    SPI_SETTOUCHPADPARAMETERS,
+                    static_cast<UINT>(sizeof(Current)),
+                    &Current,
+                    0))
+            {
+                GameplayTouchpadOverrideActive = true;
+            }
+            else
+            {
+                HasSavedTouchpadParameters = false;
+            }
+        }
+        else
+        {
+            if (
+                GameplayTouchpadOverrideActive &&
+                HasSavedTouchpadParameters)
+            {
+                SystemParametersInfoW(
+                    SPI_SETTOUCHPADPARAMETERS,
+                    static_cast<UINT>(
+                        sizeof(SavedTouchpadParameters)
+                    ),
+                    &SavedTouchpadParameters,
+                    0
+                );
+            }
+
+            GameplayTouchpadOverrideActive = false;
+            HasSavedTouchpadParameters = false;
+        }
+    }
+#else
+    void SetGameplayTouchpadMode(bool Enabled)
+    {
+        static_cast<void>(Enabled);
+    }
+#endif
+#else
+    void SetGameplayTouchpadMode(bool Enabled)
+    {
+        static_cast<void>(Enabled);
+    }
+#endif
 }
 
 Application::~Application()
@@ -81,6 +163,11 @@ bool Application::Initialize()
 
 bool Application::InitializeWindow()
 {
+#ifdef _WIN32
+    // Raw GameInput keeps keyboard and pointing input independent.
+    SDL_SetHint(SDL_HINT_WINDOWS_GAMEINPUT, "1");
+#endif
+
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD))
     {
         SDL_Log(
@@ -204,6 +291,8 @@ void Application::SetMouseCaptured(bool Captured)
         );
         return;
     }
+
+    SetGameplayTouchpadMode(Captured);
 
     MouseCaptured = Captured;
     Backrooms.OnMouseCaptureChanged(Captured);
@@ -380,6 +469,8 @@ void Application::Shutdown()
 {
     if (!Window && !GLContext)
         return;
+
+    SetGameplayTouchpadMode(false);
 
     Updater.Shutdown();
     Backrooms.Shutdown();

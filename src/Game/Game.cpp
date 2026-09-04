@@ -574,7 +574,9 @@ void Game::Render(float Time)
         GameRenderer.DrawEntity(
             Hunter.Position(),
             Hunter.Forward(),
-            Hunter.IsDemonForm()
+            Hunter.IsDemonForm(),
+            Hunter.PreviousWasDemonForm(),
+            Hunter.ShiftAmount()
         );
     }
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(BackroomsOffical VERSION 0.3.9 LANGUAGES C CXX)
+project(BackroomsOffical VERSION 0.3.10 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -99,7 +99,7 @@ endif()
 
 if(WIN32)
     set_target_properties(BackroomsOffical PROPERTIES
-        WIN32_EXECUTABLE FALSE
+        WIN32_EXECUTABLE TRUE
         OUTPUT_NAME "Backrooms Offical"
     )
 endif()

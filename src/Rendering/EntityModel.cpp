@@ -852,6 +852,7 @@ void EntityModel::Draw(
     const glm::vec3& CameraPosition,
     const glm::vec3& Position,
     const glm::vec3& Forward,
+    const glm::vec3& VisualScale,
     const std::array<glm::vec4, 8>& LightPositions,
     const std::array<glm::vec4, 8>& LightColors,
     int LightCount
@@ -880,6 +881,10 @@ void EntityModel::Draw(
             glm::mat4(1.0f),
             Yaw,
             glm::vec3{0.0f, 1.0f, 0.0f}
+        ) *
+        glm::scale(
+            glm::mat4(1.0f),
+            VisualScale
         ) *
         glm::scale(
             glm::mat4(1.0f),

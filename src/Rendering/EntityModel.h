@@ -29,6 +29,7 @@ public:
         const glm::vec3& CameraPosition,
         const glm::vec3& Position,
         const glm::vec3& Forward,
+        const glm::vec3& VisualScale,
         const std::array<glm::vec4, 8>& LightPositions,
         const std::array<glm::vec4, 8>& LightColors,
         int LightCount
