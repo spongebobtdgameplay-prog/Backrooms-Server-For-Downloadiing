@@ -39,6 +39,7 @@ public:
 
     void Render(float Time);
     void RenderUpdateScreen(const UpdateVisualState& State);
+    void RenderUpdateScreenV2(const UpdateVisualState& State);
 
     const std::string& WindowTitle() const;
 
