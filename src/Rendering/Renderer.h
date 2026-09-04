@@ -45,6 +45,9 @@ public:
         bool DemonForm
     );
 
+    void DrawMainMenuV2(bool HasSession);
+    void DrawPauseMenuV2();
+
     void DrawUpdateScreen(
         const UpdateVisualState& State
     );
