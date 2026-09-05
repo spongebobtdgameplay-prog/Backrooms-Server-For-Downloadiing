@@ -4,11 +4,10 @@ on:
   push:
     branches:
       - main
-      - fix-v0.3.19-transparent-hud-real-fps
   workflow_dispatch:
 
 concurrency:
-  group: windows-build-${{ github.ref }}
+  group: windows-build-main
   cancel-in-progress: true
 
 jobs:
