@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.16
-manifest_revision=33972895710
-published_at=2026-09-05T14:51:20Z
+version=0.3.17
+manifest_revision=33973608433
+published_at=2026-09-05T15:05:25Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.16&run=33972895710
-sha256=4c20d4296659f19965dcb0a396ae38d98add78b97a52d9c8d03edd7e50324973
-notes=V0.3.16 is the corrected native recovery release. It ships the clean V0.3.14 official UI path unchanged: the style.css-driven StartScreen layout, original button structure, original typography path, and SmoothTextRenderer. The V0.3.15 ClassicMenu.cpp/MenuLayout.h replacement panel and its altered button/font/layout logic are not present in main and are not part of this build. This higher version exists only because installed V0.3.15 clients compare numeric versions and cannot update backward to V0.3.14.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.17&run=33973608433
+sha256=e0cafecd34b739e8998eadce439631db7534c0d63b96ea76c676fcff2fbd03cc
+notes=V0.3.17 fixes the native menu to follow the real Backrooms-Offical browser CSS cascade instead of the obsolete dark StartScreen rule. The menu background is restored to the official yellow #c8bb61 presentation, the CSS converter now respects exact selectors and later scoped overrides, MenuContent is back to the real 680px width, final dark-on-yellow text and border colors are used, and the giant rectangular fake glow is removed. The active main and pause menus no longer fall back to the old pixel/arcade text path.
