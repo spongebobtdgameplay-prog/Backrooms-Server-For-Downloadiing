@@ -1,6 +1,6 @@
 # Generated only after the Windows installer is published successfully.
-version=0.3.11
+version=0.3.12
 package=Backrooms-Offical-Windows-x64.exe
 url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe
-sha256=22ba1192e04c309145e95a3c4d667e9da33233dda2db93d0b5d1776db7828a17
-notes=V0.3.11 rebuilds the native text system around the original web game's actual CSS typography. The old page did not bundle a custom webfont: it used the stack Arial Narrow, Helvetica Neue, Arial, sans-serif. Windows now resolves that stack in order, uses ClearType-quality rasterization, supports CSS-like opacity and text shadows, restores the original HUD font sizes/weights/letter spacing, restores the thin 1-pixel crosshair and horizontal stamina layout, fixes the generic smooth-text scale conversion, and switches the game to the HTML-derived V2 main/pause menus instead of the leftover native fallback screens.
+sha256=5498d2a424efc523ed585aa451fb95f36d8451850ebfbae1d58e63e42a06f26c
+notes=V0.3.12 stops hand-guessing the native menu layout. The original browser style.css is now stored with the native project and converted into GeneratedWebUi.h by tools/convert_web_ui.py during GitHub/developer builds. The main menu uses the original CSS box model: clamp/vw/vh positioning, exact title size and line-height, paragraph max-width and line-height, measured native glyph height and width for safe wrapping, original button dimensions, footer/top-row spacing, mobile breakpoint values, colors, stripes, noise, and title highlight. This fixes THE LOBBY overlapping the paragraph and makes future web UI changes flow through the converter instead of being manually retyped.
