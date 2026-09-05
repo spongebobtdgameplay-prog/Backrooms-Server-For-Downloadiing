@@ -109,6 +109,93 @@ glm::vec3 Game::MenuPointerFromEvent(const SDL_Event& Event) const
     };
 }
 
+bool Game::TryMountBreaker(
+    const glm::vec3& CellCenter,
+    int Variant,
+    Breaker& Result
+) const
+{
+    const int X = std::clamp(
+        static_cast<int>(std::round(CellCenter.x / World.CellSize)),
+        0,
+        World.Columns - 1
+    );
+
+    const int Z = std::clamp(
+        static_cast<int>(std::round(CellCenter.z / World.CellSize)),
+        0,
+        World.Rows - 1
+    );
+
+    const MazeCell& Cell = World.Cell(X, Z);
+
+    const int StartDirection =
+        static_cast<int>(
+            (Seed + static_cast<uint32_t>(Variant * 2654435761u)) % 4u
+        );
+
+    for (int Offset = 0; Offset < 4; ++Offset)
+    {
+        const int DirectionIndex =
+            (StartDirection + Offset) % 4;
+
+        if (!Cell.Walls[static_cast<std::size_t>(DirectionIndex)])
+            continue;
+
+        glm::vec3 WallCenter = CellCenter;
+        glm::vec3 Forward{0.0f};
+
+        if (DirectionIndex == 0)
+        {
+            WallCenter.z -= World.CellSize * 0.5f;
+            Forward = {0.0f, 0.0f, 1.0f};
+        }
+        else if (DirectionIndex == 1)
+        {
+            WallCenter.x += World.CellSize * 0.5f;
+            Forward = {-1.0f, 0.0f, 0.0f};
+        }
+        else if (DirectionIndex == 2)
+        {
+            WallCenter.z += World.CellSize * 0.5f;
+            Forward = {0.0f, 0.0f, -1.0f};
+        }
+        else
+        {
+            WallCenter.x -= World.CellSize * 0.5f;
+            Forward = {1.0f, 0.0f, 0.0f};
+        }
+
+        const glm::vec3 Right{
+            Forward.z,
+            0.0f,
+            -Forward.x
+        };
+
+        const uint32_t Hash =
+            Seed ^
+            static_cast<uint32_t>(Variant * 2246822519u) ^
+            static_cast<uint32_t>((X + 1) * 3266489917u) ^
+            static_cast<uint32_t>((Z + 1) * 668265263u);
+
+        const float Along =
+            (static_cast<float>(Hash % 1000u) / 999.0f - 0.5f) *
+            1.45f;
+
+        Result.Position =
+            WallCenter +
+            Forward * (World.WallThickness * 0.5f + 0.11f) +
+            Right * Along;
+
+        Result.Position.y = 0.88f;
+        Result.Forward = Forward;
+        Result.Active = false;
+        return true;
+    }
+
+    return false;
+}
+
 void Game::Reset()
 {
     const auto Now =
@@ -122,6 +209,8 @@ void Game::Reset()
     World = Generator.Build();
 
     GamePlayer.Reset({0.0f, 1.65f, 0.0f});
+    PreviousPlayerPosition = GamePlayer.Position();
+    FootstepDistance = 0.0f;
 
     State = {};
     Breakers.clear();
@@ -169,10 +258,31 @@ void Game::Reset()
 
     for (int I = 0; I < 3; ++I)
     {
-        Breakers.push_back({
-            Pick(24.0f),
-            false
-        });
+        Breaker Mounted;
+        bool MountedSuccessfully = false;
+
+        for (int Attempt = 0; Attempt < 36; ++Attempt)
+        {
+            const glm::vec3 Candidate = Pick(24.0f);
+
+            if (TryMountBreaker(
+                    Candidate,
+                    I * 41 + Attempt,
+                    Mounted
+                ))
+            {
+                MountedSuccessfully = true;
+                break;
+            }
+        }
+
+        if (!MountedSuccessfully)
+            continue;
+
+        Breakers.push_back(Mounted);
+        World.Colliders.push_back(
+            BreakerBounds(Breakers.back())
+        );
     }
 
     ExitPosition = Pick(38.0f);
@@ -394,9 +504,32 @@ bool Game::ShouldCaptureMouse() const
 
 AABB Game::BreakerBounds(const Breaker& BreakerData) const
 {
+    const glm::vec3 Forward = BreakerData.Forward;
+    const glm::vec3 Right{
+        Forward.z,
+        0.0f,
+        -Forward.x
+    };
+
+    const float HalfX =
+        std::abs(Right.x) * 0.40f +
+        std::abs(Forward.x) * 0.18f;
+
+    const float HalfZ =
+        std::abs(Right.z) * 0.40f +
+        std::abs(Forward.z) * 0.18f;
+
     return {
-        BreakerData.Position + glm::vec3{-0.42f, 0.72f, -0.3f},
-        BreakerData.Position + glm::vec3{0.42f, 1.88f, 0.3f}
+        {
+            BreakerData.Position.x - HalfX,
+            BreakerData.Position.y,
+            BreakerData.Position.z - HalfZ
+        },
+        {
+            BreakerData.Position.x + HalfX,
+            BreakerData.Position.y + 1.05f,
+            BreakerData.Position.z + HalfZ
+        }
     };
 }
 
@@ -483,6 +616,7 @@ void Game::Interact()
             return;
 
         Target.Active = true;
+        Audio.PlayBreaker(Target.Position);
         State.ActivateBreaker();
 
         if (State.BreakersActive == 1)
@@ -560,6 +694,25 @@ void Game::Update(
         MouseCaptured
     );
 
+    glm::vec3 PlayerTravel =
+        GamePlayer.Position() - PreviousPlayerPosition;
+    PlayerTravel.y = 0.0f;
+
+    const float TravelDistance = glm::length(PlayerTravel);
+
+    if (TravelDistance > 0.0001f)
+    {
+        FootstepDistance += TravelDistance;
+
+        while (FootstepDistance >= 1.28f)
+        {
+            FootstepDistance -= 1.28f;
+            Audio.PlayFootstep(GamePlayer.Position());
+        }
+    }
+
+    PreviousPlayerPosition = GamePlayer.Position();
+
     UpdateInteraction();
 
     if (InteractPressed)
@@ -567,9 +720,6 @@ void Game::Update(
 
     InteractPressed = false;
     RestartPressed = false;
-
-    float EntityDistance =
-        std::numeric_limits<float>::infinity();
 
     if (State.EntityReleased)
     {
@@ -579,13 +729,11 @@ void Game::Update(
             World
         );
 
-        EntityDistance =
-            Hunter.DistanceTo(GamePlayer.Position());
-
         if (Hunter.ConsumeShifted())
         {
             Audio.PlayShift(
-                Hunter.IsDemonForm()
+                Hunter.IsDemonForm(),
+                Hunter.Position()
             );
         }
 
@@ -604,7 +752,13 @@ void Game::Update(
             Message.clear();
     }
 
-    Audio.Update(EntityDistance);
+    Audio.Update(
+        DeltaTime,
+        GamePlayer.Position(),
+        GamePlayer.Forward(),
+        Hunter.Position(),
+        Hunter.IsActive()
+    );
     UpdateTitle();
 }
 
@@ -612,27 +766,24 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
 {
     std::vector<SceneBox> Boxes;
 
-    for (const Breaker& BreakerData : Breakers)
+    if (!GameRenderer.HasBreakerModel())
     {
-        Boxes.push_back({
-            BreakerData.Position + glm::vec3{0.0f, 1.35f, 0.0f},
-            {0.7f, 1.0f, 0.18f},
-            {0.0409f, 0.0382f, 0.0203f},
-            {0.0f, 0.0f, 0.0f},
-            0.8f
-        });
+        for (const Breaker& BreakerData : Breakers)
+        {
+            const bool FacingX =
+                std::abs(BreakerData.Forward.x) > 0.5f;
 
-        Boxes.push_back({
-            BreakerData.Position + glm::vec3{0.0f, 1.35f, -0.14f},
-            {0.18f, 0.34f, 0.1f},
-            BreakerData.Active
-                ? glm::vec3{0.0437f, 0.4564f, 0.0723f}
-                : glm::vec3{0.4735f, 0.0513f, 0.0273f},
-            BreakerData.Active
-                ? glm::vec3{0.00212f, 0.04667f, 0.00518f}
-                : glm::vec3{0.04231f, 0.00273f, 0.00121f},
-            0.7f
-        });
+            Boxes.push_back({
+                BreakerData.Position + glm::vec3{0.0f, 0.525f, 0.0f},
+                FacingX
+                    ? glm::vec3{0.18f, 1.05f, 0.76f}
+                    : glm::vec3{0.76f, 1.05f, 0.18f},
+                {0.16f, 0.17f, 0.15f},
+                {0.0f, 0.0f, 0.0f},
+                0.88f,
+                static_cast<int>(SurfaceMaterial::Fixture)
+            });
+        }
     }
 
     Boxes.push_back({
@@ -726,6 +877,17 @@ void Game::Render(float Time)
         BuildDynamicBoxes();
 
     GameRenderer.DrawBoxes(Dynamic);
+
+    if (GameRenderer.HasBreakerModel())
+    {
+        for (const Breaker& BreakerData : Breakers)
+        {
+            GameRenderer.DrawBreaker(
+                BreakerData.Position,
+                BreakerData.Forward
+            );
+        }
+    }
 
     if (
         Hunter.IsActive() &&

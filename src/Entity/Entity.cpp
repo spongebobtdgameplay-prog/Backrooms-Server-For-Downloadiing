@@ -17,6 +17,8 @@ void Entity::Reset(const glm::vec3& StartPosition)
     RepathTimer = 0.0f;
     ShiftTimer = 7.0f;
     ShiftProgress = 1.0f;
+    ReleaseGraceTimer = 0.0f;
+    EncounterAge = 0.0f;
 
     Active = false;
     DemonForm = false;
@@ -32,6 +34,8 @@ void Entity::Release()
 {
     Active = true;
     RepathTimer = 0.0f;
+    ReleaseGraceTimer = 5.0f;
+    EncounterAge = 0.0f;
 }
 
 float Entity::DistanceTo(const glm::vec3& Point) const
@@ -238,6 +242,30 @@ bool Entity::Update(
     if (!Active)
         return false;
 
+    EncounterAge += std::max(DeltaTime, 0.0f);
+    ReleaseGraceTimer = std::max(
+        0.0f,
+        ReleaseGraceTimer - DeltaTime
+    );
+
+    const float DistanceBeforeMove =
+        DistanceTo(PlayerPosition);
+
+    const float ChaseBlend = std::clamp(
+        1.0f - (DistanceBeforeMove - 8.0f) / 22.0f,
+        0.0f,
+        1.0f
+    );
+
+    float MoveSpeed =
+        1.65f + ChaseBlend * 1.75f;
+
+    if (ReleaseGraceTimer > 0.0f)
+        MoveSpeed = std::min(MoveSpeed, 1.15f);
+
+    if (DemonForm && ReleaseGraceTimer <= 0.0f)
+        MoveSpeed += 0.28f;
+
     RepathTimer -= DeltaTime;
 
     const int PlayerCell = CellIndex(PlayerPosition, World);
@@ -280,7 +308,7 @@ bool Entity::Update(
             Direction = Delta / Distance;
 
             const float Step =
-                std::min(Speed * DeltaTime, Distance);
+                std::min(MoveSpeed * DeltaTime, Distance);
 
             const glm::vec3 Desired =
                 Direction * Step;
@@ -336,7 +364,9 @@ bool Entity::Update(
         ShiftProgress + DeltaTime / 0.42f
     );
 
-    return DistanceTo(PlayerPosition) < 0.9f;
+    return
+        ReleaseGraceTimer <= 0.0f &&
+        DistanceTo(PlayerPosition) < 0.9f;
 }
 
 std::vector<SceneBox> Entity::BuildRenderBoxes() const

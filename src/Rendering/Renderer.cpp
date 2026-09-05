@@ -806,6 +806,11 @@ bool Renderer::Initialize()
     MenuTextRenderer.Initialize();
     MenuTextRenderer.Resize(Width, Height);
 
+    BreakerModel.Load(
+        "assets/models/power_box_01/power_box_01_1k.gltf",
+        1.05f
+    );
+
     GhostEntityModel.Load(
         "assets/models/entity-ghost.glb",
         2.18f
@@ -834,6 +839,7 @@ void Renderer::Shutdown()
 {
     MenuTextRenderer.Shutdown();
 
+    BreakerModel.Shutdown();
     GhostEntityModel.Shutdown();
     DemonEntityModel.Shutdown();
 
@@ -1056,6 +1062,32 @@ void Renderer::DrawBoxes(const std::vector<SceneBox>& Boxes)
 {
     for (const SceneBox& Box : Boxes)
         DrawBox(Box);
+}
+
+bool Renderer::HasBreakerModel() const
+{
+    return BreakerModel.IsReady();
+}
+
+void Renderer::DrawBreaker(
+    const glm::vec3& Position,
+    const glm::vec3& Forward
+)
+{
+    if (!BreakerModel.IsReady())
+        return;
+
+    BreakerModel.Draw(
+        View,
+        Projection,
+        CameraPosition,
+        Position,
+        Forward,
+        glm::vec3{1.0f},
+        ActiveLightPositions,
+        ActiveLightColors,
+        ActiveLightCount
+    );
 }
 
 bool Renderer::HasEntityModels() const
