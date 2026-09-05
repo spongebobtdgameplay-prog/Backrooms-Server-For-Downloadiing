@@ -16,24 +16,24 @@
 
 ## Entity audio
 
-- `assets/audio/entity-death.ogg`
+- `assets/audio/entity-death.wav`
   - Creator: CVLTIV8R
   - Original source: Freesound
   - Source game credit lists this asset as CC0.
   - Vendored from the public fever-channels repository.
 
-- `assets/audio/entity-laugh.ogg`
+- `assets/audio/entity-laugh.wav`
   - Creator: Nanakisan
   - Original source: Freesound sound 253534
   - License used here: Creative Commons Attribution 4.0
   - Attribution: "Evil Laugh 9.wav" by Nanakisan, Freesound.
-  - Vendored as an OGG from the public fever-channels repository.
+  - Vendored from the public fever-channels repository and converted to PCM WAV for the native build.
   - The direct Freesound page currently reports Attribution 4.0, so this repository follows that stricter license.
 
 ## Legacy procedural audio
 
 - Older generated WAV layers remain in the repository as fallback compatibility assets.
-- V0.3.23 and later use the recorded CC0 fluorescent hum and Kenney interaction/footstep recordings above as the primary native soundscape.
+- V0.3.24 and later use PCM WAV conversions of the recorded fluorescent hum and Kenney interaction/footstep recordings above as the primary native soundscape.
 
 ## Internal shared code
 
@@ -56,27 +56,32 @@
 
 ## Native environment and interaction audio
 
-- `assets/audio/fluorescent-hum.ogg`
+- `assets/audio/fluorescent-hum.wav`
   - Creator: ftpalad
   - Original source: Freesound sound 119910, `Fluorescent Lightbulb Hum.aif`
   - License: CC0 1.0
   - Vendored from a public GitHub copy of the Freesound asset.
 
-- `assets/audio/footstep-carpet-1.ogg` through `footstep-carpet-4.ogg`
+- `assets/audio/footstep-carpet-1.wav` through `footstep-carpet-4.wav`
   - Creator: Kenney
-  - Original pack: Kenney RPG Audio (`cloth1.ogg` through `cloth4.ogg`)
+  - Original pack: Kenney RPG Audio (`cloth1.wav` through `cloth4.wav`)
   - License: CC0 1.0
   - Vendored from the public `Sonofg0tham/tailgate` asset mirror and its asset SBOM.
 
-- `assets/audio/breaker-trip.ogg`
+- `assets/audio/breaker-trip.wav`
   - Creator: Kenney
-  - Original pack: Kenney Interface Sounds (`switch_003.ogg`)
+  - Original pack: Kenney Interface Sounds (`switch_003.wav`)
   - License: CC0 1.0
   - Vendored from the public `Sonofg0tham/tailgate` asset mirror and its asset SBOM.
 
-- `assets/audio/entity-metal.ogg`
+- `assets/audio/entity-metal.wav`
   - Creator: Kenney
-  - Original pack: Kenney RPG Audio (`metalPot1.ogg`)
+  - Original pack: Kenney RPG Audio (`metalPot1.wav`)
   - License: CC0 1.0
   - Used as a quiet positional distant-metal cue for the entity encounter.
   - Vendored from the public `Sonofg0tham/tailgate` asset mirror and its asset SBOM.
+
+
+## Native audio packaging
+
+- V0.3.24 converts the credited recorded source files to mono 44.1 kHz PCM WAV at build-preparation time so the shipped native game does not depend on optional OGG/Vorbis decoder support.

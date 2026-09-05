@@ -89,10 +89,10 @@ bool AudioSystem::Initialize()
     }
 
     Hum = LoadSound(
-        "assets/audio/fluorescent-hum.ogg",
+        "assets/audio/fluorescent-hum.wav",
         true,
         false,
-        0.16f
+        0.24f
     );
 
     if (Hum == nullptr)
@@ -101,36 +101,36 @@ bool AudioSystem::Initialize()
             "assets/audio/hum.wav",
             true,
             false,
-            0.10f
+            0.18f
         );
     }
 
     BreakerTrip = LoadSound(
-        "assets/audio/breaker-trip.ogg",
+        "assets/audio/breaker-trip.wav",
         false,
         true,
-        0.38f
+        0.65f
     );
 
     EntityMetal = LoadSound(
-        "assets/audio/entity-metal.ogg",
+        "assets/audio/entity-metal.wav",
         false,
         true,
-        0.11f
+        0.25f
     );
 
     Shift = LoadSound(
         "assets/audio/shift.wav",
         false,
         true,
-        0.18f
+        0.28f
     );
 
     EntityLaugh = LoadSound(
-        "assets/audio/entity-laugh.ogg",
+        "assets/audio/entity-laugh.wav",
         false,
         true,
-        0.16f
+        0.24f
     );
 
     for (std::size_t I = 0; I < Footsteps.size(); ++I)
@@ -138,13 +138,13 @@ bool AudioSystem::Initialize()
         const std::string Path =
             "assets/audio/footstep-carpet-" +
             std::to_string(I + 1) +
-            ".ogg";
+            ".wav";
 
         Footsteps[I] = LoadSound(
             Path.c_str(),
             false,
             true,
-            0.14f
+            0.32f
         );
 
         if (Footsteps[I] != nullptr)
@@ -280,7 +280,7 @@ void AudioSystem::Update(
     {
         ma_sound_set_volume(
             Hum,
-            0.145f + Threat * 0.025f
+            0.22f + Threat * 0.04f
         );
     }
 
@@ -307,7 +307,7 @@ void AudioSystem::Update(
             RestartSpatial(
                 EntityMetal,
                 EntityPosition + glm::vec3{0.0f, 0.8f, 0.0f},
-                0.045f + Threat * 0.16f,
+                0.12f + Threat * 0.24f,
                 Pitch
             );
 
@@ -330,7 +330,7 @@ void AudioSystem::PlayBreaker(const glm::vec3& Position)
     RestartSpatial(
         BreakerTrip,
         Position + glm::vec3{0.0f, 0.55f, 0.0f},
-        0.42f,
+        0.70f,
         0.93f
     );
 }
@@ -354,7 +354,7 @@ void AudioSystem::PlayFootstep(const glm::vec3& Position)
     RestartSpatial(
         Sound,
         Position - glm::vec3{0.0f, 1.45f, 0.0f},
-        0.13f,
+        0.32f,
         Pitch
     );
 }
@@ -367,7 +367,7 @@ void AudioSystem::PlayShift(
     RestartSpatial(
         Shift,
         Position + glm::vec3{0.0f, 1.0f, 0.0f},
-        0.19f,
+        0.30f,
         DemonForm ? 0.88f : 1.04f
     );
 
@@ -376,7 +376,7 @@ void AudioSystem::PlayShift(
         RestartSpatial(
             EntityLaugh,
             Position + glm::vec3{0.0f, 1.3f, 0.0f},
-            0.13f,
+            0.22f,
             0.90f
         );
     }
@@ -387,11 +387,11 @@ void AudioSystem::PlayDeath()
     if (!Started || Engine == nullptr)
         return;
 
-    if (std::filesystem::exists("assets/audio/entity-death.ogg"))
+    if (std::filesystem::exists("assets/audio/entity-death.wav"))
     {
         ma_engine_play_sound(
             Engine,
-            "assets/audio/entity-death.ogg",
+            "assets/audio/entity-death.wav",
             nullptr
         );
         return;

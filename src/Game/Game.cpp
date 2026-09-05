@@ -285,7 +285,36 @@ void Game::Reset()
         );
     }
 
-    ExitPosition = Pick(38.0f);
+    Breaker MountedExit;
+    bool ExitMounted = false;
+
+    for (int Attempt = 0; Attempt < 48; ++Attempt)
+    {
+        const glm::vec3 Candidate = Pick(38.0f);
+
+        if (TryMountBreaker(
+                Candidate,
+                900 + Attempt,
+                MountedExit
+            ))
+        {
+            ExitMounted = true;
+            break;
+        }
+    }
+
+    if (ExitMounted)
+    {
+        ExitPosition = MountedExit.Position;
+        ExitPosition.y = 0.0f;
+        ExitForward = MountedExit.Forward;
+    }
+    else
+    {
+        ExitPosition = Pick(38.0f);
+        ExitPosition.y = 0.0f;
+        ExitForward = {0.0f, 0.0f, 1.0f};
+    }
 
     const glm::vec3 EntityPosition = Pick(50.0f);
     Hunter.Reset(EntityPosition);
@@ -535,9 +564,20 @@ AABB Game::BreakerBounds(const Breaker& BreakerData) const
 
 AABB Game::ExitBounds() const
 {
+    const bool FacingX =
+        std::abs(ExitForward.x) > 0.5f;
+
+    const glm::vec3 Center =
+        ExitPosition + glm::vec3{0.0f, 1.27f, 0.0f};
+
+    const glm::vec3 HalfExtents =
+        FacingX
+            ? glm::vec3{0.20f, 1.27f, 0.74f}
+            : glm::vec3{0.74f, 1.27f, 0.20f};
+
     return {
-        ExitPosition + glm::vec3{-0.95f, 0.0f, -0.32f},
-        ExitPosition + glm::vec3{0.95f, 2.7f, 0.32f}
+        Center - HalfExtents,
+        Center + HalfExtents
     };
 }
 
@@ -770,39 +810,238 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
     {
         for (const Breaker& BreakerData : Breakers)
         {
-            const bool FacingX =
-                std::abs(BreakerData.Forward.x) > 0.5f;
+            const glm::vec3 Forward = BreakerData.Forward;
+            const glm::vec3 Right{
+                Forward.z,
+                0.0f,
+                -Forward.x
+            };
 
-            Boxes.push_back({
-                BreakerData.Position + glm::vec3{0.0f, 0.525f, 0.0f},
-                FacingX
-                    ? glm::vec3{0.18f, 1.05f, 0.76f}
-                    : glm::vec3{0.76f, 1.05f, 0.18f},
-                {0.16f, 0.17f, 0.15f},
+            const bool FacingX =
+                std::abs(Forward.x) > 0.5f;
+
+            auto OrientedSize = [&](
+                float Width,
+                float Height,
+                float Depth
+            )
+            {
+                return FacingX
+                    ? glm::vec3{Depth, Height, Width}
+                    : glm::vec3{Width, Height, Depth};
+            };
+
+            auto AddPiece = [&](
+                const glm::vec3& Position,
+                float Width,
+                float Height,
+                float Depth,
+                const glm::vec3& Color,
+                const glm::vec3& Emissive,
+                float Roughness
+            )
+            {
+                Boxes.push_back({
+                    Position,
+                    OrientedSize(Width, Height, Depth),
+                    Color,
+                    Emissive,
+                    Roughness,
+                    static_cast<int>(SurfaceMaterial::Fixture)
+                });
+            };
+
+            AddPiece(
+                BreakerData.Position +
+                    glm::vec3{0.0f, 0.48f, 0.0f},
+                0.66f,
+                0.96f,
+                0.18f,
+                {0.19f, 0.20f, 0.18f},
                 {0.0f, 0.0f, 0.0f},
-                0.88f,
-                static_cast<int>(SurfaceMaterial::Fixture)
-            });
+                0.62f
+            );
+
+            AddPiece(
+                BreakerData.Position +
+                    Forward * 0.12f +
+                    glm::vec3{0.0f, 0.48f, 0.0f},
+                0.54f,
+                0.80f,
+                0.055f,
+                {0.34f, 0.35f, 0.31f},
+                {0.0f, 0.0f, 0.0f},
+                0.48f
+            );
+
+            for (int Row = 0; Row < 3; ++Row)
+            {
+                for (int Column = 0; Column < 2; ++Column)
+                {
+                    const float Side =
+                        Column == 0 ? -0.14f : 0.14f;
+
+                    AddPiece(
+                        BreakerData.Position +
+                            Right * Side +
+                            Forward * 0.17f +
+                            glm::vec3{
+                                0.0f,
+                                0.28f + static_cast<float>(Row) * 0.20f,
+                                0.0f
+                            },
+                        0.105f,
+                        0.11f,
+                        0.075f,
+                        {0.055f, 0.057f, 0.052f},
+                        {0.0f, 0.0f, 0.0f},
+                        0.34f
+                    );
+                }
+            }
+
+            AddPiece(
+                BreakerData.Position +
+                    Forward * 0.18f +
+                    glm::vec3{0.0f, 0.84f, 0.0f},
+                0.075f,
+                0.075f,
+                0.06f,
+                BreakerData.Active
+                    ? glm::vec3{0.10f, 0.38f, 0.12f}
+                    : glm::vec3{0.42f, 0.08f, 0.05f},
+                BreakerData.Active
+                    ? glm::vec3{0.02f, 0.20f, 0.03f}
+                    : glm::vec3{0.18f, 0.015f, 0.008f},
+                0.25f
+            );
         }
     }
 
-    Boxes.push_back({
-        ExitPosition + glm::vec3{0.0f, 1.3f, 0.0f},
-        {1.8f, 2.6f, 0.3f},
-        {0.0185f, 0.0185f, 0.0116f},
-        {0.0f, 0.0f, 0.0f},
-        0.75f
-    });
+    const glm::vec3 ExitRight{
+        ExitForward.z,
+        0.0f,
+        -ExitForward.x
+    };
 
-    Boxes.push_back({
-        ExitPosition + glm::vec3{0.0f, 1.18f, -0.2f},
-        {1.38f, 2.25f, 0.08f},
-        {0.2423f, 0.2159f, 0.0762f},
+    const bool ExitFacingX =
+        std::abs(ExitForward.x) > 0.5f;
+
+    auto ExitSize = [&](
+        float Width,
+        float Height,
+        float Depth
+    )
+    {
+        return ExitFacingX
+            ? glm::vec3{Depth, Height, Width}
+            : glm::vec3{Width, Height, Depth};
+    };
+
+    auto AddExitPiece = [&](
+        const glm::vec3& Position,
+        float Width,
+        float Height,
+        float Depth,
+        const glm::vec3& Color,
+        const glm::vec3& Emissive,
+        float Roughness
+    )
+    {
+        Boxes.push_back({
+            Position,
+            ExitSize(Width, Height, Depth),
+            Color,
+            Emissive,
+            Roughness,
+            static_cast<int>(SurfaceMaterial::Fixture)
+        });
+    };
+
+    AddExitPiece(
+        ExitPosition + glm::vec3{0.0f, 1.20f, 0.0f},
+        1.22f,
+        2.40f,
+        0.14f,
+        {0.245f, 0.235f, 0.185f},
+        {0.0f, 0.0f, 0.0f},
+        0.72f
+    );
+
+    AddExitPiece(
+        ExitPosition +
+            ExitForward * 0.082f +
+            glm::vec3{0.0f, 1.22f, 0.0f},
+        0.92f,
+        1.78f,
+        0.035f,
+        {0.17f, 0.165f, 0.13f},
+        {0.0f, 0.0f, 0.0f},
+        0.66f
+    );
+
+    AddExitPiece(
+        ExitPosition -
+            ExitRight * 0.69f +
+            glm::vec3{0.0f, 1.25f, 0.0f},
+        0.13f,
+        2.50f,
+        0.23f,
+        {0.72f, 0.69f, 0.54f},
+        {0.0f, 0.0f, 0.0f},
+        0.58f
+    );
+
+    AddExitPiece(
+        ExitPosition +
+            ExitRight * 0.69f +
+            glm::vec3{0.0f, 1.25f, 0.0f},
+        0.13f,
+        2.50f,
+        0.23f,
+        {0.72f, 0.69f, 0.54f},
+        {0.0f, 0.0f, 0.0f},
+        0.58f
+    );
+
+    AddExitPiece(
+        ExitPosition + glm::vec3{0.0f, 2.46f, 0.0f},
+        1.51f,
+        0.13f,
+        0.23f,
+        {0.72f, 0.69f, 0.54f},
+        {0.0f, 0.0f, 0.0f},
+        0.58f
+    );
+
+    AddExitPiece(
+        ExitPosition +
+            ExitRight * 0.42f +
+            ExitForward * 0.13f +
+            glm::vec3{0.0f, 1.05f, 0.0f},
+        0.055f,
+        0.20f,
+        0.075f,
+        {0.58f, 0.56f, 0.43f},
+        {0.0f, 0.0f, 0.0f},
+        0.22f
+    );
+
+    AddExitPiece(
+        ExitPosition +
+            ExitForward * 0.14f +
+            glm::vec3{0.0f, 2.20f, 0.0f},
+        0.18f,
+        0.075f,
+        0.055f,
         State.CanExit()
-            ? glm::vec3{0.00802f, 0.04667f, 0.00857f}
-            : glm::vec3{0.0f},
-        0.9f
-    });
+            ? glm::vec3{0.10f, 0.44f, 0.12f}
+            : glm::vec3{0.48f, 0.09f, 0.055f},
+        State.CanExit()
+            ? glm::vec3{0.025f, 0.24f, 0.035f}
+            : glm::vec3{0.22f, 0.018f, 0.009f},
+        0.25f
+    );
 
     if (!GameRenderer.HasEntityModels())
     {

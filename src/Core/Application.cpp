@@ -279,6 +279,20 @@ bool Application::Initialize()
     if (!InitializeWindow())
         return false;
 
+    std::error_code WorkingDirectoryError;
+    std::filesystem::current_path(
+        ExecutableDirectory(),
+        WorkingDirectoryError
+    );
+
+    if (WorkingDirectoryError)
+    {
+        SDL_Log(
+            "Could not set working directory to executable folder: %s",
+            WorkingDirectoryError.message().c_str()
+        );
+    }
+
     if (!InitializeOpenGL())
     {
         Shutdown();

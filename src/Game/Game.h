@@ -98,6 +98,7 @@ private:
 
     std::vector<Breaker> Breakers;
     glm::vec3 ExitPosition{0.0f};
+    glm::vec3 ExitForward{0.0f, 0.0f, 1.0f};
 
     int InteractionType = 0;
     int InteractionIndex = -1;
