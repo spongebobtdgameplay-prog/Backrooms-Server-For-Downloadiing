@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.20
-manifest_revision=33978705678
-published_at=2026-09-05T16:45:55Z
+version=0.3.21
+manifest_revision=33980754289
+published_at=2026-09-05T17:25:43Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.20&run=33978705678
-sha256=8c91a1c0951c7cddb3de2dd3c5effc1264111e604c1107fbd32cf93c2098a2b3
-notes=V0.3.20 removes the duplicate legacy gameplay HUD that was still rendering underneath the V3 HUD and causing stacked LEVEL 0 / RESTORE POWER / FPS text and visible flicker. Gameplay now has one HUD owner: the V3 overlay handles objective, real FPS, interaction prompt, and sprint, while the legacy HUD path is limited to temporary center status messages only. The old legacy stamina draw is no longer called, and the V3 sprint bar is moved two pixels upward so the 3px bar is vertically centered against the 9px SPRINT label.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.21&run=33980754289
+sha256=bea76f5d1e6730a6b4c2227be1bf041c8c204c5571c999eca347867b0d68d10b
+notes=V0.3.21 rebuilds the Windows gameplay HUD clarity and sprint display. Gameplay HUD text no longer uses the two offset shadow passes that created a ghosted transparent-looking duplicate behind labels. Objective, FPS, build text, sprint text, and interaction prompts now render as clean opaque text. The sprint label and bar are aligned from the text raster metrics instead of separate guessed Y positions, the bar is thicker and easier to read, and stamina color smoothly changes from red at low stamina through orange at medium stamina to green at high stamina.
