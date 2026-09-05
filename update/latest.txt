@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.29
-manifest_revision=33993558899
-published_at=2026-09-05T21:39:46Z
+version=0.3.30
+manifest_revision=33994207622
+published_at=2026-09-05T21:54:17Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.29&run=33993558899
-sha256=b79b5c578d586da664ad060017108a200cf485f92b42573aba7a7644a1c7f1dd
-notes=V0.3.29 fixes the gameplay HUD readability and the center reticle. Gameplay labels now use a real dark multi-direction glyph stroke plus a subtle drop shadow, so LEVEL 0, RESTORE POWER, FPS, BUILD, SPRINT and interaction prompts stay readable over the bright Level 0 lighting. The old one-pixel connected plus crosshair has been removed and replaced with a custom separated four-tick reticle, a tiny center point and dark backing strokes so it reads as an intentional game reticle instead of a Windows/debug cursor.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.30&run=33994207622
+sha256=1d3b71c7aaaf3c4fdde9b7c65368f2ee887ce04fb478eabaa227112240393f6a
+notes=V0.3.30 repairs the gameplay minimap layout. The minimap is smaller and more local, uses a dedicated header instead of drawing labels over the maze, leaves more visual space below the sprint HUD, and uses safe marker bounds so breaker and threat markers are no longer sliced by the panel edges. The map hotkey is separated into a small M hint, waypoint text receives its own footer strip, and minimap text uses the same outlined gameplay text treatment introduced in V0.3.29.
