@@ -796,9 +796,12 @@ bool EntityModel::Load(
 
                             if (ImageFile.is_open())
                             {
+                                const std::istreambuf_iterator<char> Begin(ImageFile);
+                                const std::istreambuf_iterator<char> End;
+
                                 std::vector<unsigned char> Bytes(
-                                    std::istreambuf_iterator<char>(ImageFile),
-                                    std::istreambuf_iterator<char>()
+                                    Begin,
+                                    End
                                 );
 
                                 if (!Bytes.empty())
