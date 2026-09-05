@@ -30,6 +30,16 @@ namespace
         };
     }
 
+    glm::vec3 Mix(
+        const glm::vec3& A,
+        const glm::vec3& B,
+        float T
+    )
+    {
+        T = std::clamp(T, 0.0f, 1.0f);
+        return A * (1.0f - T) + B * T;
+    }
+
     int CssClamp(
         int Minimum,
         float ViewportFactor,
@@ -93,73 +103,64 @@ namespace
 
 void Renderer::DrawMenuBackdrop()
 {
-    // Direct native rendering of the original style.css StartScreen:
-    // radial-gradient(circle at 72% 42%, rgba(213,200,104,.16), transparent 34%),
-    // linear-gradient(115deg, #1c1a0e 0%, #0d0c08 56%, #070706 100%).
-    const glm::vec3 Left{28.0f / 255.0f, 26.0f / 255.0f, 14.0f / 255.0f};
-    const glm::vec3 Middle{13.0f / 255.0f, 12.0f / 255.0f, 8.0f / 255.0f};
-    const glm::vec3 Right{7.0f / 255.0f, 7.0f / 255.0f, 6.0f / 255.0f};
-    const glm::vec3 Glow{213.0f / 255.0f, 200.0f / 255.0f, 104.0f / 255.0f};
+    using namespace GeneratedWebUi;
 
     const int W = static_cast<int>(Width);
     const int H = static_cast<int>(Height);
-    constexpr int Band = 8;
+    const glm::vec3 Base = Rgb(Background);
+    const glm::vec3 TopLift = Mix(
+        Base,
+        {1.0f, 247.0f / 255.0f, 173.0f / 255.0f},
+        0.10f
+    );
+    const glm::vec3 BottomShade = Mix(
+        Base,
+        {39.0f / 255.0f, 32.0f / 255.0f, 8.0f / 255.0f},
+        0.09f
+    );
 
-    for (int X = 0; X < W; X += Band)
+    constexpr int GradientBand = 16;
+
+    for (int Y = 0; Y < H; Y += GradientBand)
     {
-        const float T = W > 1
-            ? static_cast<float>(X) / static_cast<float>(W - 1)
+        const float T = H > 1
+            ? static_cast<float>(Y) / static_cast<float>(H - 1)
             : 0.0f;
 
-        glm::vec3 Base;
-        if (T <= 0.56f)
-        {
-            const float Local = T / 0.56f;
-            Base = Left * (1.0f - Local) + Middle * Local;
-        }
-        else
-        {
-            const float Local = (T - 0.56f) / 0.44f;
-            Base = Middle * (1.0f - Local) + Right * Local;
-        }
+        const glm::vec3 Row = Mix(TopLift, BottomShade, T);
 
-        DrawRect(X, 0, std::min(Band, W - X), H, Base);
+        DrawRect(
+            0,
+            Y,
+            W,
+            std::min(GradientBand, H - Y),
+            Row
+        );
     }
 
-    const int CenterX = static_cast<int>(std::round(W * 0.72f));
-    const int CenterY = static_cast<int>(std::round(H * 0.42f));
-    const int RadiusX = std::max(1, static_cast<int>(std::round(W * 0.34f)));
-    const int RadiusY = std::max(1, static_cast<int>(std::round(H * 0.34f)));
+    const glm::vec3 WallpaperLine =
+        Mix(Base, {87.0f / 255.0f, 77.0f / 255.0f, 28.0f / 255.0f}, 0.055f);
 
-    for (int I = 10; I >= 1; --I)
-    {
-        const float T = static_cast<float>(I) / 10.0f;
-        const float Alpha = 0.016f * (1.0f - T + 0.10f);
-        const int RX = static_cast<int>(RadiusX * T);
-        const int RY = static_cast<int>(RadiusY * T);
-        const glm::vec3 Tint = Right * (1.0f - Alpha) + Glow * Alpha;
-        DrawRect(CenterX - RX, CenterY - RY, RX * 2, RY * 2, Tint);
-    }
+    for (int X = 0; X < W; X += 24)
+        DrawRect(X, 0, 2, H, WallpaperLine);
 
-    // Exact 98px repeating grid from #StartScreen::before.
-    const glm::vec3 GridV = Right * 0.975f +
-        glm::vec3{235.0f / 255.0f, 224.0f / 255.0f, 143.0f / 255.0f} * 0.025f;
-    const glm::vec3 GridH = Right * 0.982f +
-        glm::vec3{235.0f / 255.0f, 224.0f / 255.0f, 143.0f / 255.0f} * 0.018f;
+    const glm::vec3 GridVertical =
+        Mix(Base, {71.0f / 255.0f, 62.0f / 255.0f, 22.0f / 255.0f}, 0.045f);
 
-    for (int X = 97; X < W; X += 98)
-        DrawRect(X, 0, 1, H, GridV);
+    for (int X = 23; X < W; X += 25)
+        DrawRect(X, 0, 2, H, GridVertical);
 
-    for (int Y = 97; Y < H; Y += 98)
-        DrawRect(0, Y, W, 1, GridH);
+    const glm::vec3 GridHorizontal =
+        Mix(Base, {1.0f, 245.0f / 255.0f, 155.0f / 255.0f}, 0.035f);
 
-    // .MenuNoise: 1px line every 3px at the original tiny effective opacity.
-    const float NoiseAlpha = 0.12f * 0.018f;
-    const glm::vec3 NoiseColor = Right * (1.0f - NoiseAlpha) +
-        glm::vec3{1.0f} * NoiseAlpha;
+    for (int Y = 31; Y < H; Y += 32)
+        DrawRect(0, Y, W, 1, GridHorizontal);
 
-    for (int Y = 0; Y < H; Y += 3)
-        DrawRect(0, Y, W, 1, NoiseColor);
+    const glm::vec3 Noise =
+        Mix(Base, {38.0f / 255.0f, 32.0f / 255.0f, 10.0f / 255.0f}, 0.008f);
+
+    for (int Y = 0; Y < H; Y += 4)
+        DrawRect(0, Y, W, 1, Noise);
 }
 
 void Renderer::DrawMenuText(
@@ -180,32 +181,20 @@ void Renderer::DrawMenuText(
         MenuTextRenderer.Resize(Width, Height);
     }
 
-    if (MenuTextRenderer.IsReady())
-    {
-        MenuTextRenderer.Resize(Width, Height);
-        MenuTextRenderer.Draw(
-            Text,
-            X,
-            Y,
-            PixelHeight,
-            Weight,
-            TrackingEm,
-            Color,
-            Opacity,
-            Shadow
-        );
+    if (!MenuTextRenderer.IsReady())
         return;
-    }
 
-    const int FallbackScale =
-        std::max(1, PixelHeight / 8);
-
-    DrawText(
+    MenuTextRenderer.Resize(Width, Height);
+    MenuTextRenderer.Draw(
         Text,
         X,
         Y,
-        FallbackScale,
-        Color
+        PixelHeight,
+        Weight,
+        TrackingEm,
+        Color,
+        Opacity,
+        Shadow
     );
 }
 
@@ -222,23 +211,15 @@ int Renderer::MenuTextWidth(
         MenuTextRenderer.Resize(Width, Height);
     }
 
-    if (MenuTextRenderer.IsReady())
-    {
-        MenuTextRenderer.Resize(Width, Height);
-        return MenuTextRenderer.Measure(
-            Text,
-            PixelHeight,
-            Weight,
-            TrackingEm
-        );
-    }
+    if (!MenuTextRenderer.IsReady())
+        return 0;
 
-    const int FallbackScale =
-        std::max(1, PixelHeight / 8);
-
-    return TextWidth(
+    MenuTextRenderer.Resize(Width, Height);
+    return MenuTextRenderer.Measure(
         Text,
-        FallbackScale
+        PixelHeight,
+        Weight,
+        TrackingEm
     );
 }
 
@@ -249,11 +230,11 @@ void Renderer::DrawMainMenuV2(bool HasSession)
     glDisable(GL_DEPTH_TEST);
     DrawMenuBackdrop();
 
-    const bool Mobile = Width <= 700;
+    const bool Mobile = Width <= MobileBreakpoint;
+    const int Margin = Mobile ? MobileMenuMargin : MenuMargin;
 
-    const int Margin = Mobile ? 20 : MenuMargin;
     const int ContentX = Mobile
-        ? 24
+        ? MobileContentLeft
         : CssClamp(
             ContentLeftMin,
             ContentLeftViewport,
@@ -270,7 +251,11 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         );
 
     const int ContentWidth = Mobile
-        ? std::max(1, static_cast<int>(Width) - 48)
+        ? std::max(
+            1,
+            static_cast<int>(Width) -
+                MobileContentViewportSubtract
+        )
         : std::min(
             ContentWidthMax,
             std::max(
@@ -281,20 +266,14 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         );
 
     const int ParagraphWidth =
-        std::min(
-            ParagraphWidthMax,
-            ContentWidth
-        );
+        std::min(ParagraphWidthMax, ContentWidth);
 
     const int TitleSize = Mobile
-        ? std::clamp(
-            static_cast<int>(
-                std::round(
-                    static_cast<float>(Width) * 0.21f
-                )
-            ),
-            58,
-            100
+        ? CssClamp(
+            MobileTitleMin,
+            MobileTitleViewport,
+            static_cast<int>(Width),
+            MobileTitleMax
         )
         : CssClamp(
             TitleMin,
@@ -310,7 +289,6 @@ void Renderer::DrawMainMenuV2(bool HasSession)
     const glm::vec3 ButtonRgb = Rgb(ButtonColor);
     const glm::vec3 LoadRgb = Rgb(LoadColor);
 
-    // Top row is a direct conversion of .MenuTop.
     DrawMenuText(
         "THE BACKROOMS",
         Margin,
@@ -336,8 +314,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
 
     DrawMenuText(
         Version,
-        static_cast<int>(Width) / 2 -
-            VersionWidth / 2,
+        static_cast<int>(Width) / 2 - VersionWidth / 2,
         MenuTopY,
         MenuMetaFont,
         400,
@@ -396,23 +373,18 @@ void Renderer::DrawMainMenuV2(bool HasSession)
             }
         );
 
-    // Ensure the text renderer is initialized before asking for real glyph height.
-    MenuTextWidth(
-        "THE LOBBY",
-        TitleSize,
-        TitleWeight,
-        TitleTracking
-    );
-
     const int MeasuredTitleHeight =
-        MenuTextRenderer.IsReady()
-            ? MenuTextRenderer.MeasureHeight(
-                "THE LOBBY",
-                TitleSize,
-                TitleWeight,
-                TitleTracking
-            )
-            : TitleSize;
+        std::max(
+            TitleSize,
+            MenuTextRenderer.IsReady()
+                ? MenuTextRenderer.MeasureHeight(
+                    "THE LOBBY",
+                    TitleSize,
+                    TitleWeight,
+                    TitleTracking
+                )
+                : TitleSize
+        );
 
     const int CssTitleLineBox =
         static_cast<int>(
@@ -422,14 +394,8 @@ void Renderer::DrawMainMenuV2(bool HasSession)
             )
         );
 
-    // Browser glyphs fit inside the CSS line box. GDI can report a taller
-    // glyph box, so use the larger value to preserve the CSS box model
-    // without ever allowing the paragraph to overlap the title.
     const int TitleAdvance =
-        std::max(
-            CssTitleLineBox,
-            MeasuredTitleHeight
-        );
+        std::max(CssTitleLineBox, MeasuredTitleHeight);
 
     const int ParagraphLineAdvance =
         static_cast<int>(
@@ -440,9 +406,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         );
 
     const int IndexBlockHeight =
-        IndexFont +
-        IndexPaddingBottom +
-        IndexBorder;
+        IndexFont + IndexPaddingBottom + IndexBorder;
 
     const int ContentHeight =
         IndexBlockHeight +
@@ -465,7 +429,6 @@ void Renderer::DrawMainMenuV2(bool HasSession)
                 ContentHeight
         );
 
-    // .MenuIndex
     DrawMenuText(
         "LEVEL 0",
         ContentX,
@@ -494,13 +457,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         Composite(IndexBorderColor, Background)
     );
 
-    // h1 box: margin:14px 0 12px; line-height:.78.
     const int TitleY =
-        ContentY +
-        IndexBlockHeight +
-        TitleMarginTop;
+        ContentY + IndexBlockHeight + TitleMarginTop;
 
-    // Exact #StartScreen h1 highlight shadow: 0 1px 0 rgba(255,247,174,.22)
     DrawMenuText(
         "THE LOBBY",
         ContentX,
@@ -508,7 +467,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         TitleSize,
         TitleWeight,
         TitleTracking,
-        {255.0f / 255.0f, 247.0f / 255.0f, 174.0f / 255.0f},
+        {1.0f, 247.0f / 255.0f, 174.0f / 255.0f},
         0.22f,
         false
     );
@@ -525,26 +484,20 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         false
     );
 
-    // One real HTML <p>, wrapped by measured native glyph widths to the
-    // original CSS max-width:520px and line-height:1.6.
     const int ParagraphY =
         TitleY +
         TitleAdvance +
         TitleMarginBottom +
         ParagraphMarginTop;
 
-    for (
-        std::size_t I = 0;
-        I < ParagraphLines.size();
-        ++I
-    )
+    for (std::size_t I = 0; I < ParagraphLines.size(); ++I)
     {
         DrawMenuText(
             ParagraphLines[I],
             ContentX,
             ParagraphY +
                 static_cast<int>(I) *
-                ParagraphLineAdvance,
+                    ParagraphLineAdvance,
             ParagraphFont,
             ParagraphWeight,
             0.0f,
@@ -561,10 +514,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         ParagraphMarginBottom;
 
     const int ButtonWidth =
-        std::min(
-            ButtonWidthMax,
-            ContentWidth
-        );
+        std::min(ButtonWidthMax, ContentWidth);
 
     DrawRect(
         ContentX,
@@ -589,10 +539,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
 
     const int ButtonTextY =
         ButtonY +
-        std::max(
-            0,
-            (ButtonHeight - ButtonFont) / 2
-        );
+        std::max(0, (ButtonHeight - ButtonFont) / 2);
 
     DrawMenuText(
         PrimaryAction,
@@ -622,10 +569,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
             ButtonPaddingX -
             ArrowWidth,
         ButtonY +
-            std::max(
-                0,
-                (ButtonHeight - ArrowFont) / 2
-            ),
+            std::max(0, (ButtonHeight - ArrowFont) / 2),
         ArrowFont,
         700,
         0.0f,
@@ -651,7 +595,6 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         false
     );
 
-    // .MenuFooter
     const int FooterY =
         static_cast<int>(Height) -
         MenuFooterBottom -
@@ -710,8 +653,8 @@ void Renderer::DrawPauseMenuV2()
     DrawMenuBackdrop();
 
     const int ContentX =
-        Width <= 700
-            ? 24
+        Width <= MobileBreakpoint
+            ? MobileContentLeft
             : CssClamp(
                 ContentLeftMin,
                 ContentLeftViewport,
@@ -790,13 +733,6 @@ void Renderer::DrawPauseMenuV2()
         false
     );
 
-    MenuTextWidth(
-        "SESSION PAUSED",
-        TitleSize,
-        900,
-        -0.055f
-    );
-
     const int TitleHeight =
         MenuTextRenderer.IsReady()
             ? MenuTextRenderer.MeasureHeight(
@@ -808,9 +744,7 @@ void Renderer::DrawPauseMenuV2()
             : TitleSize;
 
     const int ButtonY =
-        TitleY +
-        TitleHeight +
-        36;
+        TitleY + TitleHeight + 36;
 
     const int ButtonWidth =
         std::min(
@@ -818,7 +752,8 @@ void Renderer::DrawPauseMenuV2()
             std::max(
                 1,
                 static_cast<int>(Width) -
-                    ContentX - 34
+                    ContentX -
+                    34
             )
         );
 
