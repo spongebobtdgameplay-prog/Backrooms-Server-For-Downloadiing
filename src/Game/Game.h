@@ -32,20 +32,8 @@ public:
     void OnMouseCaptureChanged(bool Captured);
     bool ShouldCaptureMouse() const;
 
-    bool HasMenuOverlay() const
-    {
-        return State.MainMenuOpen || State.Paused;
-    }
-
-    void RenderMenuOverlay()
-    {
-        GameRenderer.BeginFrame();
-
-        if (State.Paused)
-            GameRenderer.DrawPauseMenuV3();
-        else
-            GameRenderer.DrawMainMenuV3(State.Started);
-    }
+    bool HasMenuOverlay() const;
+    void RenderMenuOverlay();
 
     void Update(
         float DeltaTime,
@@ -67,6 +55,9 @@ private:
     };
 
     void Reset();
+    std::vector<MapMarker> BuildMapMarkers() const;
+    void OpenMap(bool ReturnToPause);
+    void CloseMap();
     glm::vec3 MenuPointerFromEvent(const SDL_Event& Event) const;
 
     bool TryMountBreaker(
@@ -105,6 +96,13 @@ private:
 
     bool InteractPressed = false;
     bool RestartPressed = false;
+
+    bool MapOpen = false;
+    bool MapReturnToPause = false;
+    bool MapDragging = false;
+    glm::vec2 MapCenter{0.0f};
+    glm::vec2 MapDragPointer{0.0f};
+    float MapZoom = 1.0f;
 
     int FrameCounter = 0;
     uint64_t FpsCounterStart = 0;

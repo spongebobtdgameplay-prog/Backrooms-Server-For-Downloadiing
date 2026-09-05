@@ -126,6 +126,11 @@ void Renderer::UpdateInterface(float DeltaTime)
     );
 
     MoveToward(
+        PauseMapHover,
+        PauseMapRect.Contains(MenuPointerX, MenuPointerY)
+    );
+
+    MoveToward(
         PauseResumeHover,
         PauseResumeRect.Contains(MenuPointerX, MenuPointerY)
     );
@@ -154,6 +159,9 @@ MenuUiAction Renderer::HitTestMainMenu(bool HasSession) const
 
 MenuUiAction Renderer::HitTestPauseMenu() const
 {
+    if (PauseMapRect.Contains(MenuPointerX, MenuPointerY))
+        return MenuUiAction::Map;
+
     if (PauseResumeRect.Contains(MenuPointerX, MenuPointerY))
         return MenuUiAction::Resume;
 
@@ -647,7 +655,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
 
     const std::string Footer =
         HasSession
-            ? "ESC PAUSE   M MAIN MENU"
+            ? "ESC PAUSE   M MAP"
             : "ESC RELEASES CURSOR";
 
     const int FooterWidth =
@@ -678,199 +686,139 @@ void Renderer::DrawMainMenuV3(bool HasSession)
 
 void Renderer::DrawPauseMenuV3()
 {
-    using namespace GeneratedWebUi;
-
     glDisable(GL_DEPTH_TEST);
     DrawMenuBackdrop();
 
-    const glm::vec3 YellowBackground{
-        200.0f / 255.0f,
-        187.0f / 255.0f,
-        97.0f / 255.0f
-    };
+    const glm::vec3 Yellow{200.0f / 255.0f, 187.0f / 255.0f, 97.0f / 255.0f};
+    const glm::vec3 Ink{39.0f / 255.0f, 35.0f / 255.0f, 15.0f / 255.0f};
+    const glm::vec3 Muted{0.34f, 0.31f, 0.15f};
 
-    const glm::vec3 Ink{
-        39.0f / 255.0f,
-        35.0f / 255.0f,
-        15.0f / 255.0f
-    };
-
-    const int ContentX =
-        Width <= MobileBreakpoint
-            ? MobileContentLeft
-            : CssClamp(
-                ContentLeftMin,
-                ContentLeftViewport,
-                static_cast<int>(Width),
-                ContentLeftMax
-            );
-
-    const int TitleSize =
-        std::clamp(
-            static_cast<int>(
-                std::round(
-                    static_cast<float>(Width) * 0.075f
-                )
-            ),
-            58,
-            108
-        );
-
-    const int ContentY =
-        std::max(
-            118,
-            static_cast<int>(
-                static_cast<float>(Height) * 0.34f
-            )
-        );
+    const int Margin =
+        std::clamp(static_cast<int>(Width) / 24, 28, 66);
 
     DrawMenuText(
-        "LEVEL 0",
-        ContentX,
-        ContentY,
-        IndexFont,
-        500,
-        IndexTracking,
-        Rgb(IndexColor),
-        IndexColor.A,
+        "BACKROOMS OFFICAL",
+        Margin,
+        30,
+        13,
+        700,
+        0.18f,
+        Muted,
+        1.0f,
         false
     );
 
     DrawMenuText(
-        "SESSION PAUSED",
-        ContentX,
-        ContentY + 34,
-        TitleSize,
+        "PAUSE",
+        Margin,
+        64,
+        std::clamp(static_cast<int>(Width) / 18, 54, 88),
         900,
-        -0.055f,
+        -0.045f,
         Ink,
         1.0f,
         false
     );
 
-    const int ButtonWidth =
-        std::min(
-            ButtonWidthMax,
-            std::max(
-                220,
-                static_cast<int>(Width) - ContentX - 34
-            )
-        );
+    const int NavY = 164;
+    const int NavGap = 12;
+    const int Available =
+        std::max(static_cast<int>(Width) - Margin * 2 - NavGap * 2, 3);
+    const int NavWidth =
+        std::clamp(Available / 3, 150, 300);
+    const int NavHeight = 52;
 
-    const int ButtonY =
-        ContentY + TitleSize + 70;
+    PauseMapRect = {Margin, NavY, NavWidth, NavHeight};
+    PauseResumeRect = {Margin + NavWidth + NavGap, NavY, NavWidth, NavHeight};
+    PauseMainMenuRect = {Margin + (NavWidth + NavGap) * 2, NavY, NavWidth, NavHeight};
 
-    PauseResumeRect = {
-        ContentX,
-        ButtonY,
-        ButtonWidth,
-        ButtonHeight
-    };
-
-    PauseMainMenuRect = {
-        ContentX,
-        ButtonY + ButtonHeight + 12,
-        ButtonWidth,
-        ButtonHeight
-    };
-
-    auto DrawPauseButton = [&](
-        const UiRect& Rect,
-        const std::string& Label,
-        float Hover
-    )
+    auto DrawTab = [&](const UiRect& Rect, const std::string& Label, float Hover)
     {
-        const float HoverAmount =
-            std::clamp(Hover, 0.0f, 1.0f);
+        const float Amount = std::clamp(Hover, 0.0f, 1.0f);
 
-        if (HoverAmount > 0.001f)
+        if (Amount > 0.001f)
         {
-            DrawRect(
-                Rect.X,
-                Rect.Y + 1,
-                Rect.Width,
-                std::max(Rect.Height - 2, 1),
-                Mix(YellowBackground, Ink, 0.08f * HoverAmount)
-            );
+            const glm::vec3 Fill = Yellow * (1.0f - Amount * 0.12f) + Ink * (Amount * 0.12f);
+            DrawRect(Rect.X, Rect.Y + 2, Rect.Width, Rect.Height - 4, Fill);
         }
 
-        DrawRect(
-            Rect.X,
-            Rect.Y,
-            Rect.Width,
-            1,
-            Mix(YellowBackground, Ink, 0.56f)
-        );
+        DrawRect(Rect.X, Rect.Y, Rect.Width, 2, Ink);
+        DrawRect(Rect.X, Rect.Y + Rect.Height - 2, Rect.Width, 2, Ink);
 
-        DrawRect(
-            Rect.X,
-            Rect.Y + Rect.Height - 1,
-            Rect.Width,
-            1,
-            Mix(YellowBackground, Ink, 0.25f)
-        );
-
-        const int Padding =
-            ButtonPaddingX +
-            static_cast<int>(
-                std::round(HoverAmount * 10.0f)
-            );
+        const int Padding = 14 + static_cast<int>(std::round(Amount * 12.0f));
 
         DrawMenuText(
             Label,
             Rect.X + Padding,
-            Rect.Y + std::max(0, (Rect.Height - ButtonFont) / 2),
-            ButtonFont,
-            ButtonWeight,
-            ButtonTracking,
-            Ink,
-            1.0f,
-            false
-        );
-
-        const std::string Arrow = ">";
-        const int ArrowWidth =
-            MenuTextWidth(
-                Arrow,
-                ArrowFont,
-                800,
-                0.0f
-            );
-
-        DrawMenuText(
-            Arrow,
-            Rect.X + Rect.Width - Padding - ArrowWidth,
-            Rect.Y + std::max(0, (Rect.Height - ArrowFont) / 2),
-            ArrowFont,
+            Rect.Y + 17,
+            14,
             800,
-            0.0f,
+            0.12f,
             Ink,
             1.0f,
             false
         );
     };
 
-    DrawPauseButton(
-        PauseResumeRect,
-        "RESUME",
-        PauseResumeHover
-    );
+    DrawTab(PauseMapRect, "MAP", PauseMapHover);
+    DrawTab(PauseResumeRect, "RESUME", PauseResumeHover);
+    DrawTab(PauseMainMenuRect, "MAIN MENU", PauseMainMenuHover);
 
-    DrawPauseButton(
-        PauseMainMenuRect,
-        "MAIN MENU",
-        PauseMainMenuHover
+    const int DetailY = NavY + NavHeight + 56;
+
+    DrawMenuText(
+        "LEVEL 0",
+        Margin,
+        DetailY,
+        12,
+        700,
+        0.20f,
+        Muted,
+        1.0f,
+        false
     );
 
     DrawMenuText(
-        "ESC ALSO RESUMES",
-        ContentX,
-        PauseMainMenuRect.Y + PauseMainMenuRect.Height + 18,
-        LoadFont,
-        500,
-        LoadTracking,
-        Rgb(LoadColor),
-        0.70f,
+        "UNSTABLE SESSION",
+        Margin,
+        DetailY + 30,
+        30,
+        900,
+        -0.02f,
+        Ink,
+        1.0f,
+        false
+    );
+
+    DrawMenuText(
+        "MAP OPENS THE INFINITE LEVEL 0 GRID. PAN FOREVER, TRACK BREAKERS, EXIT AND THREATS.",
+        Margin,
+        DetailY + 86,
+        13,
+        650,
+        0.03f,
+        Muted,
+        1.0f,
+        false
+    );
+
+    DrawRect(
+        Margin,
+        DetailY + 128,
+        std::max(static_cast<int>(Width) - Margin * 2, 1),
+        1,
+        Muted
+    );
+
+    DrawMenuText(
+        "M MAP     ESC RESUME",
+        Margin,
+        static_cast<int>(Height) - 46,
+        10,
+        700,
+        0.15f,
+        Muted,
+        1.0f,
         false
     );
 
@@ -1045,7 +993,7 @@ void Renderer::DrawGameplayOverlayV3(
 
     const int SprintFontHeight = 10;
     const int SprintY =
-        static_cast<int>(Height) - 38;
+        std::max(80, static_cast<int>(Height) - 226);
 
     GameplayTextRenderer.Draw(
         "SPRINT",

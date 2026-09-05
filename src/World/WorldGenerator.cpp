@@ -111,6 +111,41 @@ WorldData WorldGenerator::BuildAround(
     return World;
 }
 
+
+WorldData WorldGenerator::BuildMapAround(
+    const glm::vec3& FocusPosition
+)
+{
+    WorldData World;
+
+    World.ChunkCells = ChunkCellCount;
+    World.StreamRadius = ActiveChunkRadius;
+    World.Columns =
+        ChunkCellCount * (ActiveChunkRadius * 2 + 1);
+    World.Rows = World.Columns;
+    World.CellSize = DefaultCellSize;
+
+    World.CenterChunkX = ChunkCoordinate(FocusPosition.x);
+    World.CenterChunkZ = ChunkCoordinate(FocusPosition.z);
+
+    const int FirstChunkX =
+        World.CenterChunkX - ActiveChunkRadius;
+
+    const int FirstChunkZ =
+        World.CenterChunkZ - ActiveChunkRadius;
+
+    World.OriginCellX =
+        FirstChunkX * ChunkCellCount -
+        ChunkHalfCells;
+
+    World.OriginCellZ =
+        FirstChunkZ * ChunkCellCount -
+        ChunkHalfCells;
+
+    CreateStreamedMaze(World);
+    return World;
+}
+
 bool WorldGenerator::NeedsRebuild(
     const WorldData& World,
     const glm::vec3& FocusPosition

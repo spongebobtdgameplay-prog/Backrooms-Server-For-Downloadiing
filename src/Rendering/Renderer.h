@@ -21,7 +21,23 @@ enum class MenuUiAction
     Primary,
     NewSession,
     Resume,
+    Map,
     MainMenu
+};
+
+enum class MapMarkerKind
+{
+    Breaker,
+    BreakerActive,
+    Exit,
+    ExitPowered,
+    Entity
+};
+
+struct MapMarker
+{
+    glm::vec2 Position{0.0f};
+    MapMarkerKind Kind = MapMarkerKind::Breaker;
 };
 
 class Renderer
@@ -81,6 +97,24 @@ public:
         int InteractionType,
         bool CanExit,
         float Fps
+    );
+
+    void DrawMiniMapV1(
+        const WorldData& World,
+        const glm::vec2& PlayerPosition,
+        const glm::vec2& PlayerForward,
+        const std::vector<MapMarker>& Markers
+    );
+
+    void DrawFullMapV1(
+        const WorldData& World,
+        const glm::vec2& MapCenter,
+        float Zoom,
+        const glm::vec2& PlayerPosition,
+        const glm::vec2& PlayerForward,
+        const std::vector<MapMarker>& Markers,
+        int BreakersActive,
+        int BreakersRequired
     );
 
     void SetMenuPointer(float X, float Y);
@@ -184,6 +218,19 @@ private:
         const glm::vec3& Color
     );
     int TextWidth(const std::string& Text, int Scale);
+    void DrawMapPanel(
+        const WorldData& World,
+        int X,
+        int Y,
+        int PanelWidth,
+        int PanelHeight,
+        const glm::vec2& MapCenter,
+        float PixelsPerMeter,
+        const glm::vec2& PlayerPosition,
+        const glm::vec2& PlayerForward,
+        const std::vector<MapMarker>& Markers,
+        bool Detailed
+    );
     void DrawRect(
         int X,
         int Y,
@@ -233,6 +280,7 @@ private:
 
     UiRect MainPrimaryRect;
     UiRect MainSecondaryRect;
+    UiRect PauseMapRect;
     UiRect PauseResumeRect;
     UiRect PauseMainMenuRect;
 
@@ -241,6 +289,7 @@ private:
 
     float MainPrimaryHover = 0.0f;
     float MainSecondaryHover = 0.0f;
+    float PauseMapHover = 0.0f;
     float PauseResumeHover = 0.0f;
     float PauseMainMenuHover = 0.0f;
 

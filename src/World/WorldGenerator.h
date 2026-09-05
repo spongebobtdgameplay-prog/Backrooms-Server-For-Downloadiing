@@ -12,6 +12,7 @@ public:
 
     WorldData Build();
     WorldData BuildAround(const glm::vec3& FocusPosition);
+    WorldData BuildMapAround(const glm::vec3& FocusPosition);
     bool NeedsRebuild(
         const WorldData& World,
         const glm::vec3& FocusPosition

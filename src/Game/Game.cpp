@@ -44,6 +44,103 @@ void Game::Resize(uint32_t NewWidth, uint32_t NewHeight)
     GameRenderer.Resize(Width, Height);
 }
 
+
+bool Game::HasMenuOverlay() const
+{
+    return State.MainMenuOpen || State.Paused || MapOpen;
+}
+
+std::vector<MapMarker> Game::BuildMapMarkers() const
+{
+    std::vector<MapMarker> Markers;
+    Markers.reserve(Breakers.size() + 2);
+
+    for (const Breaker& BreakerData : Breakers)
+    {
+        Markers.push_back({
+            {BreakerData.Position.x, BreakerData.Position.z},
+            BreakerData.Active
+                ? MapMarkerKind::BreakerActive
+                : MapMarkerKind::Breaker
+        });
+    }
+
+    Markers.push_back({
+        {ExitPosition.x, ExitPosition.z},
+        State.CanExit()
+            ? MapMarkerKind::ExitPowered
+            : MapMarkerKind::Exit
+    });
+
+    if (Hunter.IsActive())
+    {
+        Markers.push_back({
+            {Hunter.Position().x, Hunter.Position().z},
+            MapMarkerKind::Entity
+        });
+    }
+
+    return Markers;
+}
+
+void Game::OpenMap(bool ReturnToPause)
+{
+    MapOpen = true;
+    MapReturnToPause = ReturnToPause;
+    MapDragging = false;
+    MapZoom = std::clamp(MapZoom, 0.65f, 2.8f);
+    MapCenter = {
+        GamePlayer.Position().x,
+        GamePlayer.Position().z
+    };
+
+    State.Paused = false;
+    State.MainMenuOpen = false;
+    GameRenderer.ClearMenuPointer();
+}
+
+void Game::CloseMap()
+{
+    const bool ReturnToPause = MapReturnToPause;
+
+    MapOpen = false;
+    MapReturnToPause = false;
+    MapDragging = false;
+    GameRenderer.ClearMenuPointer();
+
+    if (ReturnToPause)
+        State.Paused = true;
+}
+
+void Game::RenderMenuOverlay()
+{
+    GameRenderer.BeginFrame();
+
+    if (MapOpen)
+    {
+        WorldGenerator Generator(Seed);
+        const WorldData MapWorld =
+            Generator.BuildMapAround({MapCenter.x, 0.0f, MapCenter.y});
+
+        GameRenderer.DrawFullMapV1(
+            MapWorld,
+            MapCenter,
+            MapZoom,
+            {GamePlayer.Position().x, GamePlayer.Position().z},
+            {GamePlayer.Forward().x, GamePlayer.Forward().z},
+            BuildMapMarkers(),
+            State.BreakersActive,
+            State.BreakersRequired
+        );
+        return;
+    }
+
+    if (State.Paused)
+        GameRenderer.DrawPauseMenuV3();
+    else
+        GameRenderer.DrawMainMenuV3(State.Started);
+}
+
 glm::vec3 Game::MenuPointerFromEvent(const SDL_Event& Event) const
 {
     float X = -10000.0f;
@@ -339,6 +436,13 @@ void Game::Reset()
     InteractPressed = false;
     RestartPressed = false;
 
+    MapOpen = false;
+    MapReturnToPause = false;
+    MapDragging = false;
+    MapCenter = {0.0f, 0.0f};
+    MapDragPointer = {0.0f, 0.0f};
+    MapZoom = 1.0f;
+
     FrameCounter = 0;
     FpsCounterStart = 0;
     DisplayedFps = 0.0f;
@@ -371,6 +475,86 @@ void Game::HandleEvent(
         Event.type == SDL_EVENT_MOUSE_MOTION ||
         Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
         Event.type == SDL_EVENT_MOUSE_BUTTON_UP;
+
+
+    if (MapOpen)
+    {
+        if (
+            KeyDown &&
+            (
+                Event.key.scancode == SDL_SCANCODE_M ||
+                Event.key.scancode == SDL_SCANCODE_ESCAPE
+            )
+        )
+        {
+            CloseMap();
+            return;
+        }
+
+        if (
+            KeyDown &&
+            Event.key.scancode == SDL_SCANCODE_R
+        )
+        {
+            MapCenter = {
+                GamePlayer.Position().x,
+                GamePlayer.Position().z
+            };
+            return;
+        }
+
+        if (Event.type == SDL_EVENT_MOUSE_WHEEL)
+        {
+            const float Factor =
+                Event.wheel.y > 0.0f ? 1.12f : 0.89f;
+
+            MapZoom = std::clamp(
+                MapZoom * Factor,
+                0.65f,
+                2.8f
+            );
+            return;
+        }
+
+        if (
+            Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+            Event.button.button == SDL_BUTTON_LEFT
+        )
+        {
+            const glm::vec3 Pointer = MenuPointerFromEvent(Event);
+            MapDragging = true;
+            MapDragPointer = {Pointer.x, Pointer.y};
+            return;
+        }
+
+        if (
+            Event.type == SDL_EVENT_MOUSE_BUTTON_UP &&
+            Event.button.button == SDL_BUTTON_LEFT
+        )
+        {
+            MapDragging = false;
+            return;
+        }
+
+        if (
+            Event.type == SDL_EVENT_MOUSE_MOTION &&
+            MapDragging
+        )
+        {
+            const glm::vec3 Pointer = MenuPointerFromEvent(Event);
+            const glm::vec2 CurrentPointer{Pointer.x, Pointer.y};
+            const glm::vec2 Delta = CurrentPointer - MapDragPointer;
+            const float PixelsPerMeter =
+                8.0f * std::max(MapZoom, 0.65f);
+
+            MapCenter.x -= Delta.x / PixelsPerMeter;
+            MapCenter.y -= Delta.y / PixelsPerMeter;
+            MapDragPointer = CurrentPointer;
+            return;
+        }
+
+        return;
+    }
 
     if (State.MainMenuOpen)
     {
@@ -452,6 +636,12 @@ void Game::HandleEvent(
             const MenuUiAction Action =
                 GameRenderer.HitTestPauseMenu();
 
+            if (Action == MenuUiAction::Map)
+            {
+                OpenMap(true);
+                return;
+            }
+
             if (Action == MenuUiAction::Resume)
             {
                 State.Paused = false;
@@ -473,9 +663,7 @@ void Game::HandleEvent(
             Event.key.scancode == SDL_SCANCODE_M
         )
         {
-            State.Paused = false;
-            State.MainMenuOpen = true;
-            GameRenderer.ClearMenuPointer();
+            OpenMap(true);
             return;
         }
 
@@ -513,9 +701,7 @@ void Game::HandleEvent(
         Event.key.scancode == SDL_SCANCODE_M
     )
     {
-        State.MainMenuOpen = true;
-        State.Paused = false;
-        GameRenderer.ClearMenuPointer();
+        OpenMap(false);
         return;
     }
 
@@ -542,6 +728,7 @@ bool Game::ShouldCaptureMouse() const
         State.Started &&
         !State.MainMenuOpen &&
         !State.Paused &&
+        !MapOpen &&
         !State.Ended;
 }
 
@@ -721,6 +908,45 @@ void Game::Update(
 )
 {
     GameRenderer.UpdateInterface(DeltaTime);
+
+
+    if (MapOpen)
+    {
+        int KeyCount = 0;
+        const bool* Keys = SDL_GetKeyboardState(&KeyCount);
+        glm::vec2 Pan{0.0f};
+
+        auto KeyHeld = [&](SDL_Scancode ScanCode)
+        {
+            const int Index = static_cast<int>(ScanCode);
+            return
+                Keys != nullptr &&
+                Index >= 0 &&
+                Index < KeyCount &&
+                Keys[Index];
+        };
+
+        if (KeyHeld(SDL_SCANCODE_W) || KeyHeld(SDL_SCANCODE_UP))
+            Pan.y -= 1.0f;
+        if (KeyHeld(SDL_SCANCODE_S) || KeyHeld(SDL_SCANCODE_DOWN))
+            Pan.y += 1.0f;
+        if (KeyHeld(SDL_SCANCODE_A) || KeyHeld(SDL_SCANCODE_LEFT))
+            Pan.x -= 1.0f;
+        if (KeyHeld(SDL_SCANCODE_D) || KeyHeld(SDL_SCANCODE_RIGHT))
+            Pan.x += 1.0f;
+
+        if (glm::length(Pan) > 0.001f)
+        {
+            Pan = glm::normalize(Pan);
+            const float PanSpeed =
+                72.0f / std::max(MapZoom, 0.65f);
+            MapCenter += Pan * PanSpeed * DeltaTime;
+        }
+
+        InteractPressed = false;
+        RestartPressed = false;
+        return;
+    }
 
     if (
         !State.Started ||
@@ -1216,6 +1442,13 @@ void Game::Render(float Time)
             InteractionType,
             State.CanExit(),
             DisplayedFps
+        );
+
+        GameRenderer.DrawMiniMapV1(
+            World,
+            {GamePlayer.Position().x, GamePlayer.Position().z},
+            {GamePlayer.Forward().x, GamePlayer.Forward().z},
+            BuildMapMarkers()
         );
     }
 }
