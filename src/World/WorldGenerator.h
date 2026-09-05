@@ -13,6 +13,10 @@ public:
     WorldData Build();
     WorldData BuildAround(const glm::vec3& FocusPosition);
     WorldData BuildMapAround(const glm::vec3& FocusPosition);
+    WorldData BuildMapRegion(
+        const glm::vec3& FocusPosition,
+        int ChunkRadius
+    );
     bool NeedsRebuild(
         const WorldData& World,
         const glm::vec3& FocusPosition

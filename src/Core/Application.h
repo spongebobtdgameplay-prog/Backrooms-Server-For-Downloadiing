@@ -23,6 +23,7 @@ private:
     void ProcessEvents();
     void HandleResize();
     void SetMouseCaptured(bool Captured);
+    void ToggleFullscreen();
     void Shutdown();
 
     SDL_Window* Window = nullptr;
@@ -34,6 +35,7 @@ private:
     bool Running = false;
     bool MouseCaptured = false;
     bool Initialized = false;
+    bool Fullscreen = false;
 
     uint32_t Width = 1600;
     uint32_t Height = 900;

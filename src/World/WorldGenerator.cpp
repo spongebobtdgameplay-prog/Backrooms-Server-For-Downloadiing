@@ -116,23 +116,29 @@ WorldData WorldGenerator::BuildMapAround(
     const glm::vec3& FocusPosition
 )
 {
+    return BuildMapRegion(FocusPosition, ActiveChunkRadius);
+}
+
+WorldData WorldGenerator::BuildMapRegion(
+    const glm::vec3& FocusPosition,
+    int ChunkRadius
+)
+{
     WorldData World;
 
+    const int Radius = std::clamp(ChunkRadius, 1, 40);
+
     World.ChunkCells = ChunkCellCount;
-    World.StreamRadius = ActiveChunkRadius;
-    World.Columns =
-        ChunkCellCount * (ActiveChunkRadius * 2 + 1);
+    World.StreamRadius = Radius;
+    World.Columns = ChunkCellCount * (Radius * 2 + 1);
     World.Rows = World.Columns;
     World.CellSize = DefaultCellSize;
 
     World.CenterChunkX = ChunkCoordinate(FocusPosition.x);
     World.CenterChunkZ = ChunkCoordinate(FocusPosition.z);
 
-    const int FirstChunkX =
-        World.CenterChunkX - ActiveChunkRadius;
-
-    const int FirstChunkZ =
-        World.CenterChunkZ - ActiveChunkRadius;
+    const int FirstChunkX = World.CenterChunkX - Radius;
+    const int FirstChunkZ = World.CenterChunkZ - Radius;
 
     World.OriginCellX =
         FirstChunkX * ChunkCellCount -

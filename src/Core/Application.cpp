@@ -462,6 +462,23 @@ void Application::SetMouseCaptured(bool Captured)
     Backrooms.OnMouseCaptureChanged(Captured);
 }
 
+void Application::ToggleFullscreen()
+{
+    if (Window == nullptr)
+        return;
+
+    const bool Requested = !Fullscreen;
+
+    if (!SDL_SetWindowFullscreen(Window, Requested))
+    {
+        SDL_Log("Fullscreen toggle failed: %s", SDL_GetError());
+        return;
+    }
+
+    Fullscreen = Requested;
+    HandleResize();
+}
+
 void Application::HandleResize()
 {
     int PixelWidth = 0;
@@ -505,6 +522,16 @@ void Application::ProcessEvents()
         )
         {
             HandleResize();
+        }
+
+        if (
+            Event.type == SDL_EVENT_KEY_DOWN &&
+            !Event.key.repeat &&
+            Event.key.scancode == SDL_SCANCODE_F11
+        )
+        {
+            ToggleFullscreen();
+            continue;
         }
 
         const bool UpdateActive =

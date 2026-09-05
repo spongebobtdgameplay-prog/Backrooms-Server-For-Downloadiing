@@ -139,6 +139,21 @@ void Renderer::UpdateInterface(float DeltaTime)
         PauseMainMenuHover,
         PauseMainMenuRect.Contains(MenuPointerX, MenuPointerY)
     );
+
+    MoveToward(
+        FullMapBackHover,
+        FullMapBackRect.Contains(MenuPointerX, MenuPointerY)
+    );
+
+    MoveToward(
+        FullMapRandomHover,
+        FullMapRandomRect.Contains(MenuPointerX, MenuPointerY)
+    );
+
+    MoveToward(
+        FullMapClearHover,
+        FullMapClearRect.Contains(MenuPointerX, MenuPointerY)
+    );
 }
 
 MenuUiAction Renderer::HitTestMainMenu(bool HasSession) const
@@ -655,7 +670,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
 
     const std::string Footer =
         HasSession
-            ? "ESC PAUSE   M MAP"
+            ? "ESC PAUSE   M MAP   F11 FULLSCREEN"
             : "ESC RELEASES CURSOR";
 
     const int FooterWidth =
@@ -791,7 +806,7 @@ void Renderer::DrawPauseMenuV3()
     );
 
     DrawMenuText(
-        "MAP OPENS THE INFINITE LEVEL 0 GRID. PAN FOREVER, TRACK BREAKERS, EXIT AND THREATS.",
+        "MAP IS A PAUSE-MENU TAB. PAN IN ANY DIRECTION, SET ROUTED WAYPOINTS, TRACK BREAKERS, EXIT AND THREATS.",
         Margin,
         DetailY + 86,
         13,
@@ -811,7 +826,7 @@ void Renderer::DrawPauseMenuV3()
     );
 
     DrawMenuText(
-        "M MAP     ESC RESUME",
+        "M MAP     ESC RESUME     F11 FULLSCREEN",
         Margin,
         static_cast<int>(Height) - 46,
         10,

@@ -40,6 +40,21 @@ struct MapMarker
     MapMarkerKind Kind = MapMarkerKind::Breaker;
 };
 
+enum class MapUiAction
+{
+    None,
+    Back,
+    RandomDestination,
+    ClearWaypoint
+};
+
+struct MapWaypointView
+{
+    bool Active = false;
+    glm::vec2 Position{0.0f};
+    float DistanceMeters = 0.0f;
+};
+
 class Renderer
 {
 public:
@@ -99,23 +114,38 @@ public:
         float Fps
     );
 
-    void DrawMiniMapV1(
+    void DrawMiniMapV2(
         const WorldData& World,
         const glm::vec2& PlayerPosition,
         const glm::vec2& PlayerForward,
-        const std::vector<MapMarker>& Markers
+        const std::vector<MapMarker>& Markers,
+        const MapWaypointView& Waypoint,
+        const std::vector<glm::vec2>& Route,
+        float ThreatDistance,
+        float Time
     );
 
-    void DrawFullMapV1(
+    void DrawFullMapV2(
         const WorldData& World,
         const glm::vec2& MapCenter,
         float Zoom,
         const glm::vec2& PlayerPosition,
         const glm::vec2& PlayerForward,
         const std::vector<MapMarker>& Markers,
+        const MapWaypointView& Waypoint,
+        const std::vector<glm::vec2>& Route,
         int BreakersActive,
-        int BreakersRequired
+        int BreakersRequired,
+        float Time
     );
+
+    void DrawTouchControlsV1();
+    MapUiAction HitTestFullMap() const;
+    bool PointerInsideFullMap() const;
+    glm::vec2 FullMapPointerToWorld(
+        const glm::vec2& MapCenter,
+        float Zoom
+    ) const;
 
     void SetMenuPointer(float X, float Y);
     void ClearMenuPointer();
@@ -218,7 +248,7 @@ private:
         const glm::vec3& Color
     );
     int TextWidth(const std::string& Text, int Scale);
-    void DrawMapPanel(
+    void DrawMapPanelV2(
         const WorldData& World,
         int X,
         int Y,
@@ -229,7 +259,10 @@ private:
         const glm::vec2& PlayerPosition,
         const glm::vec2& PlayerForward,
         const std::vector<MapMarker>& Markers,
-        bool Detailed
+        const MapWaypointView& Waypoint,
+        const std::vector<glm::vec2>& Route,
+        bool Detailed,
+        float Time
     );
     void DrawRect(
         int X,
@@ -283,6 +316,10 @@ private:
     UiRect PauseMapRect;
     UiRect PauseResumeRect;
     UiRect PauseMainMenuRect;
+    UiRect FullMapRect;
+    UiRect FullMapBackRect;
+    UiRect FullMapRandomRect;
+    UiRect FullMapClearRect;
 
     float MenuPointerX = -10000.0f;
     float MenuPointerY = -10000.0f;
@@ -292,6 +329,9 @@ private:
     float PauseMapHover = 0.0f;
     float PauseResumeHover = 0.0f;
     float PauseMainMenuHover = 0.0f;
+    float FullMapBackHover = 0.0f;
+    float FullMapRandomHover = 0.0f;
+    float FullMapClearHover = 0.0f;
 
     std::array<glm::vec4, 8> ActiveLightPositions{};
     std::array<glm::vec4, 8> ActiveLightColors{};

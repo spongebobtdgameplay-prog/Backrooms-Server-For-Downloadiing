@@ -57,8 +57,15 @@ private:
     void Reset();
     std::vector<MapMarker> BuildMapMarkers() const;
     void OpenMap(bool ReturnToPause);
-    void CloseMap();
+    void CloseMap(bool ForcePauseMenu = false);
     glm::vec3 MenuPointerFromEvent(const SDL_Event& Event) const;
+
+    void SetWaypoint(const glm::vec2& Position);
+    void SetRandomWaypoint();
+    void ClearWaypoint();
+    void RebuildWaypointPath();
+    void UpdateWaypoint(float DeltaTime);
+    float CurrentWaypointDistance() const;
 
     bool TryMountBreaker(
         const glm::vec3& CellCenter,
@@ -100,9 +107,20 @@ private:
     bool MapOpen = false;
     bool MapReturnToPause = false;
     bool MapDragging = false;
+    bool MapTouchDragging = false;
+    SDL_FingerID MapTouchFinger = 0;
     glm::vec2 MapCenter{0.0f};
     glm::vec2 MapDragPointer{0.0f};
+    float MapDragDistance = 0.0f;
     float MapZoom = 1.0f;
+
+    bool WaypointActive = false;
+    glm::vec2 WaypointPosition{0.0f};
+    std::vector<glm::vec2> WaypointPath;
+    int WaypointRouteCellX = 0;
+    int WaypointRouteCellZ = 0;
+    int RandomWaypointCounter = 0;
+    float WaypointRepathTimer = 0.0f;
 
     int FrameCounter = 0;
     uint64_t FpsCounterStart = 0;
