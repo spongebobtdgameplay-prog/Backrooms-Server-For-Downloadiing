@@ -1,41 +1,153 @@
 #include "Renderer.h"
 
 #include "../Core/Version.h"
+#include "GeneratedWebUi.h"
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <sstream>
 #include <string>
+#include <vector>
+
+namespace
+{
+    glm::vec3 Rgb(const GeneratedWebUi::CssColor& Color)
+    {
+        return {Color.R, Color.G, Color.B};
+    }
+
+    glm::vec3 Composite(
+        const GeneratedWebUi::CssColor& Foreground,
+        const GeneratedWebUi::CssColor& Background
+    )
+    {
+        const float A = std::clamp(Foreground.A, 0.0f, 1.0f);
+        return {
+            Foreground.R * A + Background.R * (1.0f - A),
+            Foreground.G * A + Background.G * (1.0f - A),
+            Foreground.B * A + Background.B * (1.0f - A)
+        };
+    }
+
+    int CssClamp(
+        int Minimum,
+        float ViewportFactor,
+        int ViewportPixels,
+        int Maximum
+    )
+    {
+        return std::clamp(
+            static_cast<int>(
+                std::round(
+                    static_cast<float>(ViewportPixels) *
+                    ViewportFactor
+                )
+            ),
+            Minimum,
+            Maximum
+        );
+    }
+
+    std::vector<std::string> WrapCssText(
+        const std::string& Text,
+        int MaximumWidth,
+        const std::function<int(const std::string&)>& Measure
+    )
+    {
+        std::vector<std::string> Lines;
+        std::istringstream Stream(Text);
+        std::string Word;
+        std::string Current;
+
+        while (Stream >> Word)
+        {
+            const std::string Candidate =
+                Current.empty()
+                    ? Word
+                    : Current + " " + Word;
+
+            if (
+                !Current.empty() &&
+                Measure(Candidate) > MaximumWidth
+            )
+            {
+                Lines.push_back(Current);
+                Current = Word;
+            }
+            else
+            {
+                Current = Candidate;
+            }
+        }
+
+        if (!Current.empty())
+            Lines.push_back(Current);
+
+        if (Lines.empty())
+            Lines.emplace_back();
+
+        return Lines;
+    }
+}
 
 void Renderer::DrawMenuBackdrop()
 {
-    const glm::vec3 Background{
-        0.784f,
-        0.733f,
-        0.380f
-    };
+    using namespace GeneratedWebUi;
 
-    const glm::vec3 VerticalBand{
-        0.758f,
-        0.701f,
-        0.342f
-    };
-
-    const glm::vec3 HorizontalBand{
-        0.796f,
-        0.746f,
-        0.397f
-    };
+    const glm::vec3 BackgroundColor = Rgb(Background);
 
     DrawRect(
         0,
         0,
         static_cast<int>(Width),
         static_cast<int>(Height),
-        Background
+        BackgroundColor
     );
 
+    // Exact repeating-grid periods from the original #StartScreen CSS.
+    const CssColor VerticalCss{
+        87.0f / 255.0f,
+        77.0f / 255.0f,
+        28.0f / 255.0f,
+        0.055f
+    };
+
+    const CssColor VerticalEdgeCss{
+        71.0f / 255.0f,
+        62.0f / 255.0f,
+        22.0f / 255.0f,
+        0.045f
+    };
+
+    const CssColor HorizontalCss{
+        255.0f / 255.0f,
+        245.0f / 255.0f,
+        155.0f / 255.0f,
+        0.035f
+    };
+
+    const CssColor NoiseCss{
+        38.0f / 255.0f,
+        32.0f / 255.0f,
+        10.0f / 255.0f,
+        0.045f
+    };
+
+    const glm::vec3 Vertical =
+        Composite(VerticalCss, Background);
+
+    const glm::vec3 VerticalEdge =
+        Composite(VerticalEdgeCss, Background);
+
+    const glm::vec3 Horizontal =
+        Composite(HorizontalCss, Background);
+
+    const glm::vec3 Noise =
+        Composite(NoiseCss, Background);
+
     for (
-        int X = 23;
+        int X = 0;
         X < static_cast<int>(Width);
         X += 24
     )
@@ -45,8 +157,19 @@ void Renderer::DrawMenuBackdrop()
             0,
             2,
             static_cast<int>(Height),
-            VerticalBand
+            Vertical
         );
+
+        if (X + 23 < static_cast<int>(Width))
+        {
+            DrawRect(
+                X + 23,
+                0,
+                2,
+                static_cast<int>(Height),
+                VerticalEdge
+            );
+        }
     }
 
     for (
@@ -60,56 +183,70 @@ void Renderer::DrawMenuBackdrop()
             Y,
             static_cast<int>(Width),
             1,
-            HorizontalBand
+            Horizontal
         );
     }
 
-    // Approximate the original CSS vignette without turning the menu
-    // into the flat yellow card that the first native port used.
-    const int VignetteSteps = 18;
+    for (
+        int Y = 0;
+        Y < static_cast<int>(Height);
+        Y += 4
+    )
+    {
+        DrawRect(
+            0,
+            Y,
+            static_cast<int>(Width),
+            1,
+            Noise
+        );
+    }
 
-    for (int I = 0; I < VignetteSteps; ++I)
+    // Native approximation of the original ::after edge vignette.
+    constexpr int Steps = 24;
+
+    for (int I = 0; I < Steps; ++I)
     {
         const float T =
             static_cast<float>(I) /
-            static_cast<float>(VignetteSteps - 1);
+            static_cast<float>(Steps - 1);
 
-        const float Strength = 0.035f * (1.0f - T);
+        const float Strength =
+            0.12f * (1.0f - T) * (1.0f - T);
 
         const glm::vec3 Shade =
-            Background * (1.0f - Strength);
+            BackgroundColor * (1.0f - Strength);
 
-        const int Thickness = 2;
-        const int Offset = I * Thickness;
+        const int Offset = I * 2;
 
         DrawRect(
             0,
             Offset,
             static_cast<int>(Width),
-            Thickness,
+            2,
             Shade
         );
 
         DrawRect(
             0,
-            static_cast<int>(Height) - Offset - Thickness,
+            static_cast<int>(Height) - Offset - 2,
             static_cast<int>(Width),
-            Thickness,
+            2,
             Shade
         );
 
         DrawRect(
             Offset,
             0,
-            Thickness,
+            2,
             static_cast<int>(Height),
             Shade
         );
 
         DrawRect(
-            static_cast<int>(Width) - Offset - Thickness,
+            static_cast<int>(Width) - Offset - 2,
             0,
-            Thickness,
+            2,
             static_cast<int>(Height),
             Shade
         );
@@ -198,61 +335,107 @@ int Renderer::MenuTextWidth(
 
 void Renderer::DrawMainMenuV2(bool HasSession)
 {
-    glDisable(GL_DEPTH_TEST);
+    using namespace GeneratedWebUi;
 
+    glDisable(GL_DEPTH_TEST);
     DrawMenuBackdrop();
 
-    const glm::vec3 Ink{
-        0.153f,
-        0.137f,
-        0.059f
-    };
+    const bool Mobile = Width <= 700;
 
-    const glm::vec3 Muted{
-        0.270f,
-        0.235f,
-        0.095f
-    };
+    const int Margin = Mobile ? 20 : MenuMargin;
+    const int ContentX = Mobile
+        ? 24
+        : CssClamp(
+            ContentLeftMin,
+            ContentLeftViewport,
+            static_cast<int>(Width),
+            ContentLeftMax
+        );
 
-    const glm::vec3 Faint{
-        0.355f,
-        0.313f,
-        0.137f
-    };
+    const int ContentBottom =
+        CssClamp(
+            ContentBottomMin,
+            ContentBottomViewport,
+            static_cast<int>(Height),
+            ContentBottomMax
+        );
 
-    const int Margin = 34;
+    const int ContentWidth = Mobile
+        ? std::max(1, static_cast<int>(Width) - 48)
+        : std::min(
+            ContentWidthMax,
+            std::max(
+                1,
+                static_cast<int>(Width) -
+                    ContentViewportSubtract
+            )
+        );
 
+    const int ParagraphWidth =
+        std::min(
+            ParagraphWidthMax,
+            ContentWidth
+        );
+
+    const int TitleSize = Mobile
+        ? std::clamp(
+            static_cast<int>(
+                std::round(
+                    static_cast<float>(Width) * 0.21f
+                )
+            ),
+            58,
+            100
+        )
+        : CssClamp(
+            TitleMin,
+            TitleViewport,
+            static_cast<int>(Width),
+            TitleMax
+        );
+
+    const glm::vec3 MetaRgb = Rgb(MetaColor);
+    const glm::vec3 IndexRgb = Rgb(IndexColor);
+    const glm::vec3 TitleRgb = Rgb(TitleColor);
+    const glm::vec3 ParagraphRgb = Rgb(ParagraphColor);
+    const glm::vec3 ButtonRgb = Rgb(ButtonColor);
+    const glm::vec3 LoadRgb = Rgb(LoadColor);
+
+    // Top row is a direct conversion of .MenuTop.
     DrawMenuText(
         "THE BACKROOMS",
         Margin,
-        28,
-        10,
+        MenuTopY,
+        MenuMetaFont,
         400,
-        0.20f,
-        Faint
+        MenuMetaTracking,
+        MetaRgb,
+        MetaColor.A,
+        false
     );
 
     const std::string Version =
-        std::string("V") +
-        BuildVersion::Text;
+        std::string("V") + BuildVersion::Text;
 
     const int VersionWidth =
         MenuTextWidth(
             Version,
-            10,
+            MenuMetaFont,
             400,
-            0.20f
+            MenuMetaTracking
         );
 
     DrawMenuText(
         Version,
         static_cast<int>(Width) / 2 -
             VersionWidth / 2,
-        28,
-        10,
+        MenuTopY,
+        MenuMetaFont,
         400,
-        0.20f,
-        Faint
+        MenuMetaTracking,
+        MetaRgb,
+        MetaColor.A * 0.72f,
+        false
     );
 
     const std::string Status =
@@ -263,9 +446,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
     const int StatusWidth =
         MenuTextWidth(
             Status,
-            10,
+            MenuMetaFont,
             400,
-            0.20f
+            MenuMetaTracking
         );
 
     DrawMenuText(
@@ -276,112 +459,218 @@ void Renderer::DrawMainMenuV2(bool HasSession)
                 Margin -
                 StatusWidth
         ),
-        28,
-        10,
+        MenuTopY,
+        MenuMetaFont,
         400,
-        0.20f,
-        Faint
+        MenuMetaTracking,
+        MetaRgb,
+        MetaColor.A,
+        false
     );
 
-    const int ContentX =
-        std::clamp(
-            static_cast<int>(
-                static_cast<float>(Width) *
-                0.07f
-            ),
-            34,
-            110
+    const std::string Paragraph =
+        "Mono-yellow rooms, damp carpet and fluorescent light with no reliable layout. "
+        "Restore three breakers and find the powered exit.";
+
+    const auto ParagraphLines =
+        WrapCssText(
+            Paragraph,
+            ParagraphWidth,
+            [&](const std::string& Line)
+            {
+                return MenuTextWidth(
+                    Line,
+                    ParagraphFont,
+                    ParagraphWeight,
+                    0.0f
+                );
+            }
         );
 
-    const int ContentBottom =
-        std::clamp(
-            static_cast<int>(
-                static_cast<float>(Height) *
-                0.13f
-            ),
-            74,
-            150
+    // Ensure the text renderer is initialized before asking for real glyph height.
+    MenuTextWidth(
+        "THE LOBBY",
+        TitleSize,
+        TitleWeight,
+        TitleTracking
+    );
+
+    const int MeasuredTitleHeight =
+        MenuTextRenderer.IsReady()
+            ? MenuTextRenderer.MeasureHeight(
+                "THE LOBBY",
+                TitleSize,
+                TitleWeight,
+                TitleTracking
+            )
+            : TitleSize;
+
+    const int CssTitleLineBox =
+        static_cast<int>(
+            std::round(
+                static_cast<float>(TitleSize) *
+                TitleLineHeight
+            )
         );
+
+    // Browser glyphs fit inside the CSS line box. GDI can report a taller
+    // glyph box, so use the larger value to preserve the CSS box model
+    // without ever allowing the paragraph to overlap the title.
+    const int TitleAdvance =
+        std::max(
+            CssTitleLineBox,
+            MeasuredTitleHeight
+        );
+
+    const int ParagraphLineAdvance =
+        static_cast<int>(
+            std::round(
+                static_cast<float>(ParagraphFont) *
+                ParagraphLineHeight
+            )
+        );
+
+    const int IndexBlockHeight =
+        IndexFont +
+        IndexPaddingBottom +
+        IndexBorder;
+
+    const int ContentHeight =
+        IndexBlockHeight +
+        TitleMarginTop +
+        TitleAdvance +
+        TitleMarginBottom +
+        ParagraphMarginTop +
+        static_cast<int>(ParagraphLines.size()) *
+            ParagraphLineAdvance +
+        ParagraphMarginBottom +
+        ButtonHeight +
+        LoadMarginTop +
+        LoadFont;
 
     const int ContentY =
         std::max(
-            105,
+            64,
             static_cast<int>(Height) -
                 ContentBottom -
-                330
+                ContentHeight
         );
 
+    // .MenuIndex
     DrawMenuText(
         "LEVEL 0",
         ContentX,
         ContentY,
-        12,
+        IndexFont,
         400,
-        0.35f,
-        Muted
+        IndexTracking,
+        IndexRgb,
+        IndexColor.A,
+        false
     );
+
+    const int IndexWidth =
+        MenuTextWidth(
+            "LEVEL 0",
+            IndexFont,
+            400,
+            IndexTracking
+        );
 
     DrawRect(
         ContentX,
-        ContentY + 27,
-        104,
-        1,
-        Muted
+        ContentY + IndexFont + IndexPaddingBottom,
+        IndexWidth,
+        IndexBorder,
+        Composite(IndexBorderColor, Background)
     );
 
-    const int TitleSize =
-        std::clamp(
-            static_cast<int>(
-                static_cast<float>(Width) *
-                0.10f
-            ),
-            66,
-            138
-        );
+    // h1 box: margin:14px 0 12px; line-height:.78.
+    const int TitleY =
+        ContentY +
+        IndexBlockHeight +
+        TitleMarginTop;
+
+    // Exact #StartScreen h1 highlight shadow: 0 1px 0 rgba(255,247,174,.22)
+    DrawMenuText(
+        "THE LOBBY",
+        ContentX,
+        TitleY + 1,
+        TitleSize,
+        TitleWeight,
+        TitleTracking,
+        {255.0f / 255.0f, 247.0f / 255.0f, 174.0f / 255.0f},
+        0.22f,
+        false
+    );
 
     DrawMenuText(
         "THE LOBBY",
         ContentX,
-        ContentY + 40,
+        TitleY,
         TitleSize,
-        900,
-        -0.07f,
-        Ink
+        TitleWeight,
+        TitleTracking,
+        TitleRgb,
+        TitleColor.A,
+        false
     );
 
-    const int BodyY =
-        ContentY +
-        std::max(128, TitleSize - 2);
+    // One real HTML <p>, wrapped by measured native glyph widths to the
+    // original CSS max-width:520px and line-height:1.6.
+    const int ParagraphY =
+        TitleY +
+        TitleAdvance +
+        TitleMarginBottom +
+        ParagraphMarginTop;
 
-    DrawMenuText(
-        "Mono-yellow rooms, damp carpet and fluorescent light with no reliable layout.",
-        ContentX,
-        BodyY,
-        15,
-        600,
-        0.0f,
-        Muted
-    );
+    for (
+        std::size_t I = 0;
+        I < ParagraphLines.size();
+        ++I
+    )
+    {
+        DrawMenuText(
+            ParagraphLines[I],
+            ContentX,
+            ParagraphY +
+                static_cast<int>(I) *
+                ParagraphLineAdvance,
+            ParagraphFont,
+            ParagraphWeight,
+            0.0f,
+            ParagraphRgb,
+            ParagraphColor.A,
+            false
+        );
+    }
 
-    DrawMenuText(
-        "Restore three breakers and find the powered exit.",
-        ContentX,
-        BodyY + 28,
-        15,
-        600,
-        0.0f,
-        Muted
-    );
+    const int ButtonY =
+        ParagraphY +
+        static_cast<int>(ParagraphLines.size()) *
+            ParagraphLineAdvance +
+        ParagraphMarginBottom;
 
-    const int ButtonY = BodyY + 78;
-    const int ButtonWidth = 360;
+    const int ButtonWidth =
+        std::min(
+            ButtonWidthMax,
+            ContentWidth
+        );
 
     DrawRect(
         ContentX,
         ButtonY,
         ButtonWidth,
         1,
-        Muted
+        Composite(ButtonBorderTopColor, Background)
+    );
+
+    DrawRect(
+        ContentX,
+        ButtonY + ButtonHeight - 1,
+        ButtonWidth,
+        1,
+        Composite(ButtonBorderBottomColor, Background)
     );
 
     const std::string PrimaryAction =
@@ -389,67 +678,99 @@ void Renderer::DrawMainMenuV2(bool HasSession)
             ? "RESUME SESSION"
             : "ENTER LEVEL 0";
 
+    const int ButtonTextY =
+        ButtonY +
+        std::max(
+            0,
+            (ButtonHeight - ButtonFont) / 2
+        );
+
     DrawMenuText(
         PrimaryAction,
-        ContentX + 4,
-        ButtonY + 16,
-        12,
-        800,
-        0.17f,
-        Ink
+        ContentX + ButtonPaddingX,
+        ButtonTextY,
+        ButtonFont,
+        ButtonWeight,
+        ButtonTracking,
+        ButtonRgb,
+        ButtonColor.A,
+        false
     );
 
+    const std::string Arrow = ">";
+    const int ArrowWidth =
+        MenuTextWidth(
+            Arrow,
+            ArrowFont,
+            700,
+            0.0f
+        );
+
     DrawMenuText(
-        ">",
-        ContentX + ButtonWidth - 24,
-        ButtonY + 12,
-        20,
+        Arrow,
+        ContentX +
+            ButtonWidth -
+            ButtonPaddingX -
+            ArrowWidth,
+        ButtonY +
+            std::max(
+                0,
+                (ButtonHeight - ArrowFont) / 2
+            ),
+        ArrowFont,
         700,
         0.0f,
-        Ink
+        ButtonRgb,
+        ButtonColor.A,
+        false
     );
 
-    DrawRect(
-        ContentX,
-        ButtonY + 58,
-        ButtonWidth,
-        1,
-        Muted
-    );
+    const std::string LoadStatus =
+        HasSession
+            ? "N   NEW SESSION"
+            : "WASD   SHIFT   MOUSE   E";
 
     DrawMenuText(
-        HasSession
-            ? "N  NEW SESSION"
-            : "WASD  SHIFT  MOUSE  E",
+        LoadStatus,
         ContentX,
-        ButtonY + 76,
-        10,
+        ButtonY + ButtonHeight + LoadMarginTop,
+        LoadFont,
         400,
-        0.16f,
-        Faint
+        LoadTracking,
+        LoadRgb,
+        LoadColor.A,
+        false
     );
+
+    // .MenuFooter
+    const int FooterY =
+        static_cast<int>(Height) -
+        MenuFooterBottom -
+        MenuMetaFont;
 
     DrawMenuText(
         "NOCLIP DESTINATION",
         Margin,
-        static_cast<int>(Height) - 31,
-        10,
+        FooterY,
+        MenuMetaFont,
         400,
-        0.20f,
-        Faint
+        MenuMetaTracking,
+        MetaRgb,
+        MetaColor.A,
+        false
     );
 
     const std::string Footer =
         HasSession
             ? "ESC PAUSE   M MAIN MENU"
-            : "ENTER STARTS LEVEL 0";
+            : "ESC RELEASES CURSOR";
 
     const int FooterWidth =
         MenuTextWidth(
             Footer,
-            10,
+            MenuMetaFont,
             400,
-            0.20f
+            MenuMetaTracking
         );
 
     DrawMenuText(
@@ -460,11 +781,13 @@ void Renderer::DrawMainMenuV2(bool HasSession)
                 Margin -
                 FooterWidth
         ),
-        static_cast<int>(Height) - 31,
-        10,
+        FooterY,
+        MenuMetaFont,
         400,
-        0.20f,
-        Faint
+        MenuMetaTracking,
+        MetaRgb,
+        MetaColor.A,
+        false
     );
 
     glEnable(GL_DEPTH_TEST);
@@ -472,118 +795,174 @@ void Renderer::DrawMainMenuV2(bool HasSession)
 
 void Renderer::DrawPauseMenuV2()
 {
-    glDisable(GL_DEPTH_TEST);
+    using namespace GeneratedWebUi;
 
+    glDisable(GL_DEPTH_TEST);
     DrawMenuBackdrop();
 
-    const glm::vec3 Ink{
-        0.153f,
-        0.137f,
-        0.059f
-    };
-
-    const glm::vec3 Muted{
-        0.270f,
-        0.235f,
-        0.095f
-    };
-
     const int ContentX =
-        std::clamp(
-            static_cast<int>(
-                static_cast<float>(Width) *
-                0.07f
-            ),
-            34,
-            110
-        );
-
-    const int ContentY =
-        std::max(
-            150,
-            static_cast<int>(
-                static_cast<float>(Height) *
-                0.42f
-            )
-        );
-
-    DrawMenuText(
-        "LEVEL 0",
-        ContentX,
-        ContentY,
-        12,
-        400,
-        0.35f,
-        Muted
-    );
+        Width <= 700
+            ? 24
+            : CssClamp(
+                ContentLeftMin,
+                ContentLeftViewport,
+                static_cast<int>(Width),
+                ContentLeftMax
+            );
 
     const int TitleSize =
         std::clamp(
             static_cast<int>(
-                static_cast<float>(Width) *
-                0.075f
+                std::round(
+                    static_cast<float>(Width) * 0.075f
+                )
             ),
             58,
             108
         );
 
+    const int ContentY =
+        std::max(
+            120,
+            static_cast<int>(
+                static_cast<float>(Height) * 0.38f
+            )
+        );
+
+    const glm::vec3 IndexRgb = Rgb(IndexColor);
+    const glm::vec3 TitleRgb = Rgb(TitleColor);
+    const glm::vec3 ButtonRgb = Rgb(ButtonColor);
+    const glm::vec3 LoadRgb = Rgb(LoadColor);
+
+    DrawMenuText(
+        "LEVEL 0",
+        ContentX,
+        ContentY,
+        IndexFont,
+        400,
+        IndexTracking,
+        IndexRgb,
+        IndexColor.A,
+        false
+    );
+
+    const int IndexWidth =
+        MenuTextWidth(
+            "LEVEL 0",
+            IndexFont,
+            400,
+            IndexTracking
+        );
+
+    DrawRect(
+        ContentX,
+        ContentY + IndexFont + IndexPaddingBottom,
+        IndexWidth,
+        1,
+        Composite(IndexBorderColor, Background)
+    );
+
+    const int TitleY =
+        ContentY +
+        IndexFont +
+        IndexPaddingBottom +
+        1 +
+        TitleMarginTop;
+
     DrawMenuText(
         "SESSION PAUSED",
         ContentX,
-        ContentY + 36,
+        TitleY,
         TitleSize,
         900,
         -0.055f,
-        Ink
+        TitleRgb,
+        TitleColor.A,
+        false
     );
 
+    MenuTextWidth(
+        "SESSION PAUSED",
+        TitleSize,
+        900,
+        -0.055f
+    );
+
+    const int TitleHeight =
+        MenuTextRenderer.IsReady()
+            ? MenuTextRenderer.MeasureHeight(
+                "SESSION PAUSED",
+                TitleSize,
+                900,
+                -0.055f
+            )
+            : TitleSize;
+
     const int ButtonY =
-        ContentY + TitleSize + 74;
+        TitleY +
+        TitleHeight +
+        36;
+
+    const int ButtonWidth =
+        std::min(
+            410,
+            std::max(
+                1,
+                static_cast<int>(Width) -
+                    ContentX - 34
+            )
+        );
 
     DrawRect(
         ContentX,
         ButtonY,
-        410,
+        ButtonWidth,
         1,
-        Muted
+        Composite(ButtonBorderTopColor, Background)
     );
 
     DrawMenuText(
-        "ENTER  RESUME",
+        "ENTER   RESUME",
         ContentX + 4,
-        ButtonY + 16,
-        18,
-        800,
-        0.13f,
-        Ink
+        ButtonY + 20,
+        ButtonFont,
+        ButtonWeight,
+        ButtonTracking,
+        ButtonRgb,
+        ButtonColor.A,
+        false
     );
 
     DrawRect(
         ContentX,
-        ButtonY + 58,
-        410,
+        ButtonY + ButtonHeight,
+        ButtonWidth,
         1,
-        Muted
+        Composite(ButtonBorderBottomColor, Background)
     );
 
     DrawMenuText(
-        "M  MAIN MENU",
+        "M   MAIN MENU",
         ContentX + 4,
-        ButtonY + 78,
-        18,
-        800,
-        0.13f,
-        Ink
+        ButtonY + ButtonHeight + 22,
+        ButtonFont,
+        ButtonWeight,
+        ButtonTracking,
+        ButtonRgb,
+        ButtonColor.A,
+        false
     );
 
     DrawMenuText(
         "ESC ALSO RESUMES",
         ContentX,
-        ButtonY + 126,
-        13,
-        500,
-        0.14f,
-        Muted
+        ButtonY + ButtonHeight + 66,
+        LoadFont,
+        400,
+        LoadTracking,
+        LoadRgb,
+        LoadColor.A,
+        false
     );
 
     glEnable(GL_DEPTH_TEST);
