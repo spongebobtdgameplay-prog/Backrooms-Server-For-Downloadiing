@@ -1208,23 +1208,33 @@ void Renderer::DrawEntity(
 
 void Renderer::DrawCrosshair()
 {
-    const GLint CenterX = static_cast<GLint>(Width / 2);
-    const GLint CenterY = static_cast<GLint>(Height / 2);
+    const int CenterX = static_cast<int>(Width / 2);
+    const int CenterY = static_cast<int>(Height / 2);
 
-    glEnable(GL_SCISSOR_TEST);
-    glClearColor(0.74f, 0.72f, 0.58f, 1.0f);
+    const glm::vec3 Stroke{
+        0.055f,
+        0.050f,
+        0.032f
+    };
 
-    glScissor(CenterX, CenterY - 5, 1, 10);
-    glClear(GL_COLOR_BUFFER_BIT);
+    const glm::vec3 Reticle{
+        0.98f,
+        0.955f,
+        0.78f
+    };
 
-    glScissor(CenterX - 5, CenterY, 10, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
+    DrawRect(CenterX - 12, CenterY - 2, 7, 3, Stroke);
+    DrawRect(CenterX + 5, CenterY - 2, 7, 3, Stroke);
+    DrawRect(CenterX - 2, CenterY - 12, 3, 7, Stroke);
+    DrawRect(CenterX - 2, CenterY + 5, 3, 7, Stroke);
 
-    glClearColor(0.96f, 0.94f, 0.76f, 1.0f);
-    glScissor(CenterX, CenterY, 1, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
+    DrawRect(CenterX - 11, CenterY - 1, 5, 1, Reticle);
+    DrawRect(CenterX + 6, CenterY - 1, 5, 1, Reticle);
+    DrawRect(CenterX - 1, CenterY - 11, 1, 5, Reticle);
+    DrawRect(CenterX - 1, CenterY + 6, 1, 5, Reticle);
 
-    glDisable(GL_SCISSOR_TEST);
+    DrawRect(CenterX - 2, CenterY - 2, 3, 3, Stroke);
+    DrawRect(CenterX - 1, CenterY - 1, 1, 1, Reticle);
 }
 
 void Renderer::DrawStamina(float Stamina)

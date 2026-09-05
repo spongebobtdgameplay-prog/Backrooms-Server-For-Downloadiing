@@ -891,7 +891,7 @@ void Renderer::DrawGameplayOverlayV3(
         0.24f,
         Muted,
         1.0f,
-        false
+        true
     );
 
     std::ostringstream Objective;
@@ -910,7 +910,7 @@ void Renderer::DrawGameplayOverlayV3(
         0.13f,
         Primary,
         1.0f,
-        false
+        true
     );
 
     std::ostringstream FpsStream;
@@ -948,7 +948,7 @@ void Renderer::DrawGameplayOverlayV3(
         0.10f,
         Primary,
         1.0f,
-        false
+        true
     );
 
     const std::string BuildText =
@@ -971,7 +971,7 @@ void Renderer::DrawGameplayOverlayV3(
         0.13f,
         Muted,
         1.0f,
-        false
+        true
     );
 
     const float StaminaAmount =
@@ -1027,7 +1027,7 @@ void Renderer::DrawGameplayOverlayV3(
         0.16f,
         StaminaColor,
         1.0f,
-        false
+        true
     );
 
     const int SprintLabelWidth =
@@ -1111,7 +1111,7 @@ void Renderer::DrawGameplayOverlayV3(
             0.0f,
             Primary,
             1.0f,
-            false
+            true
         );
 
         GameplayTextRenderer.Draw(
@@ -1123,7 +1123,7 @@ void Renderer::DrawGameplayOverlayV3(
             0.08f,
             Primary,
             1.0f,
-            false
+            true
         );
     }
 }
