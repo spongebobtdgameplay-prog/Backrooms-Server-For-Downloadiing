@@ -187,7 +187,7 @@ void Game::Reset()
     RestartPressed = false;
 
     FrameCounter = 0;
-    FpsWindowStart = 0.0f;
+    FpsCounterStart = 0;
     DisplayedFps = 0.0f;
 
     Message.clear();
@@ -670,21 +670,36 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
 
 void Game::Render(float Time)
 {
+    const uint64_t CurrentFpsCounter =
+        SDL_GetPerformanceCounter();
+
+    if (FpsCounterStart == 0)
+    {
+        FpsCounterStart = CurrentFpsCounter;
+        FrameCounter = 0;
+    }
+
     ++FrameCounter;
 
-    if (FpsWindowStart <= 0.0f)
-        FpsWindowStart = Time;
+    const double FpsFrequency =
+        static_cast<double>(SDL_GetPerformanceFrequency());
 
-    const float FpsElapsed = Time - FpsWindowStart;
+    const double FpsElapsed =
+        static_cast<double>(
+            CurrentFpsCounter - FpsCounterStart
+        ) /
+        std::max(FpsFrequency, 1.0);
 
-    if (FpsElapsed >= 0.5f)
+    if (FpsElapsed >= 0.15)
     {
         DisplayedFps =
-            static_cast<float>(FrameCounter) /
-            std::max(FpsElapsed, 0.001f);
+            static_cast<float>(
+                static_cast<double>(FrameCounter) /
+                std::max(FpsElapsed, 0.001)
+            );
 
         FrameCounter = 0;
-        FpsWindowStart = Time;
+        FpsCounterStart = CurrentFpsCounter;
     }
 
     GameRenderer.BeginFrame();
@@ -749,6 +764,7 @@ void Game::Render(float Time)
     )
     {
         GameRenderer.DrawGameplayOverlayV3(
+            GamePlayer.Stamina(),
             State.BreakersActive,
             State.BreakersRequired,
             InteractionType,
