@@ -236,7 +236,13 @@ void Renderer::DrawMainMenuV3(bool HasSession)
             );
 
     const int ParagraphWidth =
-        std::min(ParagraphWidthMax, ContentWidth);
+        std::max(
+            180,
+            std::min(
+                590,
+                std::max(ContentWidth - 20, 1)
+            )
+        );
 
     const int TitleSize =
         Mobile
@@ -341,7 +347,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
     const auto ParagraphLines =
         WrapText(
             Paragraph,
-            ParagraphWidth,
+            std::max(ParagraphWidth - 16, 160),
             [&](const std::string& Line)
             {
                 return MenuTextWidth(
@@ -381,12 +387,25 @@ void Renderer::DrawMainMenuV3(bool HasSession)
     const int TitleAdvance =
         std::max(CssTitleLineBox, MeasuredTitleHeight);
 
-    const int ParagraphLineAdvance =
-        static_cast<int>(
-            std::round(
-                static_cast<float>(ParagraphFont) *
-                ParagraphLineHeight
+    const int MeasuredParagraphHeight =
+        MenuTextRenderer.IsReady()
+            ? MenuTextRenderer.MeasureHeight(
+                "Ag",
+                ParagraphFont,
+                ParagraphWeight,
+                0.0f
             )
+            : ParagraphFont;
+
+    const int ParagraphLineAdvance =
+        std::max(
+            static_cast<int>(
+                std::round(
+                    static_cast<float>(ParagraphFont) *
+                    ParagraphLineHeight
+                )
+            ),
+            MeasuredParagraphHeight + 5
         );
 
     const int IndexBlockHeight =
@@ -457,17 +476,6 @@ void Renderer::DrawMainMenuV3(bool HasSession)
         IndexBlockHeight +
         TitleMarginTop;
 
-    DrawMenuText(
-        "THE LOBBY",
-        ContentX,
-        TitleY + 1,
-        TitleSize,
-        TitleWeight,
-        TitleTracking,
-        {1.0f, 247.0f / 255.0f, 174.0f / 255.0f},
-        0.20f,
-        false
-    );
 
     DrawMenuText(
         "THE LOBBY",
@@ -586,7 +594,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
             false
         );
 
-        const std::string Arrow = ">";
+        const std::string Arrow = "\xE2\x86\x92";
         const int ArrowWidth =
             MenuTextWidth(
                 Arrow,

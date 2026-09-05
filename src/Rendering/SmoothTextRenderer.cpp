@@ -275,10 +275,33 @@ SmoothTextRenderer::CachedText* SmoothTextRenderer::GetOrCreate(
         return &Existing->second;
 
     std::wstring Wide;
-    Wide.reserve(Text.size());
+    const int WideLength = MultiByteToWideChar(
+        CP_UTF8,
+        MB_ERR_INVALID_CHARS,
+        Text.c_str(),
+        static_cast<int>(Text.size()),
+        nullptr,
+        0
+    );
 
-    for (unsigned char Character : Text)
-        Wide.push_back(static_cast<wchar_t>(Character));
+    if (WideLength > 0)
+    {
+        Wide.resize(static_cast<std::size_t>(WideLength));
+        MultiByteToWideChar(
+            CP_UTF8,
+            MB_ERR_INVALID_CHARS,
+            Text.c_str(),
+            static_cast<int>(Text.size()),
+            Wide.data(),
+            WideLength
+        );
+    }
+    else
+    {
+        Wide.reserve(Text.size());
+        for (unsigned char Character : Text)
+            Wide.push_back(static_cast<wchar_t>(Character));
+    }
 
     HDC DeviceContext = CreateCompatibleDC(nullptr);
 
