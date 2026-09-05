@@ -1,0 +1,65 @@
+name: Vendor V0.3.23 Assets
+
+on:
+  push:
+    branches:
+      - feature-v0.3.23-breaker-entity-audio
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download vetted CC0 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/models/power_box_01 assets/audio
+
+          curl -fL --retry 3 -o assets/models/power_box_01/power_box_01_1k.gltf \
+            https://raw.githubusercontent.com/lanathlor/pyrrhic-stars/main/client/assets/models/props/derelict_city/power_box_01/power_box_01_1k.gltf
+          curl -fL --retry 3 -o assets/models/power_box_01/power_box_01.bin \
+            https://raw.githubusercontent.com/lanathlor/pyrrhic-stars/main/client/assets/models/props/derelict_city/power_box_01/power_box_01.bin
+
+          for n in 1 2 3 4; do
+            curl -fL --retry 3 -o "assets/audio/footstep-carpet-${n}.ogg" \
+              "https://raw.githubusercontent.com/Sonofg0tham/tailgate/main/public/assets/audio/footstep-carpet-${n}.ogg"
+          done
+
+          curl -fL --retry 3 -o assets/audio/breaker-trip.ogg \
+            https://raw.githubusercontent.com/Sonofg0tham/tailgate/main/public/assets/audio/breaker-trip.ogg
+          curl -fL --retry 3 -o assets/audio/entity-metal.ogg \
+            https://raw.githubusercontent.com/Sonofg0tham/tailgate/main/public/assets/audio/metal-impact-1.ogg
+          curl -fL --retry 3 -o assets/audio/fluorescent-hum.ogg \
+            https://raw.githubusercontent.com/Sergiodevelopersk8/godotcurso2/main/terror-curso-3d/AssetsSoundsModels/119910__ftpalad__fluorescent-lightbulb-hum.ogg
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('assets/models/power_box_01/power_box_01_1k.gltf')
+          data = json.loads(path.read_text())
+          for material in data.get('materials', []):
+              pbr = material.setdefault('pbrMetallicRoughness', {})
+              pbr['baseColorFactor'] = [0.18, 0.19, 0.17, 1.0]
+          path.write_text(json.dumps(data, separators=(',', ':')))
+          PY
+
+      - name: Commit vendored assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/models/power_box_01 assets/audio/footstep-carpet-*.ogg assets/audio/breaker-trip.ogg assets/audio/entity-metal.ogg assets/audio/fluorescent-hum.ogg
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Vendor V0.3.23 breaker and recorded audio assets [skip ci]"
+          git push origin HEAD:feature-v0.3.23-breaker-entity-audio
