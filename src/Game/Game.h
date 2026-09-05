@@ -62,11 +62,18 @@ private:
     struct Breaker
     {
         glm::vec3 Position{0.0f};
+        glm::vec3 Forward{0.0f, 0.0f, 1.0f};
         bool Active = false;
     };
 
     void Reset();
     glm::vec3 MenuPointerFromEvent(const SDL_Event& Event) const;
+
+    bool TryMountBreaker(
+        const glm::vec3& CellCenter,
+        int Variant,
+        Breaker& Result
+    ) const;
 
     void UpdateInteraction();
     void Interact();
@@ -101,6 +108,9 @@ private:
     int FrameCounter = 0;
     uint64_t FpsCounterStart = 0;
     float DisplayedFps = 0.0f;
+
+    glm::vec3 PreviousPlayerPosition{0.0f};
+    float FootstepDistance = 0.0f;
 
     std::string Message;
     float MessageTimer = 0.0f;
