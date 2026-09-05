@@ -29,6 +29,63 @@ public:
         bool MouseCaptured
     );
 
+    bool HandleMenuPointer(float X, float Y)
+    {
+        if (State.MainMenuOpen)
+        {
+            const auto Layout = MenuLayout::BuildMainMenu(
+                Width,
+                Height,
+                State.Started
+            );
+
+            if (Layout.PrimaryButton.Contains(X, Y))
+            {
+                State.Started = true;
+                State.MainMenuOpen = false;
+                State.Paused = false;
+                return true;
+            }
+
+            if (
+                Layout.HasSecondaryButton &&
+                Layout.SecondaryButton.Contains(X, Y)
+            )
+            {
+                Reset();
+                State.Started = true;
+                State.MainMenuOpen = false;
+                State.Paused = false;
+                return true;
+            }
+
+            return false;
+        }
+
+        if (State.Paused)
+        {
+            const auto Layout = MenuLayout::BuildPauseMenu(
+                Width,
+                Height
+            );
+
+            if (Layout.ResumeButton.Contains(X, Y))
+            {
+                State.Paused = false;
+                return true;
+            }
+
+            if (Layout.MainMenuButton.Contains(X, Y))
+            {
+                State.Paused = false;
+                State.MainMenuOpen = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void OnMouseCaptureChanged(bool Captured);
     bool ShouldCaptureMouse() const;
 
