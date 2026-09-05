@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.26
-manifest_revision=33989026710
-published_at=2026-09-05T20:08:21Z
+version=0.3.27
+manifest_revision=33991542859
+published_at=2026-09-05T20:59:08Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.26&run=33989026710
-sha256=d331b5024f27e2df0d4fce8cf184869bda0eefbeb8b5f5b35abc839bac245bde
-notes=V0.3.26 adds a GTA-style native map system for the infinite Level 0 world: a yellow wallpaper-textured corner minimap during gameplay, breaker/activated-breaker/exit/powered-exit/entity markers, a redesigned GTA-inspired pause menu with a MAP tab, M to open the full map directly, mouse drag plus WASD/arrow panning with no coordinate bounds, mouse-wheel zoom, R recenter, and deterministic map-only chunk generation so the full map can keep scrolling through the same infinite maze topology without loading full 3D environment geometry. The sprint HUD is moved above the minimap so the two systems do not overlap. This is the Windows-gated public V0.3.26 release.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.27&run=33991542859
+sha256=f1887bf2b517addf2b778c54d480df3d514b4d7863894566e3b54fa3ba8c2f76
+notes=V0.3.27 replaces the debug-looking V0.3.26 map with a polished infinite Level 0 atlas: viewport-sized deterministic map generation follows the camera forever in every direction with no hard map bounds, a visible Back button and ESC-to-menu guidance return to the pause menu, hover labels identify map icons, the player uses a directional arrow, breakers use red neon ring/screwdriver markers with green online state, full-map click or touch creates a waypoint, A* routing follows maze openings, G/random-destination creates exploration targets, waypoint distance appears on the map and minimap and clears automatically when reached, nearby monsters make the minimap flash red/black, F11 toggles fullscreen, and SDL3 gamepad plus touch controls add responsive device input and mobile-scaled HUD controls. This is the Windows-gated public V0.3.27 release.
