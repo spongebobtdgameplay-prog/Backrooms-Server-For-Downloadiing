@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.18
-manifest_revision=33974920213
-published_at=2026-09-05T15:32:09Z
+version=0.3.19
+manifest_revision=33976091723
+published_at=2026-09-05T15:55:13Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.18&run=33974920213
-sha256=9c1b74c06e6f0f92fc0650e0f556cf1417fb719fe611f1b2e4a56cfdcffd89fb
-notes=V0.3.18 makes the native menu actually mouse-driven instead of treating ENTER LEVEL 0 as decorative text. The main menu now has visible clickable ENTER LEVEL 0 / RESUME SESSION and NEW SESSION button surfaces with real hitboxes, hover fill, border emphasis, and sliding label/arrow animation; the pause menu gets matching clickable RESUME and MAIN MENU controls while keyboard shortcuts remain optional. Gameplay UI is separated from the menu typography path with a dedicated condensed HUD renderer, stronger shadows, dark objective/FPS panels, and a high-contrast interaction prompt so the interface no longer disappears into Level 0's yellow walls.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.19&run=33976091723
+sha256=ab1863c782f041850aefe76cf9c03f79e4a75a9e611a8824376e4958be5d9d5b
+notes=V0.3.19 removes the black gameplay HUD slabs and returns the in-game interface to a transparent overlay over Level 0. The sprint label and stamina bar are now brighter, slightly larger, and shadowed for readability without adding a background box. Main-menu and pause buttons now follow the browser version's real button CSS: no side borders, no permanent filled rectangle, top and bottom divider lines only, 4px resting side padding that animates to 14px on hover, and the same subtle hover fill. The FPS display now samples the real SDL performance counter every 0.15 seconds instead of deriving FPS from clamped game time, and shows one decimal so drops and small frame-time changes are visible instead of appearing stuck at 60.
