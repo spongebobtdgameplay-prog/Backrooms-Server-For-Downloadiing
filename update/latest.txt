@@ -1,6 +1,8 @@
-# Generated only after the Windows installer is published successfully.
-version=0.3.12
+# Generated after every successful Windows release. Do not hand-edit.
+version=0.3.13
+manifest_revision=33968870101
+published_at=2026-09-05T13:29:00Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe
-sha256=5498d2a424efc523ed585aa451fb95f36d8451850ebfbae1d58e63e42a06f26c
-notes=V0.3.12 stops hand-guessing the native menu layout. The original browser style.css is now stored with the native project and converted into GeneratedWebUi.h by tools/convert_web_ui.py during GitHub/developer builds. The main menu uses the original CSS box model: clamp/vw/vh positioning, exact title size and line-height, paragraph max-width and line-height, measured native glyph height and width for safe wrapping, original button dimensions, footer/top-row spacing, mobile breakpoint values, colors, stripes, noise, and title highlight. This fixes THE LOBBY overlapping the paragraph and makes future web UI changes flow through the converter instead of being manually retyped.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.13&run=33968870101
+sha256=8c23bcda49aca94021dd58e84de93a7aa6927b6ed5e3a24617e68d100d2480d3
+notes=V0.3.13 fixes the start-screen skip caused by focus mouse clicks, keeps the real CSS-converted menu visible until Enter/Space is chosen, adds a clear ESC MENU control cue during gameplay, and reworks Level 0 rendering so wallpaper, carpet and ceiling keep visible texture instead of washing into flat yellow. Ambient/hemisphere light, fluorescent intensity, fog, material contrast and tone mapping were all rebalanced for stronger depth while preserving the original yellow Backrooms look.
