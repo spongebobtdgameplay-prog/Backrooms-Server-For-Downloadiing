@@ -25,6 +25,7 @@ jobs:
         run: |
           $Path = "tools\v0328_visual_patch.py"
           $Text = Get-Content $Path -Raw
+          $Text = $Text.Replace('updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)', 'updated, count = re.subn(pattern, lambda _: replacement, text, count=1, flags=re.S)')
           $Text = $Text.Replace('Hovered ? RouteColor : glm::vec3{0.43f, 0.39f, 0.18f}', 'Hovered ? glm::vec3{0.245f, 0.545f, 0.965f} : glm::vec3{0.43f, 0.39f, 0.18f}')
           $Text = $Text.Replace('"\xE2\x86\x90  BACK"', '"\\xE2\\x86\\x90  BACK"')
           Set-Content $Path $Text -NoNewline -Encoding utf8
@@ -39,7 +40,7 @@ jobs:
           $Map = Get-Content "src\Rendering\MapOverlay.cpp" -Raw
           $Menu = Get-Content "src\Rendering\InteractiveMenu.cpp" -Raw
           $Version = Get-Content "src\Core\Version.h" -Raw
-          if ($Map -notmatch 'continuous' -and $Map -match 'DotCount') { throw "Old dotted route code still present" }
+          if ($Map -match 'DotCount') { throw "Old dotted route code still present" }
           if ($Map -notmatch 'FillTriangle') { throw "Filled map markers were not added" }
           if ($Map -match 'TintIndex') { throw "Old patchwork cell tint remains" }
           if ($Menu -match 'const std::string Arrow = ">"') { throw "Old > arrow remains" }
