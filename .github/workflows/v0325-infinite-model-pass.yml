@@ -1,0 +1,134 @@
+name: V0.3.25 Infinite Model Pass
+
+on:
+  push:
+    branches:
+      - v0.3.25-infinite-model-pass
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v0325-infinite-model-pass
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: v0.3.25-infinite-model-pass
+          fetch-depth: 0
+
+      - name: Apply V0.3.25 source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/apply_v0325.py
+          python tools/fix_v0325_prep.py
+
+      - name: Vendor real door and breaker textures
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/models/power_box_01/textures
+          curl -L --fail --retry 3 --retry-delay 2 \
+            "https://raw.githubusercontent.com/spongebobtdgameplay-prog/The-Infinity-Store/main/Models/Architecture/GLB/Door_3.glb" \
+            -o assets/models/exit-door.glb
+          curl -L --fail --retry 3 --retry-delay 2 \
+            "https://raw.githubusercontent.com/TheMarco/liminal/bc0d3e0a814a9d0b5bd7ae8af6b6b7259271ffc2/models/cc0/power_box_01/textures/power_box_01_diff_1k.jpg" \
+            -o assets/models/power_box_01/textures/power_box_01_diff_1k.jpg
+          curl -L --fail --retry 3 --retry-delay 2 \
+            "https://raw.githubusercontent.com/TheMarco/liminal/bc0d3e0a814a9d0b5bd7ae8af6b6b7259271ffc2/models/cc0/power_box_01/textures/power_box_01_nor_gl_1k.jpg" \
+            -o assets/models/power_box_01/textures/power_box_01_nor_gl_1k.jpg
+          curl -L --fail --retry 3 --retry-delay 2 \
+            "https://raw.githubusercontent.com/TheMarco/liminal/bc0d3e0a814a9d0b5bd7ae8af6b6b7259271ffc2/models/cc0/power_box_01/textures/power_box_01_arm_1k.jpg" \
+            -o assets/models/power_box_01/textures/power_box_01_arm_1k.jpg
+
+      - name: Verify prepared source and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(stat -c%s assets/models/exit-door.glb)" -gt 30000
+          test "$(stat -c%s assets/models/power_box_01/textures/power_box_01_diff_1k.jpg)" -gt 400000
+          test "$(stat -c%s assets/models/power_box_01/textures/power_box_01_nor_gl_1k.jpg)" -gt 600000
+          test "$(stat -c%s assets/models/power_box_01/textures/power_box_01_arm_1k.jpg)" -gt 700000
+          file assets/models/exit-door.glb | grep -qi 'glTF Binary'
+          file assets/models/power_box_01/textures/power_box_01_diff_1k.jpg | grep -qi 'JPEG'
+          grep -q '0.3.25' src/Core/Version.h
+          grep -q 'VERSION 0.3.25' CMakeLists.txt
+          grep -q 'BuildAround' src/World/WorldGenerator.cpp
+          grep -q 'CreateChunkCells' src/World/WorldGenerator.cpp
+          grep -q 'Streamer.NeedsRebuild' src/Game/Game.cpp
+          grep -q 'DrawExitDoor' src/Game/Game.cpp
+          grep -q 'ExitDoorModel.Load' src/Rendering/Renderer.cpp
+          grep -q 'ModelDirectory /' src/Rendering/EntityModel.cpp
+          grep -q 'PlayEntityRelease' src/Audio/AudioSystem.cpp
+          grep -q 'power_box_01_diff_1k.jpg' assets/models/power_box_01/power_box_01_1k.gltf
+          ! grep -q 'Physics/AABB.h' src/World/WorldTypes.h
+          grep -q 'struct AABB' src/World/WorldTypes.h
+
+      - name: Commit prepared V0.3.25 pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f tools/apply_v0325.py tools/fix_v0325_prep.py .github/workflows/v0325-infinite-model-pass.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No prepared changes found"
+            exit 1
+          fi
+          git commit -m "Prepare V0.3.25 infinite model and audio pass [skip ci]"
+          git push origin HEAD:v0.3.25-infinite-model-pass
+
+  build-windows:
+    needs: prepare
+    runs-on: windows-2022
+    steps:
+      - name: Checkout prepared feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: v0.3.25-infinite-model-pass
+          fetch-depth: 1
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify executable and runtime content
+        shell: pwsh
+        run: |
+          $Required = @(
+            "build\Release\Backrooms Offical.exe",
+            "build\Release\assets\models\exit-door.glb",
+            "build\Release\assets\models\power_box_01\power_box_01_1k.gltf",
+            "build\Release\assets\models\power_box_01\power_box_01.bin",
+            "build\Release\assets\models\power_box_01\textures\power_box_01_diff_1k.jpg",
+            "build\Release\assets\models\power_box_01\textures\power_box_01_nor_gl_1k.jpg",
+            "build\Release\assets\models\power_box_01\textures\power_box_01_arm_1k.jpg",
+            "build\Release\assets\audio\entity-metal.wav",
+            "build\Release\assets\audio\entity-laugh.wav"
+          )
+          foreach ($Path in $Required) {
+            if (!(Test-Path $Path)) {
+              throw "Missing packaged runtime file: $Path"
+            }
+          }
+          if ((Get-Item "build\Release\assets\models\exit-door.glb").Length -lt 30000) {
+            throw "Exit door GLB is unexpectedly small"
+          }
+          if ((Get-Content "src\Core\Version.h" -Raw) -notmatch '0\.3\.25') {
+            throw "Version.h is not V0.3.25"
+          }
+          if ((Get-Content "src\World\WorldGenerator.cpp" -Raw) -notmatch 'CreateChunkCells') {
+            throw "Streamed chunk generator missing"
+          }
