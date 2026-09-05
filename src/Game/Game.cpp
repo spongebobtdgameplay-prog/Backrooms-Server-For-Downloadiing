@@ -31,6 +31,7 @@ bool Game::Initialize(uint32_t NewWidth, uint32_t NewHeight)
 void Game::Shutdown()
 {
     Audio.Shutdown();
+    GameRenderer.ShutdownInterfaceV3();
     GameRenderer.Shutdown();
 }
 
@@ -40,6 +41,72 @@ void Game::Resize(uint32_t NewWidth, uint32_t NewHeight)
     Height = std::max(NewHeight, 1u);
 
     GameRenderer.Resize(Width, Height);
+}
+
+glm::vec3 Game::MenuPointerFromEvent(const SDL_Event& Event) const
+{
+    float X = -10000.0f;
+    float Y = -10000.0f;
+    SDL_WindowID WindowId = 0;
+
+    if (Event.type == SDL_EVENT_MOUSE_MOTION)
+    {
+        X = Event.motion.x;
+        Y = Event.motion.y;
+        WindowId = Event.motion.windowID;
+    }
+    else if (
+        Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        Event.type == SDL_EVENT_MOUSE_BUTTON_UP
+    )
+    {
+        X = Event.button.x;
+        Y = Event.button.y;
+        WindowId = Event.button.windowID;
+    }
+    else
+    {
+        return {X, Y, 0.0f};
+    }
+
+    SDL_Window* EventWindow = SDL_GetWindowFromID(WindowId);
+
+    int LogicalWidth = static_cast<int>(Width);
+    int LogicalHeight = static_cast<int>(Height);
+
+    if (EventWindow != nullptr)
+    {
+        int WindowWidth = 0;
+        int WindowHeight = 0;
+
+        if (
+            SDL_GetWindowSize(
+                EventWindow,
+                &WindowWidth,
+                &WindowHeight
+            ) &&
+            WindowWidth > 0 &&
+            WindowHeight > 0
+        )
+        {
+            LogicalWidth = WindowWidth;
+            LogicalHeight = WindowHeight;
+        }
+    }
+
+    const float ScaleX =
+        static_cast<float>(Width) /
+        static_cast<float>(std::max(LogicalWidth, 1));
+
+    const float ScaleY =
+        static_cast<float>(Height) /
+        static_cast<float>(std::max(LogicalHeight, 1));
+
+    return {
+        X * ScaleX,
+        Y * ScaleY,
+        0.0f
+    };
 }
 
 void Game::Reset()
@@ -126,6 +193,8 @@ void Game::Reset()
     Message.clear();
     MessageTimer = 0.0f;
 
+    GameRenderer.ClearMenuPointer();
+
     UpdateTitle();
 }
 
@@ -145,8 +214,50 @@ void Game::HandleEvent(
             Event.key.scancode == SDL_SCANCODE_SPACE
         );
 
+    const bool PointerEvent =
+        Event.type == SDL_EVENT_MOUSE_MOTION ||
+        Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        Event.type == SDL_EVENT_MOUSE_BUTTON_UP;
+
     if (State.MainMenuOpen)
     {
+        if (PointerEvent)
+        {
+            const glm::vec3 Pointer = MenuPointerFromEvent(Event);
+            GameRenderer.SetMenuPointer(Pointer.x, Pointer.y);
+        }
+
+        if (
+            Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+            Event.button.button == SDL_BUTTON_LEFT
+        )
+        {
+            const MenuUiAction Action =
+                GameRenderer.HitTestMainMenu(State.Started);
+
+            if (Action == MenuUiAction::Primary)
+            {
+                State.Started = true;
+                State.MainMenuOpen = false;
+                State.Paused = false;
+                GameRenderer.ClearMenuPointer();
+                return;
+            }
+
+            if (
+                Action == MenuUiAction::NewSession &&
+                State.Started
+            )
+            {
+                Reset();
+                State.Started = true;
+                State.MainMenuOpen = false;
+                State.Paused = false;
+                GameRenderer.ClearMenuPointer();
+                return;
+            }
+        }
+
         if (
             KeyDown &&
             Event.key.scancode == SDL_SCANCODE_N &&
@@ -157,6 +268,7 @@ void Game::HandleEvent(
             State.Started = true;
             State.MainMenuOpen = false;
             State.Paused = false;
+            GameRenderer.ClearMenuPointer();
             return;
         }
 
@@ -165,6 +277,7 @@ void Game::HandleEvent(
             State.Started = true;
             State.MainMenuOpen = false;
             State.Paused = false;
+            GameRenderer.ClearMenuPointer();
         }
 
         return;
@@ -172,6 +285,36 @@ void Game::HandleEvent(
 
     if (State.Paused)
     {
+        if (PointerEvent)
+        {
+            const glm::vec3 Pointer = MenuPointerFromEvent(Event);
+            GameRenderer.SetMenuPointer(Pointer.x, Pointer.y);
+        }
+
+        if (
+            Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+            Event.button.button == SDL_BUTTON_LEFT
+        )
+        {
+            const MenuUiAction Action =
+                GameRenderer.HitTestPauseMenu();
+
+            if (Action == MenuUiAction::Resume)
+            {
+                State.Paused = false;
+                GameRenderer.ClearMenuPointer();
+                return;
+            }
+
+            if (Action == MenuUiAction::MainMenu)
+            {
+                State.Paused = false;
+                State.MainMenuOpen = true;
+                GameRenderer.ClearMenuPointer();
+                return;
+            }
+        }
+
         if (
             KeyDown &&
             Event.key.scancode == SDL_SCANCODE_M
@@ -179,6 +322,7 @@ void Game::HandleEvent(
         {
             State.Paused = false;
             State.MainMenuOpen = true;
+            GameRenderer.ClearMenuPointer();
             return;
         }
 
@@ -191,6 +335,7 @@ void Game::HandleEvent(
         )
         {
             State.Paused = false;
+            GameRenderer.ClearMenuPointer();
         }
 
         return;
@@ -204,6 +349,7 @@ void Game::HandleEvent(
     )
     {
         State.Paused = true;
+        GameRenderer.ClearMenuPointer();
         return;
     }
 
@@ -216,6 +362,7 @@ void Game::HandleEvent(
     {
         State.MainMenuOpen = true;
         State.Paused = false;
+        GameRenderer.ClearMenuPointer();
         return;
     }
 
@@ -384,6 +531,8 @@ void Game::Update(
     bool MouseCaptured
 )
 {
+    GameRenderer.UpdateInterface(DeltaTime);
+
     if (
         !State.Started ||
         State.MainMenuOpen ||
@@ -591,6 +740,22 @@ void Game::Render(float Time)
         State.Ended,
         State.Escaped
     );
+
+    if (
+        State.Started &&
+        !State.MainMenuOpen &&
+        !State.Paused &&
+        !State.Ended
+    )
+    {
+        GameRenderer.DrawGameplayOverlayV3(
+            State.BreakersActive,
+            State.BreakersRequired,
+            InteractionType,
+            State.CanExit(),
+            DisplayedFps
+        );
+    }
 }
 
 void Game::RenderUpdateScreen(
