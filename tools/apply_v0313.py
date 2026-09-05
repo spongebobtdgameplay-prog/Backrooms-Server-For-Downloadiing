@@ -19,6 +19,14 @@ def replace_once(path, old, new):
     write(path, text.replace(old, new, 1))
 
 
+def replace_all(path, old, new):
+    text = read(path)
+    count = text.count(old)
+    if count < 1:
+        raise RuntimeError(f"{path}: expected at least 1 match: {old[:120]!r}")
+    write(path, text.replace(old, new))
+
+
 # Version bump.
 replace_once("CMakeLists.txt", "project(BackroomsOffical VERSION 0.3.12 LANGUAGES C CXX)", "project(BackroomsOffical VERSION 0.3.13 LANGUAGES C CXX)")
 replace_once("src/Core/Version.h", 'inline constexpr const char* Text = "0.3.12";', 'inline constexpr const char* Text = "0.3.13";')
@@ -88,7 +96,7 @@ replace_once(
 )
 
 # Rebalance base materials so the scene is no longer a uniform yellow wash.
-replace_once("src/World/WorldGenerator.cpp", "{0.5984f, 0.4937f, 0.1029f}", "{0.515f, 0.420f, 0.086f}")
+replace_all("src/World/WorldGenerator.cpp", "{0.5984f, 0.4937f, 0.1029f}", "{0.515f, 0.420f, 0.086f}")
 replace_once("src/World/WorldGenerator.cpp", "{0.1904f, 0.1611f, 0.0884f}", "{0.155f, 0.132f, 0.076f}")
 replace_once("src/World/WorldGenerator.cpp", "{0.5595f, 0.5004f, 0.2800f}", "{0.430f, 0.394f, 0.235f}")
 replace_once("src/World/WorldGenerator.cpp", "Light.BaseIntensity = 1.25f + Random() * 0.65f;", "Light.BaseIntensity = 0.95f + Random() * 0.48f;")
