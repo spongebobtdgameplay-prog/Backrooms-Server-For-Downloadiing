@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(BackroomsOffical VERSION 0.3.11 LANGUAGES C CXX)
+project(BackroomsOffical VERSION 0.3.12 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -45,6 +45,36 @@ if(NOT miniaudio_POPULATED)
 endif()
 
 find_package(OpenGL REQUIRED)
+find_package(Python3 COMPONENTS Interpreter QUIET)
+
+set(BACKROOMS_WEB_UI_CSS
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/ui/original/style.css"
+)
+set(BACKROOMS_WEB_UI_GENERATOR
+    "${CMAKE_CURRENT_SOURCE_DIR}/tools/convert_web_ui.py"
+)
+set(BACKROOMS_WEB_UI_HEADER
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/GeneratedWebUi.h"
+)
+
+# The generated header is committed so a source archive can still build on a
+# machine without Python. CI/developer builds regenerate it from the original
+# browser CSS whenever Python is available, making style.css the source of
+# truth instead of maintaining hand-guessed native menu constants.
+if(Python3_Interpreter_FOUND)
+    add_custom_target(GenerateWebUi ALL
+        COMMAND "${Python3_EXECUTABLE}"
+                "${BACKROOMS_WEB_UI_GENERATOR}"
+                "${BACKROOMS_WEB_UI_CSS}"
+                "${BACKROOMS_WEB_UI_HEADER}"
+        BYPRODUCTS "${BACKROOMS_WEB_UI_HEADER}"
+        DEPENDS
+            "${BACKROOMS_WEB_UI_GENERATOR}"
+            "${BACKROOMS_WEB_UI_CSS}"
+        COMMENT "Converting original Backrooms web CSS to native UI constants"
+        VERBATIM
+    )
+endif()
 
 file(GLOB_RECURSE BACKROOMS_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
@@ -69,6 +99,10 @@ if(APPLE)
 endif()
 
 add_executable(BackroomsOffical ${BACKROOMS_SOURCES})
+
+if(TARGET GenerateWebUi)
+    add_dependencies(BackroomsOffical GenerateWebUi)
+endif()
 
 target_include_directories(BackroomsOffical PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
