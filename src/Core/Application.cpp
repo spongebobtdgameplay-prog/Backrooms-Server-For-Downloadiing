@@ -164,7 +164,6 @@ bool Application::Initialize()
 bool Application::InitializeWindow()
 {
 #ifdef _WIN32
-    // Raw GameInput keeps keyboard and pointing input independent.
     SDL_SetHint(SDL_HINT_WINDOWS_GAMEINPUT, "1");
 #endif
 
@@ -377,6 +376,23 @@ void Application::ProcessEvents()
             }
 
             continue;
+        }
+
+        if (
+            Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+            Event.button.button == SDL_BUTTON_LEFT &&
+            Backrooms.HasMenuOverlay()
+        )
+        {
+            if (
+                Backrooms.HandleMenuPointer(
+                    Event.button.x,
+                    Event.button.y
+                )
+            )
+            {
+                continue;
+            }
         }
 
         Backrooms.HandleEvent(
