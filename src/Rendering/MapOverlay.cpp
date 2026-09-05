@@ -262,11 +262,13 @@ void Renderer::DrawMapPanelV2(
     {
         const glm::ivec2 Position = ToScreen(Marker.Position.x, Marker.Position.y);
 
+        const int MarkerSafeInset = Detailed ? 0 : 12;
+
         if (
-            Position.x < X - 18 ||
-            Position.y < Y - 18 ||
-            Position.x > X + PanelWidth + 18 ||
-            Position.y > Y + PanelHeight + 18
+            Position.x < X + MarkerSafeInset ||
+            Position.y < Y + MarkerSafeInset ||
+            Position.x > X + PanelWidth - 1 - MarkerSafeInset ||
+            Position.y > Y + PanelHeight - 1 - MarkerSafeInset
         )
         {
             continue;
@@ -450,11 +452,20 @@ void Renderer::DrawMiniMapV2(
         GameplayTextRenderer.Initialize();
 
     const bool Compact = Width < 900 || Height < 620;
-    const int MapWidth = std::clamp(static_cast<int>(Width * (Compact ? 0.26f : 0.18f)), 190, 300);
-    const int MapHeight = std::clamp(static_cast<int>(Height * (Compact ? 0.23f : 0.20f)), 124, 190);
-    const int Margin = std::clamp(static_cast<int>(Width * 0.016f), 14, 28);
+    const int MapWidth = std::clamp(
+        static_cast<int>(Width * (Compact ? 0.235f : 0.145f)),
+        Compact ? 184 : 210,
+        Compact ? 236 : 246
+    );
+    const int MapHeight = std::clamp(
+        static_cast<int>(Height * (Compact ? 0.185f : 0.160f)),
+        Compact ? 118 : 136,
+        Compact ? 158 : 154
+    );
+    const int Margin = std::clamp(static_cast<int>(Width * 0.015f), 16, 24);
     const int MapX = Margin;
     const int MapY = static_cast<int>(Height) - MapHeight - Margin;
+    const int HeaderHeight = 22;
 
     DrawMapPanelV2(
         World,
@@ -463,7 +474,7 @@ void Renderer::DrawMiniMapV2(
         MapWidth,
         MapHeight,
         PlayerPosition,
-        Compact ? 1.38f : 1.58f,
+        Compact ? 2.05f : 2.35f,
         PlayerPosition,
         PlayerForward,
         Markers,
@@ -474,7 +485,12 @@ void Renderer::DrawMiniMapV2(
     );
 
     const glm::vec3 Ink = LevelZeroInk();
+    const glm::vec3 HeaderFill{0.805f, 0.752f, 0.405f};
+    const glm::vec3 Separator{0.30f, 0.275f, 0.13f};
     const bool ThreatNear = std::isfinite(ThreatDistance) && ThreatDistance < 36.0f;
+
+    DrawRect(MapX + 1, MapY + 1, MapWidth - 2, HeaderHeight, HeaderFill);
+    DrawRect(MapX + 1, MapY + HeaderHeight, MapWidth - 2, 1, Separator);
 
     if (ThreatNear)
     {
@@ -493,31 +509,59 @@ void Renderer::DrawMiniMapV2(
     {
         GameplayTextRenderer.Resize(Width, Height);
         GameplayTextRenderer.Draw(
-            ThreatNear ? "THREAT NEAR" : "M  MAP",
-            MapX + 10,
-            MapY + 9,
+            ThreatNear ? "THREAT NEAR" : "MAP",
+            MapX + 9,
+            MapY + 5,
             9,
             850,
             0.09f,
             ThreatNear ? glm::vec3{0.78f, 0.025f, 0.015f} : Ink,
             1.0f,
-            false
+            true
+        );
+
+        GameplayTextRenderer.Draw(
+            "M",
+            MapX + MapWidth - 22,
+            MapY + 5,
+            9,
+            800,
+            0.02f,
+            Ink,
+            0.72f,
+            true
         );
 
         if (Waypoint.Active)
         {
+            const int FooterHeight = 21;
+            DrawRect(
+                MapX + 1,
+                MapY + MapHeight - FooterHeight - 1,
+                MapWidth - 2,
+                FooterHeight,
+                HeaderFill
+            );
+            DrawRect(
+                MapX + 1,
+                MapY + MapHeight - FooterHeight - 1,
+                MapWidth - 2,
+                1,
+                Separator
+            );
+
             std::ostringstream Distance;
             Distance << "WAYPOINT  " << std::fixed << std::setprecision(0) << Waypoint.DistanceMeters << " M";
             GameplayTextRenderer.Draw(
                 Distance.str(),
-                MapX + 10,
-                MapY + MapHeight - 21,
+                MapX + 9,
+                MapY + MapHeight - 18,
                 9,
                 800,
                 0.05f,
                 Ink,
                 1.0f,
-                false
+                true
             );
         }
     }
