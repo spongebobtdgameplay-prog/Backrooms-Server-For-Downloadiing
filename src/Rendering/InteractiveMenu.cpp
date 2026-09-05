@@ -1027,7 +1027,7 @@ void Renderer::DrawGameplayOverlayV3(
         );
 
     const int BarX = LeftX + SprintLabelWidth + 10;
-    const int BarY = SprintY + 5;
+    const int BarY = SprintY + 3;
     const int BarWidth = 118;
     const int BarHeight = 3;
     const int FillWidth =

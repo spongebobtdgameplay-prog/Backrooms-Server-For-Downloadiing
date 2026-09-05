@@ -1502,169 +1502,47 @@ void Renderer::DrawHud(
     const std::string& Message
 )
 {
-    const glm::vec3 HtmlYellow{
-        248.0f / 255.0f,
-        239.0f / 255.0f,
-        173.0f / 255.0f
-    };
+    static_cast<void>(BreakersActive);
+    static_cast<void>(BreakersRequired);
+    static_cast<void>(InteractionType);
+    static_cast<void>(CanExit);
+    static_cast<void>(Fps);
 
-    DrawMenuText(
-        "LEVEL 0",
-        26,
-        24,
-        9,
-        400,
-        0.24f,
-        HtmlYellow,
-        0.40f,
-        false
-    );
+    if (Message.empty())
+        return;
 
-    std::ostringstream Objective;
-    Objective
-        << "RESTORE POWER "
-        << BreakersActive
-        << "/"
-        << BreakersRequired;
-
-    DrawMenuText(
-        Objective.str(),
-        26,
-        37,
-        12,
-        700,
-        0.13f,
-        HtmlYellow,
-        0.88f,
-        true
-    );
-
-    std::ostringstream FpsText;
-    FpsText
-        << static_cast<int>(std::round(Fps))
-        << " FPS";
-
-    const int FpsWidth =
-        MenuTextWidth(
-            FpsText.str(),
-            10,
-            400,
-            0.14f
-        );
-
-    DrawMenuText(
-        FpsText.str(),
-        static_cast<int>(Width) - FpsWidth - 26,
-        24,
-        10,
-        400,
-        0.14f,
-        HtmlYellow,
-        0.44f,
-        false
-    );
-
-    const std::string Version =
-        std::string("V") +
-        BuildVersion::Text;
-
-    const int VersionWidth =
-        MenuTextWidth(
-            Version,
-            9,
-            400,
-            0.16f
-        );
-
-    DrawMenuText(
-        Version,
-        static_cast<int>(Width) - VersionWidth - 26,
-        40,
-        9,
-        400,
-        0.16f,
-        HtmlYellow,
-        0.34f,
-        false
-    );
-
-    std::string Prompt;
-
-    if (InteractionType == 1)
-        Prompt = "E  ACTIVATE BREAKER";
-
-    if (InteractionType == 2)
-        Prompt = CanExit ? "E  OPEN EXIT" : "EXIT HAS NO POWER";
-
-    if (!Message.empty())
-    {
-        const int MessageHeight =
-            std::clamp(
-                static_cast<int>(
-                    std::round(
-                        static_cast<float>(Width) * 0.02f
-                    )
-                ),
-                14,
-                22
-            );
-
-        const int MessageWidth =
-            MenuTextWidth(
-                Message,
-                MessageHeight,
-                800,
-                0.24f
-            );
-
-        DrawMenuText(
-            Message,
-            static_cast<int>(Width) / 2 -
-                MessageWidth / 2,
+    const int MessageHeight =
+        std::clamp(
             static_cast<int>(
-                static_cast<float>(Height) * 0.19f
+                std::round(
+                    static_cast<float>(Width) * 0.02f
+                )
             ),
+            14,
+            22
+        );
+
+    const int MessageWidth =
+        MenuTextWidth(
+            Message,
             MessageHeight,
             800,
-            0.24f,
-            {239.0f / 255.0f, 231.0f / 255.0f, 166.0f / 255.0f},
-            1.0f,
-            true
-        );
-    }
-
-    if (!Prompt.empty())
-    {
-        const int PromptWidth =
-            MenuTextWidth(
-                Prompt,
-                10,
-                700,
-                0.16f
-            );
-
-        const int BoxWidth = PromptWidth + 22;
-
-        DrawRect(
-            static_cast<int>(Width) / 2 - BoxWidth / 2,
-            static_cast<int>(Height) - 78,
-            BoxWidth,
-            26,
-            {0.055f, 0.05f, 0.028f}
+            0.24f
         );
 
-        DrawMenuText(
-            Prompt,
-            static_cast<int>(Width) / 2 - PromptWidth / 2,
-            static_cast<int>(Height) - 70,
-            10,
-            700,
-            0.16f,
-            {255.0f / 255.0f, 248.0f / 255.0f, 192.0f / 255.0f},
-            0.92f,
-            true
-        );
-    }
+    DrawMenuText(
+        Message,
+        static_cast<int>(Width) / 2 - MessageWidth / 2,
+        static_cast<int>(
+            static_cast<float>(Height) * 0.19f
+        ),
+        MessageHeight,
+        800,
+        0.24f,
+        {239.0f / 255.0f, 231.0f / 255.0f, 166.0f / 255.0f},
+        1.0f,
+        true
+    );
 }
 
 void Renderer::DrawStartScreen(bool HasSession)
@@ -2483,8 +2361,8 @@ void Renderer::EndFrame(
         return;
     }
 
+    static_cast<void>(Stamina);
     DrawCrosshair();
-    DrawStamina(Stamina);
     DrawHud(
         BreakersActive,
         BreakersRequired,
