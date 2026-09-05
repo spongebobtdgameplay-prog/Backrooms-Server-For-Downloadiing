@@ -26,7 +26,7 @@ inline constexpr int ContentLeftMax = 110;
 inline constexpr int ContentBottomMin = 74;
 inline constexpr float ContentBottomViewport = 0.130000f;
 inline constexpr int ContentBottomMax = 150;
-inline constexpr int ContentWidthMax = 680;
+inline constexpr int ContentWidthMax = 520;
 inline constexpr int ContentViewportSubtract = 68;
 
 inline constexpr int IndexFont = 12;

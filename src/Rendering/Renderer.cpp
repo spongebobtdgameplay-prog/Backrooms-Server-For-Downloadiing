@@ -218,10 +218,10 @@ vec3 Level0Surface(vec3 BaseColor, vec3 Position, vec3 Normal, int MaterialType)
                 )
             );
 
-        Result *= mix(1.0, 0.955, DarkStripe);
-        Result *= mix(1.0, 1.075, BrightStripe);
-        Result *= mix(1.0, 0.975, MotifCenter * 0.5);
-        Result *= 0.97 + (Fiber - 0.5) * 0.07;
+        Result *= mix(1.0, 0.90, DarkStripe);
+        Result *= mix(1.0, 1.045, BrightStripe);
+        Result *= mix(1.0, 0.94, MotifCenter * 0.65);
+        Result *= 0.94 + (Fiber - 0.5) * 0.10;
     }
     else if (MaterialType == 2)
     {
@@ -230,9 +230,9 @@ vec3 Level0Surface(vec3 BaseColor, vec3 Position, vec3 Normal, int MaterialType)
         float Fine = 0.5 + 0.5 * sin((Carpet.x + Carpet.y) * 72.0);
         float Bands = 0.5 + 0.5 * sin(Carpet.y * 21.0);
 
-        Result *= 0.84 + Fiber * 0.20;
-        Result *= 0.965 + Fine * 0.055;
-        Result *= 0.975 + Bands * 0.035;
+        Result *= 0.76 + Fiber * 0.22;
+        Result *= 0.93 + Fine * 0.07;
+        Result *= 0.95 + Bands * 0.05;
     }
     else if (MaterialType == 3)
     {
@@ -242,8 +242,8 @@ vec3 Level0Surface(vec3 BaseColor, vec3 Position, vec3 Normal, int MaterialType)
         float Grid = max(GridX, GridY);
         float Speckle = Hash21(floor(Position.xz * 16.0));
 
-        Result *= 0.96 + Speckle * 0.07;
-        Result *= mix(1.0, 0.74, Grid * 0.48);
+        Result *= 0.90 + Speckle * 0.08;
+        Result *= mix(1.0, 0.66, Grid * 0.56);
     }
     else if (MaterialType == 4)
     {
@@ -268,13 +268,13 @@ void main()
     float UpFacing = clamp(N.y * 0.5 + 0.5, 0.0, 1.0);
 
     vec3 AmbientLight =
-        vec3(1.0, 0.8879, 0.6240) * 0.46;
+        vec3(0.91, 0.80, 0.54) * 0.30;
 
     vec3 HemisphereLight = mix(
-        vec3(0.1221, 0.1144, 0.0802),
-        vec3(1.0, 0.9216, 0.7157),
+        vec3(0.095, 0.088, 0.060),
+        vec3(0.88, 0.80, 0.59),
         UpFacing
-    ) * 0.34;
+    ) * 0.22;
 
     vec3 Lighting =
         SurfaceColor *
@@ -297,7 +297,7 @@ void main()
         float Specular = pow(max(dot(N, H), 0.0), SpecPower);
         Specular *= (1.0 - clamp(vRoughness, 0.0, 1.0)) * 0.28;
 
-        vec3 LightColor = uLightColor[I].rgb * uLightColor[I].w;
+        vec3 LightColor = uLightColor[I].rgb * uLightColor[I].w * 0.82;
 
         float Visibility = 1.0;
 
@@ -331,11 +331,15 @@ void main()
     Lighting += vEmissive;
 
     float DistanceToCamera = length(vWorldPosition - uCameraPosition);
-    float FogAmount = smoothstep(26.0, 72.0, DistanceToCamera);
-    vec3 FogColor = vec3(0.4735, 0.4342, 0.2582);
+    float FogAmount = smoothstep(24.0, 64.0, DistanceToCamera);
+    vec3 FogColor = vec3(0.405, 0.365, 0.205);
 
     vec3 FinalColor = mix(Lighting, FogColor, FogAmount);
-    FinalColor = pow(max(FinalColor, vec3(0.0)), vec3(1.0 / 2.2));
+
+    // Soft shoulder: fluorescent panels can bloom bright, but wallpaper and carpet
+    // retain texture and color separation instead of clipping into a flat yellow.
+    FinalColor = vec3(1.0) - exp(-max(FinalColor, vec3(0.0)) * 0.88);
+    FinalColor = pow(FinalColor, vec3(1.0 / 2.2));
 
     FragColor = vec4(FinalColor, 1.0);
 }
@@ -1584,8 +1588,33 @@ void Renderer::DrawHud(
         400,
         0.16f,
         HtmlYellow,
-        0.34f,
+        0.48f,
         false
+    );
+
+    const std::string MenuHint = "ESC  MENU";
+    const int MenuHintWidth = MenuTextWidth(MenuHint, 10, 700, 0.14f);
+    const int MenuHintX = static_cast<int>(Width) - MenuHintWidth - 26;
+    const int MenuHintY = 58;
+
+    DrawRect(
+        MenuHintX - 9,
+        MenuHintY - 6,
+        MenuHintWidth + 18,
+        24,
+        {0.055f, 0.050f, 0.028f}
+    );
+
+    DrawMenuText(
+        MenuHint,
+        MenuHintX,
+        MenuHintY,
+        10,
+        700,
+        0.14f,
+        HtmlYellow,
+        0.80f,
+        true
     );
 
     std::string Prompt;

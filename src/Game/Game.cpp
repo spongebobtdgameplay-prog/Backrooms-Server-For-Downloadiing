@@ -139,13 +139,10 @@ void Game::HandleEvent(
         !Event.key.repeat;
 
     const bool Activate =
-        Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        KeyDown &&
         (
-            KeyDown &&
-            (
-                Event.key.scancode == SDL_SCANCODE_RETURN ||
-                Event.key.scancode == SDL_SCANCODE_SPACE
-            )
+            Event.key.scancode == SDL_SCANCODE_RETURN ||
+            Event.key.scancode == SDL_SCANCODE_SPACE
         );
 
     if (State.MainMenuOpen)

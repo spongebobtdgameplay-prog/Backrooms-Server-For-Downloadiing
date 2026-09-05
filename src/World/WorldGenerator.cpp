@@ -158,7 +158,7 @@ void WorldGenerator::AddWall(
     World.Boxes.push_back({
         Position,
         Size,
-        {0.5984f, 0.4937f, 0.1029f},
+        {0.515f, 0.420f, 0.086f},
         {0.01227f, 0.01090f, 0.00443f},
         0.99f,
         static_cast<int>(SurfaceMaterial::Wallpaper)
@@ -195,7 +195,7 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
     World.Boxes.push_back({
         {CenterX, -0.06f, CenterZ},
         {Width, 0.12f, Depth},
-        {0.1904f, 0.1611f, 0.0884f},
+        {0.155f, 0.132f, 0.076f},
         {0.00412f, 0.00397f, 0.00290f},
         1.0f,
         static_cast<int>(SurfaceMaterial::Carpet)
@@ -204,7 +204,7 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
     World.Boxes.push_back({
         {CenterX, World.WallHeight + 0.06f, CenterZ},
         {Width, 0.12f, Depth},
-        {0.5595f, 0.5004f, 0.2800f},
+        {0.430f, 0.394f, 0.235f},
         {0.01831f, 0.01674f, 0.00952f},
         0.97f,
         static_cast<int>(SurfaceMaterial::Ceiling)
@@ -268,7 +268,7 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     CellZ + OffsetZ
                 };
                 Light.Color = {1.0f, 0.8796f, 0.5520f};
-                Light.BaseIntensity = 1.25f + Random() * 0.65f;
+                Light.BaseIntensity = 0.95f + Random() * 0.48f;
                 Light.FlickerSpeed = 20.0f + Random() * 22.0f;
                 Light.FlickerStrength = 0.015f + Random() * 0.055f;
                 Light.Phase = Random() * 100.0f;
@@ -329,7 +329,7 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
             World.Boxes.push_back({
                 {ColumnX, World.WallHeight * 0.5f, ColumnZ},
                 {0.52f, World.WallHeight, 0.52f},
-                {0.5984f, 0.4937f, 0.1029f},
+                {0.515f, 0.420f, 0.086f},
                 {0.01227f, 0.01090f, 0.00443f},
                 0.99f,
                 static_cast<int>(SurfaceMaterial::Wallpaper)
