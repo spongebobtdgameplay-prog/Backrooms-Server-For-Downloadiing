@@ -1,0 +1,60 @@
+name: Apply V0.3.14 Real HTML Style
+
+on:
+  push:
+    branches:
+      - work/v0.3.14-real-html-style
+    paths:
+      - tools/apply_v0314.py
+      - .github/workflows/apply-v0314-real-style.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-promote:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v0.3.14-real-html-style
+          fetch-depth: 0
+
+      - name: Apply V0.3.14 patch
+        shell: pwsh
+        run: python tools/apply_v0314.py
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) { throw "Backrooms Offical.exe was not produced" }
+          if (!(Test-Path "build\Release\SDL3.dll")) { throw "SDL3.dll was not packaged" }
+
+      - name: Promote clean V0.3.14 commit to main
+        shell: pwsh
+        run: |
+          git fetch origin main
+          $Expected = "88b57bbf6a227aef4fae874d924a8238f9676f85"
+          $Actual = (git rev-parse origin/main).Trim()
+          if ($Actual -ne $Expected) {
+            throw "main moved while V0.3.14 was being prepared: $Actual"
+          }
+
+          Remove-Item "tools\apply_v0314.py" -Force
+          Remove-Item ".github\workflows\apply-v0314-real-style.yml" -Force
+
+          git reset --soft origin/main
+          git add -A
+          git config user.name "spongebobtdgameplay-prog"
+          git config user.email "spongebobtdgameplay@gmail.com"
+          git commit -m "Restore real browser menu style in V0.3.14"
+          git push origin HEAD:main
