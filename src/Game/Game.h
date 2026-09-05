@@ -42,9 +42,9 @@ public:
         GameRenderer.BeginFrame();
 
         if (State.Paused)
-            GameRenderer.DrawPauseMenuV2();
+            GameRenderer.DrawClassicPauseMenu();
         else
-            GameRenderer.DrawMainMenuV2(State.Started);
+            GameRenderer.DrawClassicMainMenu(State.Started);
     }
 
     void Update(
