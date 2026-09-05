@@ -4,7 +4,6 @@
 
 #include <glm/glm.hpp>
 
-#include <string>
 #include <vector>
 
 class Entity
@@ -55,13 +54,14 @@ private:
     glm::vec3 EntityPosition{0.0f};
     glm::vec3 Direction{0.0f, 0.0f, -1.0f};
 
-    float Speed = 2.35f;
     float Radius = 0.43f;
     float RepathTimer = 0.0f;
     float RepathInterval = 0.34f;
 
     float ShiftTimer = 7.0f;
     float ShiftProgress = 1.0f;
+    float ReleaseGraceTimer = 0.0f;
+    float EncounterAge = 0.0f;
 
     bool Active = false;
     bool DemonForm = false;
