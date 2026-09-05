@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.14
-manifest_revision=33969782309
-published_at=2026-09-05T13:47:59Z
+version=0.3.15
+manifest_revision=33970681345
+published_at=2026-09-05T14:06:58Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.14&run=33969782309
-sha256=b89d7c33296293ecfe0699bdf19f272e1fc87e51c3cbdda0246d798320866f33
-notes=V0.3.14 removes the invented yellow native menu theme and restores the actual original browser UI style from style.css: dark radial/linear StartScreen background, original yellow typography, real 98px grid/noise, exact 680px content width, 11vw/150px title sizing, original paragraph weight/colors, and the real bordered ENTER LEVEL 0 button. It also removes the added ESC MENU black HUD box and reverts the V0.3.13 world-lighting/material guesses back to the pre-change browser-matched values. The CSS converter selector bug was fixed so it no longer misses the real selectors and silently generates fallback colors/sizes. This release also forces a fresh Windows publish so latest.txt advances to V0.3.14 with the new installer hash and cache-busted download URL.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.15&run=33970681345
+sha256=33c8d73d830468640d13fe75f496fda736fc5f41d8cea9a5b65fce734681bb39
+notes=V0.3.15 removes the failed near-black CSS imitation from active use and restores the older visible Backrooms menu treatment: centered dark panel, readable title/description, clear filled yellow bordered buttons, and mouse hover. ENTER LEVEL 0, RESUME SESSION, NEW SESSION, RESUME, and MAIN MENU are now real clickable buttons instead of being presented as keyboard-bind text. The main and pause screens share one layout definition so the drawn buttons and click hitboxes cannot drift apart. Keyboard shortcuts remain optional fallbacks, but the UI no longer depends on them.
