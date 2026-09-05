@@ -220,7 +220,10 @@ void Game::RebuildWaypointPath()
         std::abs(WaypointPosition.x - Start.x),
         std::abs(WaypointPosition.y - Start.y)
     );
-    const float ChunkMeters = std::max(World.CellSize * static_cast<float>(World.ChunkCells), 1.0f);
+    const float ChunkMeters = std::max(
+        World.CellSize * static_cast<float>(World.ChunkCells),
+        1.0f
+    );
     const int Radius = std::clamp(
         static_cast<int>(std::ceil(Span * 0.5f / ChunkMeters)) + 3,
         2,
@@ -245,8 +248,9 @@ void Game::RebuildWaypointPath()
         WaypointPath.push_back(WaypointPosition);
     }
 
-    WaypointRouteCellX = static_cast<int>(std::round(Start.x / std::max(World.CellSize, 1.0f)));
-    WaypointRouteCellZ = static_cast<int>(std::round(Start.y / std::max(World.CellSize, 1.0f)));
+    const float CellSize = std::max(World.CellSize, 1.0f);
+    WaypointRouteCellX = static_cast<int>(std::round(Start.x / CellSize));
+    WaypointRouteCellZ = static_cast<int>(std::round(Start.y / CellSize));
     WaypointRepathTimer = 0.65f;
 }
 
@@ -287,25 +291,420 @@ void Game::RenderMenuOverlay()
 
     if (MapOpen)
     {
+        const float Scale = 7.2f * std::clamp(MapZoom, 0.45f, 4.0f);
+        const float HalfWidthMeters = static_cast<float>(Width) * 0.5f / Scale;
+        const float HalfHeightMeters = static_cast<float>(Height) * 0.5f / Scale;
+        const float ChunkMeters = std::max(
+            World.CellSize * static_cast<float>(World.ChunkCells),
+            1.0f
+        );
+        const int Radius = std::clamp(
+            static_cast<int>(std::ceil(
+                std::max(HalfWidthMeters, HalfHeightMeters) / ChunkMeters
+            )) + 2,
+            2,
+            12
+        );
+
+        WorldGenerator Generator(Seed);
+        const WorldData MapWorld = Generator.BuildMapRegion(
+            {MapCenter.x, 0.0f, MapCenter.y},
+            Radius
+        );
+
+        MapWaypointView Waypoint;
+        Waypoint.Active = WaypointActive;
+        Waypoint.Position = WaypointPosition;
+        Waypoint.DistanceMeters = CurrentWaypointDistance();
+
+        const float Time =
+            static_cast<float>(SDL_GetTicksNS()) /
+            1000000000.0f;
+
+        GameRenderer.DrawFullMapV2(
+            MapWorld,
+            MapCenter,
+            MapZoom,
+            {GamePlayer.Position().x, GamePlayer.Position().z},
+            {GamePlayer.Forward().x, GamePlayer.Forward().z},
+            BuildMapMarkers(),
+            Waypoint,
+            WaypointPath,
+            State.BreakersActive,
+            State.BreakersRequired,
+            Time
+        );
+        return;
+    }
+
+    if (State.Paused)
+        GameRenderer.DrawPauseMenuV3();
+    else
+        GameRenderer.DrawMainMenuV3(State.Started);
+}
+
+glm::vec3 Game::MenuPointerFromEvent(const SDL_Event& Event) const
+{
+    float X = -10000.0f;
+    float Y = -10000.0f;
+    SDL_WindowID WindowId = 0;
+
+    if (Event.type == SDL_EVENT_MOUSE_MOTION)
+    {
+        X = Event.motion.x;
+        Y = Event.motion.y;
+        WindowId = Event.motion.windowID;
+    }
+    else if (
+        Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        Event.type == SDL_EVENT_MOUSE_BUTTON_UP
+    )
+    {
+        X = Event.button.x;
+        Y = Event.button.y;
+        WindowId = Event.button.windowID;
+    }
+    else
+    {
+        return {X, Y, 0.0f};
+    }
+
+    SDL_Window* EventWindow = SDL_GetWindowFromID(WindowId);
+
+    int LogicalWidth = static_cast<int>(Width);
+    int LogicalHeight = static_cast<int>(Height);
+
+    if (EventWindow != nullptr)
+    {
+        int WindowWidth = 0;
+        int WindowHeight = 0;
+
+        if (
+            SDL_GetWindowSize(
+                EventWindow,
+                &WindowWidth,
+                &WindowHeight
+            ) &&
+            WindowWidth > 0 &&
+            WindowHeight > 0
+        )
+        {
+            LogicalWidth = WindowWidth;
+            LogicalHeight = WindowHeight;
+        }
+    }
+
+    const float ScaleX =
+        static_cast<float>(Width) /
+        static_cast<float>(std::max(LogicalWidth, 1));
+
+    const float ScaleY =
+        static_cast<float>(Height) /
+        static_cast<float>(std::max(LogicalHeight, 1));
+
+    return {
+        X * ScaleX,
+        Y * ScaleY,
+        0.0f
+    };
+}
+
+bool Game::TryMountBreaker(
+    const glm::vec3& CellCenter,
+    int Variant,
+    Breaker& Result
+) const
+{
+    const int WorldX =
+        static_cast<int>(
+            std::round(CellCenter.x / World.CellSize)
+        );
+
+    const int WorldZ =
+        static_cast<int>(
+            std::round(CellCenter.z / World.CellSize)
+        );
+
+    const int X = WorldX - World.OriginCellX;
+    const int Z = WorldZ - World.OriginCellZ;
+
+    if (
+        X < 0 ||
+        Z < 0 ||
+        X >= World.Columns ||
+        Z >= World.Rows
+    )
+    {
+        return false;
+    }
+
+    const MazeCell& Cell = World.Cell(X, Z);
+
+    const int StartDirection =
+        static_cast<int>(
+            (Seed + static_cast<uint32_t>(Variant * 2654435761u)) % 4u
+        );
+
+    for (int Offset = 0; Offset < 4; ++Offset)
+    {
+        const int DirectionIndex =
+            (StartDirection + Offset) % 4;
+
+        if (!Cell.Walls[static_cast<std::size_t>(DirectionIndex)])
+            continue;
+
+        glm::vec3 WallCenter = CellCenter;
+        glm::vec3 Forward{0.0f};
+
+        if (DirectionIndex == 0)
+        {
+            WallCenter.z -= World.CellSize * 0.5f;
+            Forward = {0.0f, 0.0f, 1.0f};
+        }
+        else if (DirectionIndex == 1)
+        {
+            WallCenter.x += World.CellSize * 0.5f;
+            Forward = {-1.0f, 0.0f, 0.0f};
+        }
+        else if (DirectionIndex == 2)
+        {
+            WallCenter.z += World.CellSize * 0.5f;
+            Forward = {0.0f, 0.0f, -1.0f};
+        }
+        else
+        {
+            WallCenter.x -= World.CellSize * 0.5f;
+            Forward = {1.0f, 0.0f, 0.0f};
+        }
+
+        const glm::vec3 Right{
+            Forward.z,
+            0.0f,
+            -Forward.x
+        };
+
+        const uint32_t Hash =
+            Seed ^
+            static_cast<uint32_t>(Variant * 2246822519u) ^
+            static_cast<uint32_t>((WorldX + 4097) * 3266489917u) ^
+            static_cast<uint32_t>((WorldZ + 8191) * 668265263u);
+
+        const float Along =
+            (static_cast<float>(Hash % 1000u) / 999.0f - 0.5f) *
+            1.45f;
+
+        Result.Position =
+            WallCenter +
+            Forward * (World.WallThickness * 0.5f + 0.11f) +
+            Right * Along;
+
+        Result.Position.y = 0.88f;
+        Result.Forward = Forward;
+        Result.Active = false;
+        return true;
+    }
+
+    return false;
+}
+
+void Game::Reset()
+{
+    const auto Now =
+        std::chrono::high_resolution_clock::now()
+            .time_since_epoch()
+            .count();
+
+    Seed = static_cast<uint32_t>(Now);
+
+    WorldGenerator Generator(Seed);
+    World = Generator.BuildAround({0.0f, 0.0f, 0.0f});
+
+    GamePlayer.Reset({0.0f, 1.65f, 0.0f});
+    PreviousPlayerPosition = GamePlayer.Position();
+    FootstepDistance = 0.0f;
+
+    State = {};
+    Breakers.clear();
+
+    std::unordered_set<int> Used;
+    Used.insert(0);
+
+    auto Pick = [&](float MinDistance)
+    {
+        for (int Attempts = 0; Attempts < 400; ++Attempts)
+        {
+            const uint32_t Hash =
+                Seed * 1664525u +
+                static_cast<uint32_t>(Attempts * 1013904223u) +
+                static_cast<uint32_t>(Used.size() * 747796405u);
+
+            const int Index =
+                static_cast<int>(
+                    Hash %
+                    static_cast<uint32_t>(World.OpenCells.size())
+                );
+
+            if (Used.contains(Index))
+                continue;
+
+            const glm::vec3 Position =
+                World.OpenCells[static_cast<std::size_t>(Index)];
+
+            if (
+                glm::distance(
+                    glm::vec2(Position.x, Position.z),
+                    glm::vec2(0.0f, 0.0f)
+                ) < MinDistance
+            )
+            {
+                continue;
+            }
+
+            Used.insert(Index);
+            return Position;
+        }
+
+        return World.OpenCells.back();
+    };
+
+    for (int I = 0; I < 3; ++I)
+    {
+        Breaker Mounted;
+        bool MountedSuccessfully = false;
+
+        for (int Attempt = 0; Attempt < 36; ++Attempt)
+        {
+            const glm::vec3 Candidate = Pick(24.0f);
+
+            if (TryMountBreaker(
+                    Candidate,
+                    I * 41 + Attempt,
+                    Mounted
+                ))
+            {
+                MountedSuccessfully = true;
+                break;
+            }
+        }
+
+        if (!MountedSuccessfully)
+            continue;
+
+        Breakers.push_back(Mounted);
+        World.Colliders.push_back(
+            BreakerBounds(Breakers.back())
+        );
+    }
+
+    Breaker MountedExit;
+    bool ExitMounted = false;
+
+    for (int Attempt = 0; Attempt < 48; ++Attempt)
+    {
+        const glm::vec3 Candidate = Pick(38.0f);
+
+        if (TryMountBreaker(
+                Candidate,
+                900 + Attempt,
+                MountedExit
+            ))
+        {
+            ExitMounted = true;
+            break;
+        }
+    }
+
+    if (ExitMounted)
+    {
+        ExitPosition = MountedExit.Position;
+        ExitPosition.y = 0.0f;
+        ExitForward = MountedExit.Forward;
+    }
+    else
+    {
+        ExitPosition = Pick(38.0f);
+        ExitPosition.y = 0.0f;
+        ExitForward = {0.0f, 0.0f, 1.0f};
+    }
+
+    World.Colliders.push_back(ExitBounds());
+
+    const glm::vec3 EntityPosition = Pick(50.0f);
+    Hunter.Reset(EntityPosition);
+
+    InteractionType = 0;
+    InteractionIndex = -1;
+
+    InteractPressed = false;
+    RestartPressed = false;
+
+    MapOpen = false;
+    MapReturnToPause = false;
+    MapDragging = false;
+    MapTouchDragging = false;
+    MapTouchFinger = 0;
+    MapCenter = {0.0f, 0.0f};
+    MapDragPointer = {0.0f, 0.0f};
+    MapDragDistance = 0.0f;
+    MapZoom = 1.0f;
+
+    WaypointActive = false;
+    WaypointPosition = {0.0f, 0.0f};
+    WaypointPath.clear();
+    WaypointRouteCellX = 0;
+    WaypointRouteCellZ = 0;
+    RandomWaypointCounter = 0;
+    WaypointRepathTimer = 0.0f;
+
+    FrameCounter = 0;
+    FpsCounterStart = 0;
+    DisplayedFps = 0.0f;
+
+    Message.clear();
+    MessageTimer = 0.0f;
+
+    GameRenderer.ClearMenuPointer();
+
+    UpdateTitle();
+}
+
+void Game::HandleEvent(
+    const SDL_Event& Event,
+    bool MouseCaptured
+)
+{
+    const bool KeyDown =
+        Event.type == SDL_EVENT_KEY_DOWN &&
+        !Event.key.repeat;
+
+    const bool Activate =
+        KeyDown &&
+        (
+            Event.key.scancode == SDL_SCANCODE_RETURN ||
+            Event.key.scancode == SDL_SCANCODE_SPACE
+        );
+
+    const bool PointerEvent =
+        Event.type == SDL_EVENT_MOUSE_MOTION ||
+        Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        Event.type == SDL_EVENT_MOUSE_BUTTON_UP;
+
+
+    if (MapOpen)
+    {
         if (PointerEvent)
         {
             const glm::vec3 Pointer = MenuPointerFromEvent(Event);
             GameRenderer.SetMenuPointer(Pointer.x, Pointer.y);
         }
 
-        if (
-            KeyDown &&
-            Event.key.scancode == SDL_SCANCODE_ESCAPE
-        )
+        if (KeyDown && Event.key.scancode == SDL_SCANCODE_ESCAPE)
         {
             CloseMap(true);
             return;
         }
 
-        if (
-            KeyDown &&
-            Event.key.scancode == SDL_SCANCODE_M
-        )
+        if (KeyDown && Event.key.scancode == SDL_SCANCODE_M)
         {
             CloseMap(false);
             return;
@@ -363,7 +762,9 @@ void Game::RenderMenuOverlay()
             GameRenderer.PointerInsideFullMap()
         )
         {
-            SetWaypoint(GameRenderer.FullMapPointerToWorld(MapCenter, MapZoom));
+            SetWaypoint(
+                GameRenderer.FullMapPointerToWorld(MapCenter, MapZoom)
+            );
             return;
         }
 
@@ -413,7 +814,9 @@ void Game::RenderMenuOverlay()
                 GameRenderer.PointerInsideFullMap()
             )
             {
-                SetWaypoint(GameRenderer.FullMapPointerToWorld(MapCenter, MapZoom));
+                SetWaypoint(
+                    GameRenderer.FullMapPointerToWorld(MapCenter, MapZoom)
+                );
             }
 
             MapDragging = false;
@@ -426,7 +829,8 @@ void Game::RenderMenuOverlay()
             const glm::vec3 Pointer = MenuPointerFromEvent(Event);
             const glm::vec2 CurrentPointer{Pointer.x, Pointer.y};
             const glm::vec2 Delta = CurrentPointer - MapDragPointer;
-            const float PixelsPerMeter = 7.2f * std::max(MapZoom, 0.45f);
+            const float PixelsPerMeter =
+                7.2f * std::max(MapZoom, 0.45f);
 
             MapCenter.x -= Delta.x / PixelsPerMeter;
             MapCenter.y -= Delta.y / PixelsPerMeter;
@@ -484,7 +888,9 @@ void Game::RenderMenuOverlay()
                 std::clamp(Event.tfinger.y, 0.0f, 1.0f) * static_cast<float>(Height)
             };
             const glm::vec2 Delta = Pointer - MapDragPointer;
-            const float PixelsPerMeter = 7.2f * std::max(MapZoom, 0.45f);
+            const float PixelsPerMeter =
+                7.2f * std::max(MapZoom, 0.45f);
+
             MapCenter.x -= Delta.x / PixelsPerMeter;
             MapCenter.y -= Delta.y / PixelsPerMeter;
             MapDragDistance += glm::length(Delta);
@@ -494,7 +900,10 @@ void Game::RenderMenuOverlay()
         }
 
         if (
-            (Event.type == SDL_EVENT_FINGER_UP || Event.type == SDL_EVENT_FINGER_CANCELED) &&
+            (
+                Event.type == SDL_EVENT_FINGER_UP ||
+                Event.type == SDL_EVENT_FINGER_CANCELED
+            ) &&
             MapTouchDragging &&
             Event.tfinger.fingerID == MapTouchFinger
         )
@@ -505,8 +914,15 @@ void Game::RenderMenuOverlay()
             };
             GameRenderer.SetMenuPointer(Pointer.x, Pointer.y);
 
-            if (MapDragDistance <= 10.0f && GameRenderer.PointerInsideFullMap())
-                SetWaypoint(GameRenderer.FullMapPointerToWorld(MapCenter, MapZoom));
+            if (
+                MapDragDistance <= 10.0f &&
+                GameRenderer.PointerInsideFullMap()
+            )
+            {
+                SetWaypoint(
+                    GameRenderer.FullMapPointerToWorld(MapCenter, MapZoom)
+                );
+            }
 
             MapTouchDragging = false;
             MapTouchFinger = 0;
