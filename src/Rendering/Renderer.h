@@ -63,6 +63,7 @@ public:
     void DrawMainMenuV3(bool HasSession);
     void DrawPauseMenuV3();
     void DrawGameplayOverlayV3(
+        float Stamina,
         int BreakersActive,
         int BreakersRequired,
         int InteractionType,
