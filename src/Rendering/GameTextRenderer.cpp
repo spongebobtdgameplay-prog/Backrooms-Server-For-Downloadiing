@@ -606,19 +606,37 @@ void GameTextRenderer::Draw(
 
     if (Shadow)
     {
-        DrawPass(
-            X + 2,
-            Y + 3,
-            {0.0f, 0.0f, 0.0f},
-            Opacity * 0.78f
-        );
+        const glm::vec3 StrokeColor{
+            0.020f,
+            0.018f,
+            0.012f
+        };
+
+        const int StrokeRadius =
+            PixelHeight >= 12 ? 2 : 1;
 
         DrawPass(
-            X - 1,
-            Y + 1,
-            {0.0f, 0.0f, 0.0f},
-            Opacity * 0.35f
+            X + 2,
+            Y + StrokeRadius + 2,
+            StrokeColor,
+            Opacity * 0.48f
         );
+
+        for (int OffsetY = -StrokeRadius; OffsetY <= StrokeRadius; OffsetY += StrokeRadius)
+        {
+            for (int OffsetX = -StrokeRadius; OffsetX <= StrokeRadius; OffsetX += StrokeRadius)
+            {
+                if (OffsetX == 0 && OffsetY == 0)
+                    continue;
+
+                DrawPass(
+                    X + OffsetX,
+                    Y + OffsetY,
+                    StrokeColor,
+                    Opacity * 0.92f
+                );
+            }
+        }
     }
 
     DrawPass(X, Y, Color, Opacity);
