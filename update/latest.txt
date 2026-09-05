@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.22
-manifest_revision=33981689389
-published_at=2026-09-05T17:43:36Z
+version=0.3.23
+manifest_revision=33983391855
+published_at=2026-09-05T18:17:28Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.22&run=33981689389
-sha256=7e8442c953ad46855026411bf8cda72d2ec4bf315bac818cbc8f7f770c001e47
-notes=V0.3.22 fixes the laptop touchpad camera freeze while keyboard movement keys such as W are held. The Windows build now temporarily disables Precision Touchpad Accidental Activation Prevention by setting the current user AAPThreshold to maximum sensitivity only while gameplay mouse capture is active, while keeping SDL GameInput enabled. The exact previous AAPThreshold is restored when mouse capture ends or the game closes. On Windows SDKs that expose the touchpad SystemParametersInfo API, the game also applies and restores the documented most-sensitive touchpad mode. No administrator permission is required and no global keyboard hook or background key capture is used.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.23&run=33983391855
+sha256=390ef66363e32efad0afffb1c92060e9f9e8e63923767736f18dda55ca294891
+notes=V0.3.23 replaces the floating placeholder breakers with a real wall-mounted Poly Haven power-box model and proper wall-aligned collision. It upgrades the existing Quaternius entity into a stalking-to-chase encounter with a short warning window, distance-based pursuit speed and positional cues. The native soundscape now uses a recorded CC0 fluorescent-light hum, Kenney CC0 carpet footsteps, a real breaker switch sound and positional metal/entity cues instead of relying on the old synthetic ambience as the primary mix. Third-party model and audio attribution is recorded in THIRD_PARTY_ASSETS.md.
