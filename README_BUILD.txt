@@ -46,7 +46,7 @@ N         New session from main menu when a session exists
 R         Restart after escaping or being caught
 
 IMPORTANT
-The current Windows source is compiled by GitHub Actions before release. V0.3.10 was also compiled successfully in its dedicated validation workflow before promotion to main.
+The current Windows source is compiled by GitHub Actions before release. V0.3.11 was compiled and its executable verified successfully in the dedicated typography-restoration validation workflow before promotion to main.
 
 The original entity-ghost.glb and entity-demon.glb assets are restored under assets/models. The native renderer uses the original model assets instead of the temporary flat-box entity whenever those models load successfully.
 
@@ -112,7 +112,8 @@ V0.3.10 INPUT, TEXT AND MOTION RESTORATION
 
 V0.3.11 HTML TYPOGRAPHY RESTORATION
 - Rebuilt native text styling from the original style.css instead of approximating every text role from a single scale number.
-- Original CSS font stack is now resolved in order on Windows: Arial Narrow, Helvetica Neue, Arial, sans-serif fallback.
+- The original HTML did not ship custom webfont files; its CSS font-family was Arial Narrow, Helvetica Neue, Arial, sans-serif.
+- Native Windows text now resolves that same font stack in order, with Segoe UI only as a final platform fallback if none of those faces are installed.
 - Added ClearType-quality font rasterization, CSS-like opacity and HUD text shadows.
 - Gameplay HUD now uses the original web sizes, font weights, tracking, placement and brightness.
 - Restored the original thin 1-pixel crosshair and horizontal sprint label/bar layout.
