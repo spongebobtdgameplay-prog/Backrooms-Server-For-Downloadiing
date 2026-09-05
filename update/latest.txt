@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.28
-manifest_revision=33992734307
-published_at=2026-09-05T21:23:19Z
+version=0.3.29
+manifest_revision=33993558899
+published_at=2026-09-05T21:39:46Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.28&run=33992734307
-sha256=d06dfee4be9b6b96234a17f8716f84527aff3121f538b13f90abee166b64628f
-notes=V0.3.28 is a visual polish release for the native map and front menu. The Level 0 map no longer uses the patchy debug-style cell gradient or dotted breadcrumb route; it uses a flatter wallpaper texture, thinner maze lines, a continuous blue navigation route, cleaner breaker/exit/entity markers, a filled directional player marker, lighter map framing, and modern flat hover controls instead of four-sided Windows-95-style boxes. The Windows text renderers now decode UTF-8 correctly so the front-menu action uses a real right-arrow glyph and the map Back control uses a proper left arrow. The front menu also uses safer measured paragraph wrapping, extra line-height clearance, and removes the duplicate title ghost pass so text is not clipped or partially rendered.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.29&run=33993558899
+sha256=b79b5c578d586da664ad060017108a200cf485f92b42573aba7a7644a1c7f1dd
+notes=V0.3.29 fixes the gameplay HUD readability and the center reticle. Gameplay labels now use a real dark multi-direction glyph stroke plus a subtle drop shadow, so LEVEL 0, RESTORE POWER, FPS, BUILD, SPRINT and interaction prompts stay readable over the bright Level 0 lighting. The old one-pixel connected plus crosshair has been removed and replaced with a custom separated four-tick reticle, a tiny center point and dark backing strokes so it reads as an intentional game reticle instead of a Windows/debug cursor.
