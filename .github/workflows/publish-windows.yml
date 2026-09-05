@@ -103,11 +103,17 @@ jobs:
           SHA256: ${{ steps.package.outputs.sha256 }}
         run: |
           $Notes = ((Get-Content "update\release_notes.txt" -Raw).Trim() -replace '\r?\n', ' ')
+          $Published = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          $RunId = "$env:GITHUB_RUN_ID"
+          $DownloadUrl = "https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=$env:VERSION&run=$RunId"
+
           $Lines = @(
-            "# Generated only after the Windows installer is published successfully.",
+            "# Generated after every successful Windows release. Do not hand-edit.",
             "version=$env:VERSION",
+            "manifest_revision=$RunId",
+            "published_at=$Published",
             "package=Backrooms-Offical-Windows-x64.exe",
-            "url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe",
+            "url=$DownloadUrl",
             "sha256=$env:SHA256",
             "notes=$Notes"
           )
@@ -117,11 +123,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "update\latest.txt"
 
-          if (git diff --cached --quiet) {
-            Write-Host "Updater manifest already matches this release."
-            exit 0
-          }
-
+          # The manifest intentionally changes on every successful publish even if
+          # the release is rebuilt, so clients never get stuck behind a stale file.
           git commit -m "Publish updater manifest for V$env:VERSION [skip ci]"
           git push origin main
 
