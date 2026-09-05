@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.17
-manifest_revision=33973608433
-published_at=2026-09-05T15:05:25Z
+version=0.3.18
+manifest_revision=33974920213
+published_at=2026-09-05T15:32:09Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.17&run=33973608433
-sha256=e0cafecd34b739e8998eadce439631db7534c0d63b96ea76c676fcff2fbd03cc
-notes=V0.3.17 fixes the native menu to follow the real Backrooms-Offical browser CSS cascade instead of the obsolete dark StartScreen rule. The menu background is restored to the official yellow #c8bb61 presentation, the CSS converter now respects exact selectors and later scoped overrides, MenuContent is back to the real 680px width, final dark-on-yellow text and border colors are used, and the giant rectangular fake glow is removed. The active main and pause menus no longer fall back to the old pixel/arcade text path.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.18&run=33974920213
+sha256=9c1b74c06e6f0f92fc0650e0f556cf1417fb719fe611f1b2e4a56cfdcffd89fb
+notes=V0.3.18 makes the native menu actually mouse-driven instead of treating ENTER LEVEL 0 as decorative text. The main menu now has visible clickable ENTER LEVEL 0 / RESUME SESSION and NEW SESSION button surfaces with real hitboxes, hover fill, border emphasis, and sliding label/arrow animation; the pause menu gets matching clickable RESUME and MAIN MENU controls while keyboard shortcuts remain optional. Gameplay UI is separated from the menu typography path with a dedicated condensed HUD renderer, stronger shadows, dark objective/FPS panels, and a high-contrast interaction prompt so the interface no longer disappears into Level 0's yellow walls.
