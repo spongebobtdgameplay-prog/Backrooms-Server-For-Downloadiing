@@ -897,15 +897,15 @@ void Renderer::DrawGameplayOverlayV3(
     GameplayTextRenderer.Resize(Width, Height);
 
     const glm::vec3 Primary{
-        248.0f / 255.0f,
-        239.0f / 255.0f,
-        173.0f / 255.0f
+        1.0f,
+        0.965f,
+        0.74f
     };
 
     const glm::vec3 Muted{
-        244.0f / 255.0f,
-        235.0f / 255.0f,
-        169.0f / 255.0f
+        0.86f,
+        0.82f,
+        0.62f
     };
 
     const int LeftX = Width <= 700 ? 18 : 26;
@@ -919,8 +919,8 @@ void Renderer::DrawGameplayOverlayV3(
         650,
         0.24f,
         Muted,
-        0.68f,
-        true
+        1.0f,
+        false
     );
 
     std::ostringstream Objective;
@@ -938,8 +938,8 @@ void Renderer::DrawGameplayOverlayV3(
         800,
         0.13f,
         Primary,
-        0.96f,
-        true
+        1.0f,
+        false
     );
 
     std::ostringstream FpsStream;
@@ -976,8 +976,8 @@ void Renderer::DrawGameplayOverlayV3(
         700,
         0.10f,
         Primary,
-        0.86f,
-        true
+        1.0f,
+        false
     );
 
     const std::string BuildText =
@@ -999,42 +999,88 @@ void Renderer::DrawGameplayOverlayV3(
         600,
         0.13f,
         Muted,
-        0.58f,
-        true
+        1.0f,
+        false
     );
 
+    const float StaminaAmount =
+        std::clamp(Stamina, 0.0f, 1.0f);
+
+    const glm::vec3 LowStamina{
+        0.94f,
+        0.12f,
+        0.07f
+    };
+
+    const glm::vec3 MediumStamina{
+        1.0f,
+        0.46f,
+        0.04f
+    };
+
+    const glm::vec3 HighStamina{
+        0.12f,
+        0.82f,
+        0.24f
+    };
+
+    glm::vec3 StaminaColor;
+
+    if (StaminaAmount <= 0.5f)
+    {
+        const float Amount = StaminaAmount / 0.5f;
+        StaminaColor =
+            LowStamina * (1.0f - Amount) +
+            MediumStamina * Amount;
+    }
+    else
+    {
+        const float Amount =
+            (StaminaAmount - 0.5f) / 0.5f;
+
+        StaminaColor =
+            MediumStamina * (1.0f - Amount) +
+            HighStamina * Amount;
+    }
+
+    const int SprintFontHeight = 10;
     const int SprintY =
-        static_cast<int>(Height) - 34;
+        static_cast<int>(Height) - 38;
 
     GameplayTextRenderer.Draw(
         "SPRINT",
         LeftX,
         SprintY,
-        9,
-        700,
-        0.18f,
-        Muted,
-        0.78f,
-        true
+        SprintFontHeight,
+        750,
+        0.16f,
+        StaminaColor,
+        1.0f,
+        false
     );
 
     const int SprintLabelWidth =
         GameplayTextRenderer.Measure(
             "SPRINT",
-            9,
-            700,
-            0.18f
+            SprintFontHeight,
+            750,
+            0.16f
         );
 
-    const int BarX = LeftX + SprintLabelWidth + 10;
-    const int BarY = SprintY + 3;
-    const int BarWidth = 118;
-    const int BarHeight = 3;
+    const int BarX = LeftX + SprintLabelWidth + 12;
+    const int BarWidth = 132;
+    const int BarHeight = 5;
+    const int TextRasterTopPadding = 4;
+    const int BarY =
+        SprintY +
+        TextRasterTopPadding +
+        (SprintFontHeight - BarHeight) / 2;
+
     const int FillWidth =
         static_cast<int>(
             std::round(
                 static_cast<float>(BarWidth) *
-                std::clamp(Stamina, 0.0f, 1.0f)
+                StaminaAmount
             )
         );
 
@@ -1043,7 +1089,7 @@ void Renderer::DrawGameplayOverlayV3(
         BarY,
         BarWidth,
         BarHeight,
-        {0.34f, 0.32f, 0.19f}
+        {0.20f, 0.18f, 0.11f}
     );
 
     if (FillWidth > 0)
@@ -1053,7 +1099,7 @@ void Renderer::DrawGameplayOverlayV3(
             BarY,
             FillWidth,
             BarHeight,
-            {0.95f, 0.91f, 0.65f}
+            StaminaColor
         );
     }
 
@@ -1080,16 +1126,10 @@ void Renderer::DrawGameplayOverlayV3(
         const int PromptY =
             static_cast<int>(Height) - 84;
 
-        const glm::vec3 KeyColor{
-            248.0f / 255.0f,
-            239.0f / 255.0f,
-            173.0f / 255.0f
-        };
-
-        DrawRect(PromptX, PromptY, 24, 1, KeyColor);
-        DrawRect(PromptX, PromptY + 23, 24, 1, KeyColor);
-        DrawRect(PromptX, PromptY, 1, 24, KeyColor);
-        DrawRect(PromptX + 23, PromptY, 1, 24, KeyColor);
+        DrawRect(PromptX, PromptY, 24, 1, Primary);
+        DrawRect(PromptX, PromptY + 23, 24, 1, Primary);
+        DrawRect(PromptX, PromptY, 1, 24, Primary);
+        DrawRect(PromptX + 23, PromptY, 1, 24, Primary);
 
         GameplayTextRenderer.Draw(
             "E",
@@ -1100,7 +1140,7 @@ void Renderer::DrawGameplayOverlayV3(
             0.0f,
             Primary,
             1.0f,
-            true
+            false
         );
 
         GameplayTextRenderer.Draw(
@@ -1111,8 +1151,8 @@ void Renderer::DrawGameplayOverlayV3(
             800,
             0.08f,
             Primary,
-            0.96f,
-            true
+            1.0f,
+            false
         );
     }
 }
