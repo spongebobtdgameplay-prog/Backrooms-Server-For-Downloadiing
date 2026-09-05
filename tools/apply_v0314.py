@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,16 +16,13 @@ def replace_once(path, old, new):
         raise RuntimeError(f'{path}: expected one match, found {count}: {old[:120]!r}')
     write(path, text.replace(old, new, 1))
 
-# Revert the V0.3.13 world/HUD visual guesses. Keep the V0.3.13 input/menu-state fix,
-# but restore the pre-V0.3.13 renderer/material values that matched the old browser
-# lighting setup much more closely.
+# Revert V0.3.13 world/HUD visual guesses while keeping its input/menu-state fix.
 subprocess.run([
     'git', 'checkout', '669ff60485aa11f0185d79c56900fd057795a445', '--',
     'src/Rendering/Renderer.cpp',
     'src/World/WorldGenerator.cpp'
 ], cwd=ROOT, check=True)
 
-# Version bump.
 replace_once('CMakeLists.txt',
              'project(BackroomsOffical VERSION 0.3.13 LANGUAGES C CXX)',
              'project(BackroomsOffical VERSION 0.3.14 LANGUAGES C CXX)')
@@ -46,55 +42,49 @@ for old, new in [
     rc = rc.replace(old, new, 1)
 write('src/Platform/Windows/Backrooms.rc', rc)
 
-# Fix the CSS converter. It was looking for selectors that DO NOT exist in the real
-# style.css (for example '#StartScreen .MenuContent h1'), then silently falling back
-# to invented yellow-theme defaults. These selectors now target the actual original
-# CSS, so GeneratedWebUi.h is genuinely generated from the browser source of truth.
+# Fix the converter so it reads selectors that actually exist in style.css instead of
+# silently falling back to the invented yellow-theme defaults.
 converter = read('tools/convert_web_ui.py')
-replacements = {
-    'prop(base_css, "#StartScreen .MenuContent h1", "font-size", "clamp(66px, 10vw, 138px)")':
-        'prop(base_css, ".MenuContent h1", "font-size", "clamp(66px, 11vw, 150px)")',
-    'prop(base_css, "#StartScreen .MenuTop", "color", "rgba(43,38,16,0.58)")':
-        'prop(base_css, ".MenuTop", "color", "rgba(232,224,165,0.46)")',
-    'prop(base_css, "#StartScreen .MenuIndex", "color", "rgba(49,42,15,0.67)")':
-        'prop(base_css, ".MenuIndex", "color", "rgba(240,231,162,0.62)")',
-    'prop(base_css, "#StartScreen .MenuIndex", "border-color", "rgba(49,42,15,0.42)")':
-        'prop(base_css, ".MenuIndex", "border-bottom", "rgba(236,226,151,0.42)")',
-    'prop(base_css, "#StartScreen .MenuContent h1", "color", "#27230f")':
-        'prop(base_css, ".MenuContent h1", "color", "#e2d993")',
-    'prop(base_css, "#StartScreen .MenuContent p", "color", "rgba(43,37,13,0.72)")':
-        'prop(base_css, ".MenuContent p", "color", "rgba(233,226,173,0.66)")',
-    'prop(base_css, "#StartScreen #StartButton", "color", "#2a2510")':
-        'prop(base_css, "#StartButton", "color", "#f3ebaf")',
-    'prop(base_css, "#StartScreen #StartButton", "border-top-color", "rgba(45,39,14,0.56)")':
-        'prop(base_css, "#StartButton", "border-top", "rgba(241,232,160,0.58)")',
-    'prop(base_css, "#StartScreen #StartButton", "border-bottom-color", "rgba(45,39,14,0.25)")':
-        'prop(base_css, "#StartButton", "border-bottom", "rgba(241,232,160,0.2)")',
-    'prop(base_css, "#StartScreen #LoadStatus", "color", "rgba(45,39,14,0.48)")':
-        'prop(base_css, "#LoadStatus", "color", "rgba(232,224,165,0.34)")',
-    'background_color = rgba("#c8bb61")':
-        'background_color = rgba("#0b0a06")',
-    'prop(base_css, "#StartScreen .MenuContent h1", "letter-spacing", "-0.07em")':
-        'prop(base_css, ".MenuContent h1", "letter-spacing", "-0.075em")',
-    'prop(base_css, "#StartScreen .MenuContent p", "font-weight", "600")':
-        'prop(base_css, ".MenuContent p", "font-weight", "400")',
-}
-for old, new in replacements.items():
+replacements = [
+    ('prop(base_css, "#StartScreen .MenuContent h1", "font-size", "clamp(66px, 10vw, 138px)")',
+     'prop(base_css, ".MenuContent h1", "font-size", "clamp(66px, 11vw, 150px)")'),
+    ('prop(base_css, "#StartScreen .MenuTop", "color", "rgba(43,38,16,0.58)")',
+     'prop(base_css, ".MenuTop", "color", "rgba(232,224,165,0.46)")'),
+    ('prop(base_css, "#StartScreen .MenuIndex", "color", "rgba(49,42,15,0.67)")',
+     'prop(base_css, ".MenuIndex", "color", "rgba(240,231,162,0.62)")'),
+    ('prop(base_css, "#StartScreen .MenuIndex", "border-color", "rgba(49,42,15,0.42)")',
+     'prop(base_css, ".MenuIndex", "border-bottom", "rgba(236,226,151,0.42)")'),
+    ('prop(base_css, "#StartScreen .MenuContent h1", "color", "#27230f")',
+     'prop(base_css, ".MenuContent h1", "color", "#e2d993")'),
+    ('prop(base_css, "#StartScreen .MenuContent p", "color", "rgba(43,37,13,0.72)")',
+     'prop(base_css, ".MenuContent p", "color", "rgba(233,226,173,0.66)")'),
+    ('prop(base_css, "#StartScreen #StartButton", "color", "#2a2510")',
+     'prop(base_css, "#StartButton", "color", "#f3ebaf")'),
+    ('prop(base_css, "#StartScreen #StartButton", "border-top-color", "rgba(45,39,14,0.56)")',
+     'prop(base_css, "#StartButton", "border-top", "rgba(241,232,160,0.58)")'),
+    ('prop(base_css, "#StartScreen #StartButton", "border-bottom-color", "rgba(45,39,14,0.25)")',
+     'prop(base_css, "#StartButton", "border-bottom", "rgba(241,232,160,0.2)")'),
+    ('prop(base_css, "#StartScreen #LoadStatus", "color", "rgba(45,39,14,0.48)")',
+     'prop(base_css, "#LoadStatus", "color", "rgba(232,224,165,0.34)")'),
+    ('background_color = rgba("#c8bb61")', 'background_color = rgba("#0b0a06")'),
+    ("prop(base_css, '#StartScreen .MenuContent h1', 'letter-spacing', '-0.07em')",
+     "prop(base_css, '.MenuContent h1', 'letter-spacing', '-0.075em')"),
+    ("prop(base_css, '#StartScreen .MenuContent p', 'font-weight', '600')",
+     "prop(base_css, '.MenuContent p', 'font-weight', '400')"),
+]
+for old, new in replacements:
     if old not in converter:
         raise RuntimeError(f'converter selector/default not found: {old}')
     converter = converter.replace(old, new, 1)
 write('tools/convert_web_ui.py', converter)
 
-# Replace the yellow pseudo-wallpaper menu backdrop with the REAL original HTML
-# StartScreen background: dark 115-degree gradient, warm radial glow, 98px grid,
-# and subtle scanline/noise. This is intentionally sourced from style.css rather
-# than another invented native theme.
+# Replace the fake yellow menu background with the actual browser #StartScreen look.
 menu = read('src/Rendering/MenuScreen.cpp')
 start = menu.index('void Renderer::DrawMenuBackdrop()')
 end = menu.index('void Renderer::DrawMenuText(', start)
 real_backdrop = r'''void Renderer::DrawMenuBackdrop()
 {
-    // Direct native rendering of the original browser #StartScreen CSS:
+    // Direct native rendering of the original style.css StartScreen:
     // radial-gradient(circle at 72% 42%, rgba(213,200,104,.16), transparent 34%),
     // linear-gradient(115deg, #1c1a0e 0%, #0d0c08 56%, #070706 100%).
     const glm::vec3 Left{28.0f / 255.0f, 26.0f / 255.0f, 14.0f / 255.0f};
@@ -127,9 +117,6 @@ real_backdrop = r'''void Renderer::DrawMenuBackdrop()
         DrawRect(X, 0, std::min(Band, W - X), H, Base);
     }
 
-    // Soft radial glow centered at 72% / 42%. Draw a small number of nested
-    // translucent-equivalent rectangles so the menu keeps the same warm focal area
-    // without introducing a separate textured UI engine.
     const int CenterX = static_cast<int>(std::round(W * 0.72f));
     const int CenterY = static_cast<int>(std::round(H * 0.42f));
     const int RadiusX = std::max(1, static_cast<int>(std::round(W * 0.34f)));
@@ -145,7 +132,7 @@ real_backdrop = r'''void Renderer::DrawMenuBackdrop()
         DrawRect(CenterX - RX, CenterY - RY, RX * 2, RY * 2, Tint);
     }
 
-    // #StartScreen::before — exact 98px repeating grid period.
+    // Exact 98px repeating grid from #StartScreen::before.
     const glm::vec3 GridV = Right * 0.975f +
         glm::vec3{235.0f / 255.0f, 224.0f / 255.0f, 143.0f / 255.0f} * 0.025f;
     const glm::vec3 GridH = Right * 0.982f +
@@ -157,7 +144,7 @@ real_backdrop = r'''void Renderer::DrawMenuBackdrop()
     for (int Y = 97; Y < H; Y += 98)
         DrawRect(0, Y, W, 1, GridH);
 
-    // .MenuNoise — 1px scanline every 3px at 12% of rgba(255,255,255,.018).
+    // .MenuNoise: 1px line every 3px at the original tiny effective opacity.
     const float NoiseAlpha = 0.12f * 0.018f;
     const glm::vec3 NoiseColor = Right * (1.0f - NoiseAlpha) +
         glm::vec3{1.0f} * NoiseAlpha;
@@ -170,8 +157,6 @@ real_backdrop = r'''void Renderer::DrawMenuBackdrop()
 menu = menu[:start] + real_backdrop + menu[end:]
 write('src/Rendering/MenuScreen.cpp', menu)
 
-# The old CSS converter header is regenerated by CMake, but generate it here too so
-# source control and CI see the real values before configure/build.
 subprocess.run([
     'python', 'tools/convert_web_ui.py',
     'assets/ui/original/style.css',
