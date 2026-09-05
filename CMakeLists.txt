@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(BackroomsOffical VERSION 0.3.14 LANGUAGES C CXX)
+project(BackroomsOffical VERSION 0.3.16 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -57,10 +57,6 @@ set(BACKROOMS_WEB_UI_HEADER
     "${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/GeneratedWebUi.h"
 )
 
-# The generated header is committed so a source archive can still build on a
-# machine without Python. CI/developer builds regenerate it from the original
-# browser CSS whenever Python is available, making style.css the source of
-# truth instead of maintaining hand-guessed native menu constants.
 if(Python3_Interpreter_FOUND)
     add_custom_target(GenerateWebUi ALL
         COMMAND "${Python3_EXECUTABLE}"
