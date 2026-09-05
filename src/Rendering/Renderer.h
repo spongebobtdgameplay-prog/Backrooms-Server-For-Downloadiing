@@ -2,6 +2,7 @@
 
 #include "../World/WorldTypes.h"
 #include "EntityModel.h"
+#include "GameTextRenderer.h"
 #include "SmoothTextRenderer.h"
 
 #include <glad/gl.h>
@@ -13,6 +14,15 @@
 #include <vector>
 
 struct UpdateVisualState;
+
+enum class MenuUiAction
+{
+    None,
+    Primary,
+    NewSession,
+    Resume,
+    MainMenu
+};
 
 class Renderer
 {
@@ -50,6 +60,23 @@ public:
     void DrawMainMenuV2(bool HasSession);
     void DrawPauseMenuV2();
 
+    void DrawMainMenuV3(bool HasSession);
+    void DrawPauseMenuV3();
+    void DrawGameplayOverlayV3(
+        int BreakersActive,
+        int BreakersRequired,
+        int InteractionType,
+        bool CanExit,
+        float Fps
+    );
+
+    void SetMenuPointer(float X, float Y);
+    void ClearMenuPointer();
+    void UpdateInterface(float DeltaTime);
+    MenuUiAction HitTestMainMenu(bool HasSession) const;
+    MenuUiAction HitTestPauseMenu() const;
+    void ShutdownInterfaceV3();
+
     void DrawUpdateScreen(
         const UpdateVisualState& State
     );
@@ -80,6 +107,23 @@ private:
         glm::vec4 Color{1.0f};
         glm::vec4 EmissiveRoughness{0.0f};
         glm::vec4 SurfaceData{0.0f};
+    };
+
+    struct UiRect
+    {
+        int X = 0;
+        int Y = 0;
+        int Width = 0;
+        int Height = 0;
+
+        bool Contains(float PointX, float PointY) const
+        {
+            return
+                PointX >= static_cast<float>(X) &&
+                PointY >= static_cast<float>(Y) &&
+                PointX < static_cast<float>(X + Width) &&
+                PointY < static_cast<float>(Y + Height);
+        }
     };
 
     bool CreateShader();
@@ -170,6 +214,20 @@ private:
     EntityModel GhostEntityModel;
     EntityModel DemonEntityModel;
     SmoothTextRenderer MenuTextRenderer;
+    GameTextRenderer GameplayTextRenderer;
+
+    UiRect MainPrimaryRect;
+    UiRect MainSecondaryRect;
+    UiRect PauseResumeRect;
+    UiRect PauseMainMenuRect;
+
+    float MenuPointerX = -10000.0f;
+    float MenuPointerY = -10000.0f;
+
+    float MainPrimaryHover = 0.0f;
+    float MainSecondaryHover = 0.0f;
+    float PauseResumeHover = 0.0f;
+    float PauseMainMenuHover = 0.0f;
 
     std::array<glm::vec4, 8> ActiveLightPositions{};
     std::array<glm::vec4, 8> ActiveLightColors{};
