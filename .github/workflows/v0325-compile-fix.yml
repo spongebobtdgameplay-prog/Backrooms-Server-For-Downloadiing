@@ -29,26 +29,33 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
 
           PathName = Path('src/Rendering/EntityModel.cpp')
           Content = PathName.read_text(encoding='utf-8')
-          Old = '''                                std::vector<unsigned char> Bytes(
-                                      std::istreambuf_iterator<char>(ImageFile),
-                                      std::istreambuf_iterator<char>()
-                                  );'''
-          New = '''                                const std::istreambuf_iterator<char> Begin(ImageFile);
-                                  const std::istreambuf_iterator<char> End;
-
-                                  std::vector<unsigned char> Bytes(
-                                      Begin,
-                                      End
-                                  );'''
-          if Old not in Content:
-              raise SystemExit('EntityModel iterator range marker not found')
-          Content = Content.replace(Old, New, 1)
+          Pattern = re.compile(
+              r'(?m)^(?P<indent>[ \t]*)std::vector<unsigned char> Bytes\(\s*\n'
+              r'[ \t]*std::istreambuf_iterator<char>\(ImageFile\),\s*\n'
+              r'[ \t]*std::istreambuf_iterator<char>\(\)\s*\n'
+              r'[ \t]*\);'
+          )
+          Match = Pattern.search(Content)
+          if Match is None:
+              raise SystemExit('EntityModel iterator range declaration not found')
+          Indent = Match.group('indent')
+          Replacement = (
+              f'{Indent}const std::istreambuf_iterator<char> Begin(ImageFile);\n'
+              f'{Indent}const std::istreambuf_iterator<char> End;\n\n'
+              f'{Indent}std::vector<unsigned char> Bytes(\n'
+              f'{Indent}    Begin,\n'
+              f'{Indent}    End\n'
+              f'{Indent});'
+          )
+          Content = Pattern.sub(Replacement, Content, count=1)
           PathName.write_text(Content, encoding='utf-8', newline='\n')
           PY
           grep -q 'const std::istreambuf_iterator<char> Begin' src/Rendering/EntityModel.cpp
+          ! grep -q 'std::istreambuf_iterator<char>()' src/Rendering/EntityModel.cpp
 
       - name: Commit compile fix
         shell: bash
