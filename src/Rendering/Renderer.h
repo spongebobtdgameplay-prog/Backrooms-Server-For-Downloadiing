@@ -48,6 +48,12 @@ public:
     void DrawBox(const SceneBox& Box);
     void DrawBoxes(const std::vector<SceneBox>& Boxes);
 
+    bool HasBreakerModel() const;
+    void DrawBreaker(
+        const glm::vec3& Position,
+        const glm::vec3& Forward
+    );
+
     bool HasEntityModels() const;
     void DrawEntity(
         const glm::vec3& Position,
@@ -212,6 +218,7 @@ private:
 
     std::vector<InstanceData> Instances;
 
+    EntityModel BreakerModel;
     EntityModel GhostEntityModel;
     EntityModel DemonEntityModel;
     SmoothTextRenderer MenuTextRenderer;
