@@ -1,0 +1,392 @@
+name: Apply V0.3.21 HUD Clarity Fix
+
+on:
+  push:
+    branches:
+      - fix-v0.3.21-hud-clarity
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build:
+    if: github.event.head_commit.message != 'Apply V0.3.21 HUD clarity fix'
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix-v0.3.21-hud-clarity
+
+      - name: Apply source fix
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import re
+
+          interactive_path = Path("src/Rendering/InteractiveMenu.cpp")
+          interactive = interactive_path.read_text(encoding="utf-8")
+
+          pattern = re.compile(r"void Renderer::DrawGameplayOverlayV3\([\s\S]*?\n\}\s*$")
+
+          replacement = r'''void Renderer::DrawGameplayOverlayV3(
+              float Stamina,
+              int BreakersActive,
+              int BreakersRequired,
+              int InteractionType,
+              bool CanExit,
+              float Fps
+          )
+          {
+              if (!GameplayTextRenderer.IsReady())
+              {
+                  GameplayTextRenderer.Initialize();
+              }
+
+              if (!GameplayTextRenderer.IsReady())
+                  return;
+
+              GameplayTextRenderer.Resize(Width, Height);
+
+              const glm::vec3 Primary{
+                  1.0f,
+                  0.965f,
+                  0.74f
+              };
+
+              const glm::vec3 Muted{
+                  0.86f,
+                  0.82f,
+                  0.62f
+              };
+
+              const int LeftX = Width <= 700 ? 18 : 26;
+              const int TopY = 24;
+
+              GameplayTextRenderer.Draw(
+                  "LEVEL 0",
+                  LeftX,
+                  TopY,
+                  9,
+                  650,
+                  0.24f,
+                  Muted,
+                  1.0f,
+                  false
+              );
+
+              std::ostringstream Objective;
+              Objective
+                  << "RESTORE POWER  "
+                  << BreakersActive
+                  << "/"
+                  << BreakersRequired;
+
+              GameplayTextRenderer.Draw(
+                  Objective.str(),
+                  LeftX,
+                  TopY + 18,
+                  13,
+                  800,
+                  0.13f,
+                  Primary,
+                  1.0f,
+                  false
+              );
+
+              std::ostringstream FpsStream;
+
+              if (Fps > 0.0f)
+              {
+                  FpsStream
+                      << std::fixed
+                      << std::setprecision(1)
+                      << Fps
+                      << " FPS";
+              }
+              else
+              {
+                  FpsStream << "--.- FPS";
+              }
+
+              const std::string FpsText = FpsStream.str();
+              const int RightMargin = Width <= 700 ? 18 : 26;
+
+              const int FpsWidth =
+                  GameplayTextRenderer.Measure(
+                      FpsText,
+                      11,
+                      700,
+                      0.10f
+                  );
+
+              GameplayTextRenderer.Draw(
+                  FpsText,
+                  static_cast<int>(Width) - RightMargin - FpsWidth,
+                  TopY,
+                  11,
+                  700,
+                  0.10f,
+                  Primary,
+                  1.0f,
+                  false
+              );
+
+              const std::string BuildText =
+                  std::string("BUILD  ") + BuildVersion::Text;
+
+              const int BuildWidth =
+                  GameplayTextRenderer.Measure(
+                      BuildText,
+                      9,
+                      600,
+                      0.13f
+                  );
+
+              GameplayTextRenderer.Draw(
+                  BuildText,
+                  static_cast<int>(Width) - RightMargin - BuildWidth,
+                  TopY + 18,
+                  9,
+                  600,
+                  0.13f,
+                  Muted,
+                  1.0f,
+                  false
+              );
+
+              const float StaminaAmount =
+                  std::clamp(Stamina, 0.0f, 1.0f);
+
+              const glm::vec3 LowStamina{
+                  0.94f,
+                  0.12f,
+                  0.07f
+              };
+
+              const glm::vec3 MediumStamina{
+                  1.0f,
+                  0.46f,
+                  0.04f
+              };
+
+              const glm::vec3 HighStamina{
+                  0.12f,
+                  0.82f,
+                  0.24f
+              };
+
+              glm::vec3 StaminaColor;
+
+              if (StaminaAmount <= 0.5f)
+              {
+                  const float Amount = StaminaAmount / 0.5f;
+                  StaminaColor =
+                      LowStamina * (1.0f - Amount) +
+                      MediumStamina * Amount;
+              }
+              else
+              {
+                  const float Amount =
+                      (StaminaAmount - 0.5f) / 0.5f;
+
+                  StaminaColor =
+                      MediumStamina * (1.0f - Amount) +
+                      HighStamina * Amount;
+              }
+
+              const int SprintFontHeight = 10;
+              const int SprintY =
+                  static_cast<int>(Height) - 38;
+
+              GameplayTextRenderer.Draw(
+                  "SPRINT",
+                  LeftX,
+                  SprintY,
+                  SprintFontHeight,
+                  750,
+                  0.16f,
+                  StaminaColor,
+                  1.0f,
+                  false
+              );
+
+              const int SprintLabelWidth =
+                  GameplayTextRenderer.Measure(
+                      "SPRINT",
+                      SprintFontHeight,
+                      750,
+                      0.16f
+                  );
+
+              const int BarX = LeftX + SprintLabelWidth + 12;
+              const int BarWidth = 132;
+              const int BarHeight = 5;
+              const int TextRasterTopPadding = 4;
+              const int BarY =
+                  SprintY +
+                  TextRasterTopPadding +
+                  (SprintFontHeight - BarHeight) / 2;
+
+              const int FillWidth =
+                  static_cast<int>(
+                      std::round(
+                          static_cast<float>(BarWidth) *
+                          StaminaAmount
+                      )
+                  );
+
+              DrawRect(
+                  BarX,
+                  BarY,
+                  BarWidth,
+                  BarHeight,
+                  {0.20f, 0.18f, 0.11f}
+              );
+
+              if (FillWidth > 0)
+              {
+                  DrawRect(
+                      BarX,
+                      BarY,
+                      FillWidth,
+                      BarHeight,
+                      StaminaColor
+                  );
+              }
+
+              std::string Prompt;
+
+              if (InteractionType == 1)
+                  Prompt = "ACTIVATE BREAKER";
+              else if (InteractionType == 2)
+                  Prompt = CanExit ? "OPEN EXIT" : "EXIT HAS NO POWER";
+
+              if (!Prompt.empty())
+              {
+                  const int PromptTextWidth =
+                      GameplayTextRenderer.Measure(
+                          Prompt,
+                          13,
+                          800,
+                          0.08f
+                      );
+
+                  const int PromptWidth = PromptTextWidth + 48;
+                  const int PromptX =
+                      static_cast<int>(Width) / 2 - PromptWidth / 2;
+                  const int PromptY =
+                      static_cast<int>(Height) - 84;
+
+                  DrawRect(PromptX, PromptY, 24, 1, Primary);
+                  DrawRect(PromptX, PromptY + 23, 24, 1, Primary);
+                  DrawRect(PromptX, PromptY, 1, 24, Primary);
+                  DrawRect(PromptX + 23, PromptY, 1, 24, Primary);
+
+                  GameplayTextRenderer.Draw(
+                      "E",
+                      PromptX + 8,
+                      PromptY + 4,
+                      12,
+                      900,
+                      0.0f,
+                      Primary,
+                      1.0f,
+                      false
+                  );
+
+                  GameplayTextRenderer.Draw(
+                      Prompt,
+                      PromptX + 36,
+                      PromptY + 5,
+                      13,
+                      800,
+                      0.08f,
+                      Primary,
+                      1.0f,
+                      false
+                  );
+              }
+          }
+          '''
+
+          interactive, count = pattern.subn(replacement, interactive, count=1)
+          if count != 1:
+              raise RuntimeError(f"Expected one DrawGameplayOverlayV3 function, replaced {count}")
+
+          if "Opacity * 0.78f" in interactive:
+              pass
+
+          interactive_path.write_text(interactive.rstrip() + "\n", encoding="utf-8")
+
+          cmake_path = Path("CMakeLists.txt")
+          cmake = cmake_path.read_text(encoding="utf-8")
+          if "project(BackroomsOffical VERSION 0.3.20" not in cmake:
+              raise RuntimeError("CMake version is not V0.3.20")
+          cmake = cmake.replace(
+              "project(BackroomsOffical VERSION 0.3.20",
+              "project(BackroomsOffical VERSION 0.3.21",
+              1
+          )
+          cmake_path.write_text(cmake, encoding="utf-8")
+
+          version_path = Path("src/Core/Version.h")
+          version = version_path.read_text(encoding="utf-8")
+          if 'Text = "0.3.20"' not in version:
+              raise RuntimeError("Version.h is not V0.3.20")
+          version = version.replace('Text = "0.3.20"', 'Text = "0.3.21"', 1)
+          version_path.write_text(version, encoding="utf-8")
+
+          rc_path = Path("src/Platform/Windows/Backrooms.rc")
+          rc = rc_path.read_text(encoding="utf-8")
+          replacements = {
+              "FILEVERSION 0,3,20,0": "FILEVERSION 0,3,21,0",
+              "PRODUCTVERSION 0,3,20,0": "PRODUCTVERSION 0,3,21,0",
+              'VALUE "FileVersion", "0.3.20\\0"': 'VALUE "FileVersion", "0.3.21\\0"',
+              'VALUE "ProductVersion", "0.3.20\\0"': 'VALUE "ProductVersion", "0.3.21\\0"'
+          }
+          for old, new in replacements.items():
+              if old not in rc:
+                  raise RuntimeError(f"Missing RC version token: {old}")
+              rc = rc.replace(old, new, 1)
+          rc_path.write_text(rc, encoding="utf-8")
+
+          Path("update/release_notes.txt").write_text(
+              "V0.3.21 rebuilds the Windows gameplay HUD clarity and sprint display. Gameplay HUD text no longer uses the two offset shadow passes that created a ghosted transparent-looking duplicate behind labels. Objective, FPS, build text, sprint text, and interaction prompts now render as clean opaque text. The sprint label and bar are aligned from the text raster metrics instead of separate guessed Y positions, the bar is thicker and easier to read, and stamina color smoothly changes from red at low stamina through orange at medium stamina to green at high stamina.\n",
+              encoding="utf-8"
+          )
+
+          final = interactive_path.read_text(encoding="utf-8")
+          function = final[final.index("void Renderer::DrawGameplayOverlayV3") :]
+          if function.count("true\n") != 0:
+              raise RuntimeError("Gameplay HUD still contains a true shadow flag")
+          if "TextRasterTopPadding" not in function:
+              raise RuntimeError("Measured sprint alignment logic missing")
+          if "LowStamina" not in function or "MediumStamina" not in function or "HighStamina" not in function:
+              raise RuntimeError("Stamina color states missing")
+          '@ | python -
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) {
+            throw "Backrooms Offical.exe was not produced"
+          }
+
+      - name: Commit tested fix
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt src/Core/Version.h src/Platform/Windows/Backrooms.rc src/Rendering/InteractiveMenu.cpp update/release_notes.txt
+          git commit -m "Apply V0.3.21 HUD clarity fix"
+          git push origin HEAD:fix-v0.3.21-hud-clarity
