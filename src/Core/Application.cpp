@@ -37,80 +37,230 @@ namespace
     }
 
 #ifdef _WIN32
+    constexpr wchar_t TouchpadRegistryPath[] =
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad";
+
+    constexpr wchar_t TouchpadAapValue[] =
+        L"AAPThreshold";
+
+    struct TouchpadOverrideState
+    {
+        bool Active = false;
+        bool RegistryActive = false;
+        bool HadAapThreshold = false;
+        DWORD SavedAapThreshold = 0;
+
 #if defined(SPI_GETTOUCHPADPARAMETERS) && \
     defined(SPI_SETTOUCHPADPARAMETERS) && \
     defined(TOUCHPAD_PARAMETERS_VERSION_1)
-    TOUCHPAD_PARAMETERS_V1 SavedTouchpadParameters{};
-    bool HasSavedTouchpadParameters = false;
-    bool GameplayTouchpadOverrideActive = false;
+        bool ApiActive = false;
+        TOUCHPAD_PARAMETERS_V1 SavedTouchpadParameters{};
+#endif
+    };
+
+    TouchpadOverrideState TouchpadOverride{};
+
+    void NotifyTouchpadSettingChanged()
+    {
+        DWORD_PTR Ignored = 0;
+
+        SendMessageTimeoutW(
+  HWND_BROADCAST,
+  WM_SETTINGCHANGE,
+  0,
+  reinterpret_cast<LPARAM>(TouchpadRegistryPath),
+  SMTO_ABORTIFHUNG,
+  150,
+  &Ignored
+        );
+    }
+
+    bool EnablePrecisionTouchpadAapOverride()
+    {
+        HKEY Key = nullptr;
+
+        if (
+  RegOpenKeyExW(
+      HKEY_CURRENT_USER,
+      TouchpadRegistryPath,
+      0,
+      KEY_QUERY_VALUE | KEY_SET_VALUE,
+      &Key
+  ) != ERROR_SUCCESS)
+        {
+  return false;
+        }
+
+        DWORD PreviousValue = 0;
+        DWORD PreviousType = 0;
+        DWORD PreviousSize = sizeof(PreviousValue);
+
+        const LONG QueryResult =
+  RegQueryValueExW(
+      Key,
+      TouchpadAapValue,
+      nullptr,
+      &PreviousType,
+      reinterpret_cast<BYTE*>(&PreviousValue),
+      &PreviousSize
+  );
+
+        if (QueryResult == ERROR_SUCCESS)
+        {
+  if (PreviousType != REG_DWORD)
+  {
+      RegCloseKey(Key);
+      return false;
+  }
+
+  TouchpadOverride.HadAapThreshold = true;
+  TouchpadOverride.SavedAapThreshold = PreviousValue;
+        }
+        else if (QueryResult == ERROR_FILE_NOT_FOUND)
+        {
+  TouchpadOverride.HadAapThreshold = false;
+  TouchpadOverride.SavedAapThreshold = 0;
+        }
+        else
+        {
+  RegCloseKey(Key);
+  return false;
+        }
+
+        const DWORD MaximumSensitivity = 0;
+
+        const LONG SetResult =
+  RegSetValueExW(
+      Key,
+      TouchpadAapValue,
+      0,
+      REG_DWORD,
+      reinterpret_cast<const BYTE*>(&MaximumSensitivity),
+      sizeof(MaximumSensitivity)
+  );
+
+        RegCloseKey(Key);
+
+        if (SetResult != ERROR_SUCCESS)
+  return false;
+
+        TouchpadOverride.RegistryActive = true;
+        NotifyTouchpadSettingChanged();
+        return true;
+    }
+
+    void RestorePrecisionTouchpadAapOverride()
+    {
+        if (!TouchpadOverride.RegistryActive)
+  return;
+
+        HKEY Key = nullptr;
+
+        if (
+  RegOpenKeyExW(
+      HKEY_CURRENT_USER,
+      TouchpadRegistryPath,
+      0,
+      KEY_SET_VALUE,
+      &Key
+  ) == ERROR_SUCCESS)
+        {
+  if (TouchpadOverride.HadAapThreshold)
+  {
+      RegSetValueExW(
+          Key,
+          TouchpadAapValue,
+          0,
+          REG_DWORD,
+          reinterpret_cast<const BYTE*>(
+              &TouchpadOverride.SavedAapThreshold
+          ),
+          sizeof(TouchpadOverride.SavedAapThreshold)
+      );
+  }
+  else
+  {
+      RegDeleteValueW(
+          Key,
+          TouchpadAapValue
+      );
+  }
+
+  RegCloseKey(Key);
+  NotifyTouchpadSettingChanged();
+        }
+
+        TouchpadOverride.RegistryActive = false;
+    }
 
     void SetGameplayTouchpadMode(bool Enabled)
     {
         if (Enabled)
         {
-            if (GameplayTouchpadOverrideActive)
-                return;
+  if (TouchpadOverride.Active)
+      return;
 
-            TOUCHPAD_PARAMETERS_V1 Current{};
-            Current.versionNumber = TOUCHPAD_PARAMETERS_VERSION_1;
+  bool Changed =
+      EnablePrecisionTouchpadAapOverride();
 
-            if (!SystemParametersInfoW(
-                    SPI_GETTOUCHPADPARAMETERS,
-                    static_cast<UINT>(sizeof(Current)),
-                    &Current,
-                    0))
-            {
-                return;
-            }
+#if defined(SPI_GETTOUCHPADPARAMETERS) && \
+    defined(SPI_SETTOUCHPADPARAMETERS) && \
+    defined(TOUCHPAD_PARAMETERS_VERSION_1)
+  TOUCHPAD_PARAMETERS_V1 Current{};
+  Current.versionNumber =
+      TOUCHPAD_PARAMETERS_VERSION_1;
 
-            if (!Current.touchpadPresent)
-                return;
+  if (
+      SystemParametersInfoW(
+          SPI_GETTOUCHPADPARAMETERS,
+          static_cast<UINT>(sizeof(Current)),
+          &Current,
+          0
+      ) &&
+      Current.touchpadPresent)
+  {
+      TouchpadOverride.SavedTouchpadParameters = Current;
+      Current.sensitivityLevel =
+          TOUCHPAD_SENSITIVITY_LEVEL_MOST_SENSITIVE;
 
-            SavedTouchpadParameters = Current;
-            HasSavedTouchpadParameters = true;
-
-            Current.sensitivityLevel =
-                TOUCHPAD_SENSITIVITY_LEVEL_MOST_SENSITIVE;
-
-            if (SystemParametersInfoW(
-                    SPI_SETTOUCHPADPARAMETERS,
-                    static_cast<UINT>(sizeof(Current)),
-                    &Current,
-                    0))
-            {
-                GameplayTouchpadOverrideActive = true;
-            }
-            else
-            {
-                HasSavedTouchpadParameters = false;
-            }
-        }
-        else
-        {
-            if (
-                GameplayTouchpadOverrideActive &&
-                HasSavedTouchpadParameters)
-            {
-                SystemParametersInfoW(
-                    SPI_SETTOUCHPADPARAMETERS,
-                    static_cast<UINT>(
-                        sizeof(SavedTouchpadParameters)
-                    ),
-                    &SavedTouchpadParameters,
-                    0
-                );
-            }
-
-            GameplayTouchpadOverrideActive = false;
-            HasSavedTouchpadParameters = false;
-        }
-    }
-#else
-    void SetGameplayTouchpadMode(bool Enabled)
-    {
-        static_cast<void>(Enabled);
-    }
+      if (
+          SystemParametersInfoW(
+              SPI_SETTOUCHPADPARAMETERS,
+              static_cast<UINT>(sizeof(Current)),
+              &Current,
+              SPIF_SENDCHANGE
+          ))
+      {
+          TouchpadOverride.ApiActive = true;
+          Changed = true;
+      }
+  }
 #endif
+
+  TouchpadOverride.Active = Changed;
+  return;
+        }
+
+        RestorePrecisionTouchpadAapOverride();
+
+#if defined(SPI_GETTOUCHPADPARAMETERS) && \
+    defined(SPI_SETTOUCHPADPARAMETERS) && \
+    defined(TOUCHPAD_PARAMETERS_VERSION_1)
+        if (TouchpadOverride.ApiActive)
+        {
+  SystemParametersInfoW(
+      SPI_SETTOUCHPADPARAMETERS,
+      static_cast<UINT>(
+          sizeof(TouchpadOverride.SavedTouchpadParameters)
+      ),
+      &TouchpadOverride.SavedTouchpadParameters,
+      SPIF_SENDCHANGE
+  );
+        }
+#endif
+
+        TouchpadOverride = {};
+    }
 #else
     void SetGameplayTouchpadMode(bool Enabled)
     {
