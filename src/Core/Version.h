@@ -2,7 +2,7 @@
 
 namespace BuildVersion
 {
-    inline constexpr const char* Text = "0.3.16";
+    inline constexpr const char* Text = "0.3.17";
 
     inline constexpr const wchar_t* UpdateManifestUrl =
         L"https://raw.githubusercontent.com/"
