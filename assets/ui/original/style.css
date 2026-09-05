@@ -1,0 +1,480 @@
+:root {
+  color-scheme: dark;
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  background: #0b0a06;
+  color: #eee8b1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#Game {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #0b0a06;
+}
+
+button {
+  font: inherit;
+}
+
+canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#StartScreen,
+#EndScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 42%, rgba(213, 200, 104, 0.16), transparent 34%),
+    linear-gradient(115deg, #1c1a0e 0%, #0d0c08 56%, #070706 100%);
+}
+
+#StartScreen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 96px, rgba(235, 224, 143, 0.025) 97px 98px),
+    repeating-linear-gradient(0deg, transparent 0 96px, rgba(235, 224, 143, 0.018) 97px 98px);
+  pointer-events: none;
+}
+
+.MenuNoise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 3px);
+}
+
+.MenuTop,
+.MenuFooter {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(232, 224, 165, 0.46);
+}
+
+.MenuTop {
+  top: 28px;
+}
+
+.MenuFooter {
+  bottom: 24px;
+}
+
+.MenuContent {
+  position: absolute;
+  left: clamp(34px, 7vw, 110px);
+  bottom: clamp(74px, 13vh, 150px);
+  width: min(680px, calc(100vw - 68px));
+}
+
+.MenuIndex {
+  width: max-content;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(236, 226, 151, 0.42);
+  font-size: 12px;
+  letter-spacing: 0.35em;
+  color: rgba(240, 231, 162, 0.62);
+}
+
+.MenuContent h1,
+.EndContent h1 {
+  margin: 14px 0 12px;
+  font-size: clamp(66px, 11vw, 150px);
+  line-height: 0.78;
+  letter-spacing: -0.075em;
+  font-weight: 900;
+  color: #e2d993;
+}
+
+.MenuContent p {
+  width: min(520px, 100%);
+  margin: 24px 0 30px;
+  color: rgba(233, 226, 173, 0.66);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+#StartButton,
+#RestartButton {
+  width: min(360px, 100%);
+  min-height: 58px;
+  border: 0;
+  border-top: 1px solid rgba(241, 232, 160, 0.58);
+  border-bottom: 1px solid rgba(241, 232, 160, 0.2);
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  color: #f3ebaf;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+  cursor: pointer;
+  transition: padding 120ms ease, background 120ms ease;
+}
+
+#StartButton:hover,
+#RestartButton:hover {
+  padding-left: 14px;
+  padding-right: 14px;
+  background: rgba(226, 217, 147, 0.07);
+}
+
+#StartButton:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.ButtonArrow {
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+#LoadStatus {
+  margin-top: 14px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: rgba(232, 224, 165, 0.34);
+}
+
+#Hud {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+#LevelHud {
+  position: absolute;
+  top: 24px;
+  left: 26px;
+}
+
+.HudLabel {
+  margin-bottom: 4px;
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  color: rgba(248, 239, 173, 0.4);
+}
+
+#Objective {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  color: rgba(248, 239, 173, 0.88);
+  text-shadow: 0 2px 8px #000;
+}
+
+#Fps {
+  position: absolute;
+  top: 24px;
+  right: 26px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(248, 239, 173, 0.44);
+  font-variant-numeric: tabular-nums;
+}
+
+#Crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+}
+
+#Crosshair::before,
+#Crosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 250, 205, 0.58);
+}
+
+#Crosshair::before {
+  left: 5px;
+  top: 1px;
+  width: 1px;
+  height: 10px;
+}
+
+#Crosshair::after {
+  top: 5px;
+  left: 1px;
+  width: 10px;
+  height: 1px;
+}
+
+#Crosshair i {
+  position: absolute;
+  left: 5px;
+  top: 5px;
+  width: 1px;
+  height: 1px;
+  background: #fffbd4;
+}
+
+#Prompt {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  transform: translateX(-50%);
+  min-width: 0;
+  padding: 8px 11px;
+  background: rgba(10, 9, 5, 0.62);
+  color: rgba(255, 248, 192, 0.92);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-shadow: 0 2px 5px #000;
+}
+
+#Prompt:empty {
+  display: none;
+}
+
+#StaminaHud {
+  position: absolute;
+  left: 26px;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#StaminaHud > span {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: rgba(244, 235, 169, 0.4);
+}
+
+#StaminaFrame {
+  width: 118px;
+  height: 2px;
+  background: rgba(255, 247, 186, 0.13);
+}
+
+#StaminaBar {
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: rgba(244, 235, 169, 0.86);
+}
+
+#CursorNotice {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  font-size: 9px;
+  letter-spacing: 0.17em;
+  color: rgba(255, 248, 194, 0.64);
+}
+
+#Message {
+  position: absolute;
+  z-index: 10;
+  top: 19%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #efe7a6;
+  font-size: clamp(14px, 2vw, 22px);
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  opacity: 0;
+  pointer-events: none;
+  text-shadow: 0 3px 12px #000;
+  transition: opacity 180ms ease;
+}
+
+#EndScreen {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at center, rgba(199, 190, 110, 0.09), transparent 40%),
+    #080806;
+}
+
+.EndContent {
+  width: min(760px, calc(100vw - 60px));
+}
+
+.Eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: rgba(235, 226, 162, 0.45);
+}
+
+.EndContent h1 {
+  font-size: clamp(58px, 9vw, 120px);
+}
+
+.EndContent p {
+  max-width: 500px;
+  margin: 26px 0 30px;
+  color: rgba(235, 227, 173, 0.62);
+  line-height: 1.6;
+}
+
+.Hidden {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  .MenuTop,
+  .MenuFooter {
+    left: 20px;
+    right: 20px;
+  }
+
+  .MenuContent {
+    left: 24px;
+    width: calc(100vw - 48px);
+  }
+
+  .MenuContent h1 {
+    font-size: clamp(58px, 21vw, 100px);
+  }
+
+  #LevelHud {
+    left: 18px;
+  }
+
+  #Fps {
+    right: 18px;
+  }
+}
+
+#Game::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 66%, rgba(48, 41, 16, 0.045) 86%, rgba(22, 18, 7, 0.09) 100%);
+}
+
+#StartScreen {
+  color: #292511;
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 247, 173, 0.5), transparent 30%),
+    linear-gradient(110deg, rgba(57, 51, 20, 0.08), rgba(54, 48, 18, 0.3)),
+    repeating-linear-gradient(90deg, rgba(87, 77, 28, 0.055) 0 2px, transparent 2px 24px),
+    #c8bb61;
+}
+
+#StartScreen::before {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 23px, rgba(71, 62, 22, 0.045) 23px 25px),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(255, 245, 155, 0.035) 31px 32px);
+}
+
+#StartScreen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, transparent 48%, rgba(37, 31, 9, 0.28) 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%, rgba(39,32,8,0.09));
+}
+
+#StartScreen .MenuNoise {
+  opacity: 0.18;
+  background-image: repeating-linear-gradient(0deg, rgba(38, 32, 10, 0.045) 0 1px, transparent 1px 4px);
+}
+
+#StartScreen .MenuTop,
+#StartScreen .MenuFooter {
+  color: rgba(43, 38, 16, 0.58);
+}
+
+#StartScreen .MenuContent {
+  z-index: 2;
+}
+
+#StartScreen .MenuIndex {
+  color: rgba(49, 42, 15, 0.67);
+  border-color: rgba(49, 42, 15, 0.42);
+}
+
+#StartScreen .MenuContent h1 {
+  max-width: 850px;
+  color: #27230f;
+  font-size: clamp(66px, 10vw, 138px);
+  letter-spacing: -0.07em;
+  text-shadow: 0 1px 0 rgba(255, 247, 174, 0.22);
+}
+
+#StartScreen .MenuContent p {
+  color: rgba(43, 37, 13, 0.72);
+  font-weight: 600;
+}
+
+#StartScreen #StartButton {
+  color: #2a2510;
+  border-top-color: rgba(45, 39, 14, 0.56);
+  border-bottom-color: rgba(45, 39, 14, 0.25);
+}
+
+#StartScreen #StartButton:hover {
+  background: rgba(47, 40, 14, 0.08);
+}
+
+#StartScreen #LoadStatus {
+  color: rgba(45, 39, 14, 0.48);
+}
+
+#Hud::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 239, 151, 0.018), transparent 36%);
+}
+
+#MenuVersion {
+  opacity: 0.72;
+}
+
+#HudVersion {
+  position: absolute;
+  top: 40px;
+  right: 26px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(248, 239, 173, 0.34);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  #HudVersion {
+    right: 18px;
+  }
+}
