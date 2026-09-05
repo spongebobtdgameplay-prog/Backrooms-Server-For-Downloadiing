@@ -99,7 +99,7 @@ private:
     bool RestartPressed = false;
 
     int FrameCounter = 0;
-    float FpsWindowStart = 0.0f;
+    uint64_t FpsCounterStart = 0;
     float DisplayedFps = 0.0f;
 
     std::string Message;
