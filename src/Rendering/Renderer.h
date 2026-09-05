@@ -3,6 +3,7 @@
 #include "../World/WorldTypes.h"
 #include "EntityModel.h"
 #include "SmoothTextRenderer.h"
+#include "MenuLayout.h"
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
@@ -50,6 +51,9 @@ public:
     void DrawMainMenuV2(bool HasSession);
     void DrawPauseMenuV2();
 
+    void DrawClassicMainMenu(bool HasSession);
+    void DrawClassicPauseMenu();
+
     void DrawUpdateScreen(
         const UpdateVisualState& State
     );
@@ -71,6 +75,26 @@ public:
         bool Paused,
         bool Ended,
         bool Escaped
+    );
+
+    // Shared by the native menu renderer so button labels can be measured
+    // and centered exactly inside their clickable rectangles.
+    void DrawMenuText(
+        const std::string& Text,
+        int X,
+        int Y,
+        int PixelHeight,
+        int Weight,
+        float TrackingEm,
+        const glm::vec3& Color,
+        float Opacity = 1.0f,
+        bool Shadow = false
+    );
+    int MenuTextWidth(
+        const std::string& Text,
+        int PixelHeight,
+        int Weight,
+        float TrackingEm
     );
 
 private:
@@ -102,22 +126,11 @@ private:
     void DrawPauseScreen();
     void DrawEndScreen(bool Escaped);
     void DrawMenuBackdrop();
-    void DrawMenuText(
-        const std::string& Text,
-        int X,
-        int Y,
-        int PixelHeight,
-        int Weight,
-        float TrackingEm,
-        const glm::vec3& Color,
-        float Opacity = 1.0f,
-        bool Shadow = false
-    );
-    int MenuTextWidth(
-        const std::string& Text,
-        int PixelHeight,
-        int Weight,
-        float TrackingEm
+    void DrawClassicBackdrop();
+    void DrawClassicButton(
+        const MenuLayout::Rect& Rect,
+        const std::string& Label,
+        bool Hovered
     );
     void DrawText(
         const std::string& Text,
