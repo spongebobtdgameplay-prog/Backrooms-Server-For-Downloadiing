@@ -6,12 +6,72 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <string>
 
 AudioSystem::AudioSystem() = default;
 
 AudioSystem::~AudioSystem()
 {
     Shutdown();
+}
+
+ma_sound* AudioSystem::LoadSound(
+    const char* Path,
+    bool Looping,
+    bool Spatial,
+    float Volume
+)
+{
+    if (
+        Engine == nullptr ||
+        Path == nullptr ||
+        !std::filesystem::exists(Path)
+    )
+    {
+        return nullptr;
+    }
+
+    ma_sound* Sound = new ma_sound;
+
+    if (
+        ma_sound_init_from_file(
+            Engine,
+            Path,
+            0,
+            nullptr,
+            nullptr,
+            Sound
+        ) != MA_SUCCESS
+    )
+    {
+        delete Sound;
+        return nullptr;
+    }
+
+    ma_sound_set_looping(
+        Sound,
+        Looping ? MA_TRUE : MA_FALSE
+    );
+
+    ma_sound_set_spatialization_enabled(
+        Sound,
+        Spatial ? MA_TRUE : MA_FALSE
+    );
+
+    ma_sound_set_volume(Sound, Volume);
+
+    if (Spatial)
+    {
+        ma_sound_set_attenuation_model(
+            Sound,
+            ma_attenuation_model_inverse
+        );
+        ma_sound_set_min_distance(Sound, 1.2f);
+        ma_sound_set_max_distance(Sound, 34.0f);
+        ma_sound_set_rolloff(Sound, 0.85f);
+    }
+
+    return Sound;
 }
 
 bool AudioSystem::Initialize()
@@ -28,60 +88,79 @@ bool AudioSystem::Initialize()
         return false;
     }
 
-    Hum = new ma_sound;
-    Static = new ma_sound;
+    Hum = LoadSound(
+        "assets/audio/fluorescent-hum.ogg",
+        true,
+        false,
+        0.16f
+    );
 
-    bool HumReady = false;
-    bool StaticReady = false;
-
-    if (
-        std::filesystem::exists("assets/audio/hum.wav") &&
-        ma_sound_init_from_file(
-            Engine,
+    if (Hum == nullptr)
+    {
+        Hum = LoadSound(
             "assets/audio/hum.wav",
-            0,
-            nullptr,
-            nullptr,
-            Hum
-        ) == MA_SUCCESS
-    )
+            true,
+            false,
+            0.10f
+        );
+    }
+
+    BreakerTrip = LoadSound(
+        "assets/audio/breaker-trip.ogg",
+        false,
+        true,
+        0.38f
+    );
+
+    EntityMetal = LoadSound(
+        "assets/audio/entity-metal.ogg",
+        false,
+        true,
+        0.11f
+    );
+
+    Shift = LoadSound(
+        "assets/audio/shift.wav",
+        false,
+        true,
+        0.18f
+    );
+
+    EntityLaugh = LoadSound(
+        "assets/audio/entity-laugh.ogg",
+        false,
+        true,
+        0.16f
+    );
+
+    for (std::size_t I = 0; I < Footsteps.size(); ++I)
     {
-        ma_sound_set_looping(Hum, MA_TRUE);
-        ma_sound_set_volume(Hum, 0.12f);
+        const std::string Path =
+            "assets/audio/footstep-carpet-" +
+            std::to_string(I + 1) +
+            ".ogg";
+
+        Footsteps[I] = LoadSound(
+            Path.c_str(),
+            false,
+            true,
+            0.14f
+        );
+
+        if (Footsteps[I] != nullptr)
+        {
+            ma_sound_set_min_distance(Footsteps[I], 0.5f);
+            ma_sound_set_max_distance(Footsteps[I], 12.0f);
+            ma_sound_set_rolloff(Footsteps[I], 0.65f);
+        }
+    }
+
+    if (Hum != nullptr)
         ma_sound_start(Hum);
-        HumReady = true;
-    }
 
-    if (
-        std::filesystem::exists("assets/audio/static.wav") &&
-        ma_sound_init_from_file(
-            Engine,
-            "assets/audio/static.wav",
-            0,
-            nullptr,
-            nullptr,
-            Static
-        ) == MA_SUCCESS
-    )
-    {
-        ma_sound_set_looping(Static, MA_TRUE);
-        ma_sound_set_volume(Static, 0.035f);
-        ma_sound_start(Static);
-        StaticReady = true;
-    }
-
-    if (!HumReady)
-    {
-        delete Hum;
-        Hum = nullptr;
-    }
-
-    if (!StaticReady)
-    {
-        delete Static;
-        Static = nullptr;
-    }
-
+    EntityCueTimer = 3.5f;
+    EntityCueIndex = 0;
+    FootstepIndex = 0;
     Started = true;
     return true;
 }
@@ -91,21 +170,26 @@ void AudioSystem::Shutdown()
     if (!Started)
         return;
 
-    if (Hum)
+    auto Release = [](ma_sound*& Sound)
     {
-        ma_sound_uninit(Hum);
-        delete Hum;
-        Hum = nullptr;
-    }
+        if (Sound == nullptr)
+            return;
 
-    if (Static)
-    {
-        ma_sound_uninit(Static);
-        delete Static;
-        Static = nullptr;
-    }
+        ma_sound_uninit(Sound);
+        delete Sound;
+        Sound = nullptr;
+    };
 
-    if (Engine)
+    Release(Hum);
+    Release(BreakerTrip);
+    Release(EntityMetal);
+    Release(Shift);
+    Release(EntityLaugh);
+
+    for (ma_sound*& Sound : Footsteps)
+        Release(Sound);
+
+    if (Engine != nullptr)
     {
         ma_engine_uninit(Engine);
         delete Engine;
@@ -115,67 +199,192 @@ void AudioSystem::Shutdown()
     Started = false;
 }
 
-void AudioSystem::Update(float EntityDistance)
+void AudioSystem::RestartSpatial(
+    ma_sound* Sound,
+    const glm::vec3& Position,
+    float Volume,
+    float Pitch
+)
+{
+    if (!Started || Sound == nullptr)
+        return;
+
+    ma_sound_stop(Sound);
+    ma_sound_seek_to_pcm_frame(Sound, 0);
+    ma_sound_set_position(
+        Sound,
+        Position.x,
+        Position.y,
+        Position.z
+    );
+    ma_sound_set_volume(Sound, Volume);
+    ma_sound_set_pitch(Sound, Pitch);
+    ma_sound_start(Sound);
+}
+
+void AudioSystem::Update(
+    float DeltaTime,
+    const glm::vec3& ListenerPosition,
+    const glm::vec3& ListenerForward,
+    const glm::vec3& EntityPosition,
+    bool EntityActive
+)
+{
+    if (!Started || Engine == nullptr)
+        return;
+
+    ma_engine_listener_set_position(
+        Engine,
+        0,
+        ListenerPosition.x,
+        ListenerPosition.y,
+        ListenerPosition.z
+    );
+
+    ma_engine_listener_set_direction(
+        Engine,
+        0,
+        ListenerForward.x,
+        ListenerForward.y,
+        ListenerForward.z
+    );
+
+    ma_engine_listener_set_world_up(
+        Engine,
+        0,
+        0.0f,
+        1.0f,
+        0.0f
+    );
+
+    float Distance = 100.0f;
+
+    if (EntityActive)
+    {
+        const glm::vec3 Delta =
+            EntityPosition - ListenerPosition;
+
+        Distance = glm::length(Delta);
+    }
+
+    const float Threat =
+        EntityActive
+            ? std::clamp(
+                1.0f - (Distance - 4.0f) / 30.0f,
+                0.0f,
+                1.0f
+            )
+            : 0.0f;
+
+    if (Hum != nullptr)
+    {
+        ma_sound_set_volume(
+            Hum,
+            0.145f + Threat * 0.025f
+        );
+    }
+
+    if (EntityMetal != nullptr && EntityActive)
+    {
+        ma_sound_set_position(
+            EntityMetal,
+            EntityPosition.x,
+            EntityPosition.y + 0.9f,
+            EntityPosition.z
+        );
+
+        EntityCueTimer -= std::max(DeltaTime, 0.0f);
+
+        if (
+            EntityCueTimer <= 0.0f &&
+            Distance < 42.0f
+        )
+        {
+            const float Pitch =
+                0.82f +
+                static_cast<float>(EntityCueIndex % 4) * 0.055f;
+
+            RestartSpatial(
+                EntityMetal,
+                EntityPosition + glm::vec3{0.0f, 0.8f, 0.0f},
+                0.045f + Threat * 0.16f,
+                Pitch
+            );
+
+            ++EntityCueIndex;
+
+            EntityCueTimer =
+                6.2f -
+                Threat * 3.7f +
+                static_cast<float>(EntityCueIndex % 3) * 0.55f;
+        }
+    }
+    else
+    {
+        EntityCueTimer = 2.8f;
+    }
+}
+
+void AudioSystem::PlayBreaker(const glm::vec3& Position)
+{
+    RestartSpatial(
+        BreakerTrip,
+        Position + glm::vec3{0.0f, 0.55f, 0.0f},
+        0.42f,
+        0.93f
+    );
+}
+
+void AudioSystem::PlayFootstep(const glm::vec3& Position)
 {
     if (!Started)
         return;
 
-    const float Distance =
-        std::isfinite(EntityDistance)
-            ? EntityDistance
-            : 100.0f;
+    ma_sound* Sound =
+        Footsteps[static_cast<std::size_t>(
+            FootstepIndex % static_cast<int>(Footsteps.size())
+        )];
 
-    const float Threat = std::clamp(
-        1.0f - (Distance - 3.0f) / 22.0f,
-        0.0f,
-        1.0f
+    const float Pitch =
+        0.95f +
+        static_cast<float>(FootstepIndex % 3) * 0.035f;
+
+    ++FootstepIndex;
+
+    RestartSpatial(
+        Sound,
+        Position - glm::vec3{0.0f, 1.45f, 0.0f},
+        0.13f,
+        Pitch
     );
-
-    if (Hum)
-        ma_sound_set_volume(
-            Hum,
-            0.12f + Threat * 0.045f
-        );
-
-    if (Static)
-        ma_sound_set_volume(
-            Static,
-            0.035f + Threat * 0.22f
-        );
 }
 
-void AudioSystem::PlayShift(bool DemonForm)
+void AudioSystem::PlayShift(
+    bool DemonForm,
+    const glm::vec3& Position
+)
 {
-    if (!Started || !Engine)
-        return;
+    RestartSpatial(
+        Shift,
+        Position + glm::vec3{0.0f, 1.0f, 0.0f},
+        0.19f,
+        DemonForm ? 0.88f : 1.04f
+    );
 
-    if (std::filesystem::exists("assets/audio/shift.wav"))
+    if (DemonForm)
     {
-        ma_engine_play_sound(
-            Engine,
-            "assets/audio/shift.wav",
-            nullptr
-        );
-    }
-
-    if (
-        DemonForm &&
-        std::filesystem::exists(
-            "assets/audio/entity-laugh.ogg"
-        )
-    )
-    {
-        ma_engine_play_sound(
-            Engine,
-            "assets/audio/entity-laugh.ogg",
-            nullptr
+        RestartSpatial(
+            EntityLaugh,
+            Position + glm::vec3{0.0f, 1.3f, 0.0f},
+            0.13f,
+            0.90f
         );
     }
 }
 
 void AudioSystem::PlayDeath()
 {
-    if (!Started || !Engine)
+    if (!Started || Engine == nullptr)
         return;
 
     if (std::filesystem::exists("assets/audio/entity-death.ogg"))
