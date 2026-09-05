@@ -12,6 +12,14 @@ inline constexpr int MenuFooterBottom = 24;
 inline constexpr int MenuMetaFont = 10;
 inline constexpr float MenuMetaTracking = 0.200000f;
 
+inline constexpr int MobileBreakpoint = 700;
+inline constexpr int MobileMenuMargin = 20;
+inline constexpr int MobileContentLeft = 24;
+inline constexpr int MobileContentViewportSubtract = 48;
+inline constexpr int MobileTitleMin = 58;
+inline constexpr float MobileTitleViewport = 0.210000f;
+inline constexpr int MobileTitleMax = 100;
+
 inline constexpr int ContentLeftMin = 34;
 inline constexpr float ContentLeftViewport = 0.070000f;
 inline constexpr int ContentLeftMax = 110;
