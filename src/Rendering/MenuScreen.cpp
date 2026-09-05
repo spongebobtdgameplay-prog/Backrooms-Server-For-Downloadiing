@@ -123,7 +123,9 @@ void Renderer::DrawMenuText(
     int PixelHeight,
     int Weight,
     float TrackingEm,
-    const glm::vec3& Color
+    const glm::vec3& Color,
+    float Opacity,
+    bool Shadow
 )
 {
     if (!MenuTextRenderer.IsReady())
@@ -142,7 +144,9 @@ void Renderer::DrawMenuText(
             PixelHeight,
             Weight,
             TrackingEm,
-            Color
+            Color,
+            Opacity,
+            Shadow
         );
         return;
     }
@@ -222,8 +226,8 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         "THE BACKROOMS",
         Margin,
         28,
-        13,
-        500,
+        10,
+        400,
         0.20f,
         Faint
     );
@@ -235,9 +239,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
     const int VersionWidth =
         MenuTextWidth(
             Version,
-            13,
-            500,
-            0.18f
+            10,
+            400,
+            0.20f
         );
 
     DrawMenuText(
@@ -245,9 +249,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         static_cast<int>(Width) / 2 -
             VersionWidth / 2,
         28,
-        13,
-        500,
-        0.18f,
+        10,
+        400,
+        0.20f,
         Faint
     );
 
@@ -259,8 +263,8 @@ void Renderer::DrawMainMenuV2(bool HasSession)
     const int StatusWidth =
         MenuTextWidth(
             Status,
-            13,
-            500,
+            10,
+            400,
             0.20f
         );
 
@@ -273,8 +277,8 @@ void Renderer::DrawMainMenuV2(bool HasSession)
                 StatusWidth
         ),
         28,
-        13,
-        500,
+        10,
+        400,
         0.20f,
         Faint
     );
@@ -311,9 +315,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         "LEVEL 0",
         ContentX,
         ContentY,
-        17,
-        600,
-        0.28f,
+        12,
+        400,
+        0.35f,
         Muted
     );
 
@@ -353,7 +357,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         "Mono-yellow rooms, damp carpet and fluorescent light with no reliable layout.",
         ContentX,
         BodyY,
-        17,
+        15,
         600,
         0.0f,
         Muted
@@ -363,7 +367,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         "Restore three breakers and find the powered exit.",
         ContentX,
         BodyY + 28,
-        17,
+        15,
         600,
         0.0f,
         Muted
@@ -389,9 +393,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         PrimaryAction,
         ContentX + 4,
         ButtonY + 16,
-        17,
+        12,
         800,
-        0.14f,
+        0.17f,
         Ink
     );
 
@@ -399,7 +403,7 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         ">",
         ContentX + ButtonWidth - 24,
         ButtonY + 12,
-        24,
+        20,
         700,
         0.0f,
         Ink
@@ -419,9 +423,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
             : "WASD  SHIFT  MOUSE  E",
         ContentX,
         ButtonY + 76,
-        13,
-        500,
-        0.13f,
+        10,
+        400,
+        0.16f,
         Faint
     );
 
@@ -429,9 +433,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
         "NOCLIP DESTINATION",
         Margin,
         static_cast<int>(Height) - 31,
-        12,
-        500,
-        0.16f,
+        10,
+        400,
+        0.20f,
         Faint
     );
 
@@ -443,9 +447,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
     const int FooterWidth =
         MenuTextWidth(
             Footer,
-            12,
-            500,
-            0.14f
+            10,
+            400,
+            0.20f
         );
 
     DrawMenuText(
@@ -457,9 +461,9 @@ void Renderer::DrawMainMenuV2(bool HasSession)
                 FooterWidth
         ),
         static_cast<int>(Height) - 31,
-        12,
-        500,
-        0.14f,
+        10,
+        400,
+        0.20f,
         Faint
     );
 
@@ -507,9 +511,9 @@ void Renderer::DrawPauseMenuV2()
         "LEVEL 0",
         ContentX,
         ContentY,
-        17,
-        600,
-        0.28f,
+        12,
+        400,
+        0.35f,
         Muted
     );
 

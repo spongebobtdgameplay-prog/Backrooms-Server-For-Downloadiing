@@ -1,4 +1,4 @@
-BACKROOMS OFFICAL V0.3.10
+BACKROOMS OFFICAL V0.3.11
 
 This is the native desktop build of Backrooms Offical Level 0.
 
@@ -51,7 +51,7 @@ The current Windows source is compiled by GitHub Actions before release. V0.3.10
 The original entity-ghost.glb and entity-demon.glb assets are restored under assets/models. The native renderer uses the original model assets instead of the temporary flat-box entity whenever those models load successfully.
 
 VERSION
-0.3.10
+0.3.11
 
 GAME ICON
 - assets/icon/Backrooms.png   Exact uploaded game icon
@@ -109,3 +109,12 @@ V0.3.10 INPUT, TEXT AND MOTION RESTORATION
 - Restored the original stronger walk/sprint head-bob amplitudes.
 - Restored the original 0.42-second ghost/demon squash-grow shapeshift transition on the real GLB models.
 - Full skeletal run/walk animation playback is still a separate native renderer task; the GLB loader currently renders the model meshes without skinning animation.
+
+V0.3.11 HTML TYPOGRAPHY RESTORATION
+- Rebuilt native text styling from the original style.css instead of approximating every text role from a single scale number.
+- Original CSS font stack is now resolved in order on Windows: Arial Narrow, Helvetica Neue, Arial, sans-serif fallback.
+- Added ClearType-quality font rasterization, CSS-like opacity and HUD text shadows.
+- Gameplay HUD now uses the original web sizes, font weights, tracking, placement and brightness.
+- Restored the original thin 1-pixel crosshair and horizontal sprint label/bar layout.
+- Main/pause menus now use the HTML-derived V2 renderer instead of the leftover fallback menu.
+- Fixed generic smooth-text sizing from Scale*8 to the old 3x5 glyph-equivalent Scale*5.

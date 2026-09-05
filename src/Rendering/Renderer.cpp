@@ -1148,12 +1148,16 @@ void Renderer::DrawCrosshair()
     const GLint CenterY = static_cast<GLint>(Height / 2);
 
     glEnable(GL_SCISSOR_TEST);
-    glClearColor(0.92f, 0.91f, 0.82f, 1.0f);
+    glClearColor(0.74f, 0.72f, 0.58f, 1.0f);
 
-    glScissor(CenterX - 1, CenterY - 7, 2, 14);
+    glScissor(CenterX, CenterY - 5, 1, 10);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glScissor(CenterX - 7, CenterY - 1, 14, 2);
+    glScissor(CenterX - 5, CenterY, 10, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glClearColor(0.96f, 0.94f, 0.76f, 1.0f);
+    glScissor(CenterX, CenterY, 1, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glDisable(GL_SCISSOR_TEST);
@@ -1161,38 +1165,61 @@ void Renderer::DrawCrosshair()
 
 void Renderer::DrawStamina(float Stamina)
 {
-    const int Margin = 24;
+    const glm::vec3 HtmlYellow{
+        244.0f / 255.0f,
+        235.0f / 255.0f,
+        169.0f / 255.0f
+    };
+
+    const int LabelX = 26;
+    const int LabelY = static_cast<int>(Height) - 32;
+
+    DrawMenuText(
+        "SPRINT",
+        LabelX,
+        LabelY,
+        8,
+        400,
+        0.18f,
+        HtmlYellow,
+        0.40f,
+        false
+    );
+
+    const int LabelWidth =
+        MenuTextWidth(
+            "SPRINT",
+            8,
+            400,
+            0.18f
+        );
+
+    const int BarX = LabelX + LabelWidth + 10;
+    const int BarY = static_cast<int>(Height) - 28;
     const int BarWidth = 118;
-    const int BarHeight = 4;
     const int Fill = static_cast<int>(
         static_cast<float>(BarWidth) *
         std::clamp(Stamina, 0.0f, 1.0f)
     );
 
-    glEnable(GL_SCISSOR_TEST);
-
-    glScissor(
-        Margin,
-        Margin,
+    DrawRect(
+        BarX,
+        BarY,
         BarWidth,
-        BarHeight
+        2,
+        {0.15f, 0.145f, 0.105f}
     );
-    glClearColor(0.12f, 0.12f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
 
     if (Fill > 0)
     {
-        glScissor(
-            Margin,
-            Margin,
+        DrawRect(
+            BarX,
+            BarY,
             Fill,
-            BarHeight
+            2,
+            {0.82f, 0.79f, 0.58f}
         );
-        glClearColor(0.82f, 0.79f, 0.58f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
     }
-
-    glDisable(GL_SCISSOR_TEST);
 }
 
 
@@ -1357,13 +1384,13 @@ int Renderer::TextWidth(const std::string& Text, int Scale)
 
     if (MenuTextRenderer.IsReady())
     {
-        const int PixelHeight = std::max(10, Scale * 8);
+        const int PixelHeight = std::max(8, Scale * 5);
         const int Weight =
             Scale >= 6 ? 900 :
-            Scale >= 3 ? 750 : 600;
+            Scale >= 3 ? 800 : 600;
         const float Tracking =
-            Scale >= 6 ? -0.04f :
-            Scale >= 3 ? 0.035f : 0.10f;
+            Scale >= 6 ? -0.06f :
+            Scale >= 3 ? 0.10f : 0.16f;
 
         const int WidthResult = MenuTextRenderer.Measure(
             Text,
@@ -1392,13 +1419,13 @@ void Renderer::DrawText(
 
     if (MenuTextRenderer.IsReady())
     {
-        const int PixelHeight = std::max(10, Scale * 8);
+        const int PixelHeight = std::max(8, Scale * 5);
         const int Weight =
             Scale >= 6 ? 900 :
-            Scale >= 3 ? 750 : 600;
+            Scale >= 3 ? 800 : 600;
         const float Tracking =
-            Scale >= 6 ? -0.04f :
-            Scale >= 3 ? 0.035f : 0.10f;
+            Scale >= 6 ? -0.06f :
+            Scale >= 3 ? 0.10f : 0.16f;
 
         MenuTextRenderer.Draw(
             Text,
@@ -1475,50 +1502,90 @@ void Renderer::DrawHud(
     const std::string& Message
 )
 {
-    const glm::vec3 Primary{0.92f, 0.89f, 0.65f};
-    const glm::vec3 Muted{0.56f, 0.54f, 0.39f};
+    const glm::vec3 HtmlYellow{
+        248.0f / 255.0f,
+        239.0f / 255.0f,
+        173.0f / 255.0f
+    };
 
-    DrawText("LEVEL 0", 26, 24, 2, Muted);
+    DrawMenuText(
+        "LEVEL 0",
+        26,
+        24,
+        9,
+        400,
+        0.24f,
+        HtmlYellow,
+        0.40f,
+        false
+    );
 
     std::ostringstream Objective;
     Objective
-        << "RESTORE POWER  "
+        << "RESTORE POWER "
         << BreakersActive
         << "/"
         << BreakersRequired;
 
-    DrawText(Objective.str(), 26, 42, 2, Primary);
+    DrawMenuText(
+        Objective.str(),
+        26,
+        37,
+        12,
+        700,
+        0.13f,
+        HtmlYellow,
+        0.88f,
+        true
+    );
 
     std::ostringstream FpsText;
-    FpsText << static_cast<int>(std::round(Fps)) << " FPS";
+    FpsText
+        << static_cast<int>(std::round(Fps))
+        << " FPS";
 
-    const int FpsWidth = TextWidth(FpsText.str(), 2);
-    DrawText(
+    const int FpsWidth =
+        MenuTextWidth(
+            FpsText.str(),
+            10,
+            400,
+            0.14f
+        );
+
+    DrawMenuText(
         FpsText.str(),
         static_cast<int>(Width) - FpsWidth - 26,
         24,
-        2,
-        Muted
+        10,
+        400,
+        0.14f,
+        HtmlYellow,
+        0.44f,
+        false
     );
 
     const std::string Version =
         std::string("V") +
         BuildVersion::Text;
-    const int VersionWidth = TextWidth(Version, 2);
-    DrawText(
+
+    const int VersionWidth =
+        MenuTextWidth(
+            Version,
+            9,
+            400,
+            0.16f
+        );
+
+    DrawMenuText(
         Version,
         static_cast<int>(Width) - VersionWidth - 26,
-        42,
-        2,
-        Muted
-    );
-
-    DrawText(
-        "SPRINT",
-        24,
-        static_cast<int>(Height) - 46,
-        2,
-        Muted
+        40,
+        9,
+        400,
+        0.16f,
+        HtmlYellow,
+        0.34f,
+        false
     );
 
     std::string Prompt;
@@ -1531,43 +1598,71 @@ void Renderer::DrawHud(
 
     if (!Message.empty())
     {
-        const int MessageScale =
-            Width >= 1100 ? 4 : 3;
+        const int MessageHeight =
+            std::clamp(
+                static_cast<int>(
+                    std::round(
+                        static_cast<float>(Width) * 0.02f
+                    )
+                ),
+                14,
+                22
+            );
 
         const int MessageWidth =
-            TextWidth(Message, MessageScale);
+            MenuTextWidth(
+                Message,
+                MessageHeight,
+                800,
+                0.24f
+            );
 
-        DrawText(
+        DrawMenuText(
             Message,
             static_cast<int>(Width) / 2 -
                 MessageWidth / 2,
             static_cast<int>(
                 static_cast<float>(Height) * 0.19f
             ),
-            MessageScale,
-            {0.86f, 0.80f, 0.38f}
+            MessageHeight,
+            800,
+            0.24f,
+            {239.0f / 255.0f, 231.0f / 255.0f, 166.0f / 255.0f},
+            1.0f,
+            true
         );
     }
 
     if (!Prompt.empty())
     {
-        const int PromptWidth = TextWidth(Prompt, 2);
+        const int PromptWidth =
+            MenuTextWidth(
+                Prompt,
+                10,
+                700,
+                0.16f
+            );
+
         const int BoxWidth = PromptWidth + 22;
 
         DrawRect(
             static_cast<int>(Width) / 2 - BoxWidth / 2,
-            static_cast<int>(Height) - 88,
+            static_cast<int>(Height) - 78,
             BoxWidth,
-            28,
+            26,
             {0.055f, 0.05f, 0.028f}
         );
 
-        DrawText(
+        DrawMenuText(
             Prompt,
             static_cast<int>(Width) / 2 - PromptWidth / 2,
-            static_cast<int>(Height) - 81,
-            2,
-            Primary
+            static_cast<int>(Height) - 70,
+            10,
+            700,
+            0.16f,
+            {255.0f / 255.0f, 248.0f / 255.0f, 192.0f / 255.0f},
+            0.92f,
+            true
         );
     }
 }
@@ -2201,8 +2296,11 @@ void Renderer::DrawEndScreen(bool Escaped)
         {0.032f, 0.03f, 0.018f}
     );
 
-    const glm::vec3 Primary{0.88f, 0.84f, 0.56f};
-    const glm::vec3 Muted{0.48f, 0.46f, 0.32f};
+    const glm::vec3 HtmlYellow{
+        235.0f / 255.0f,
+        226.0f / 255.0f,
+        162.0f / 255.0f
+    };
 
     const std::string Eyebrow =
         Escaped ? "LEVEL 0 COMPLETE" : "LEVEL 0";
@@ -2210,27 +2308,66 @@ void Renderer::DrawEndScreen(bool Escaped)
     const std::string Main =
         Escaped ? "YOU ESCAPED" : "YOU WERE FOUND";
 
-    const int MainScale = 6;
-    const int MainWidth = TextWidth(Main, MainScale);
+    DrawMenuText(
+        Eyebrow,
+        48,
+        52,
+        10,
+        400,
+        0.28f,
+        HtmlYellow,
+        0.45f,
+        false
+    );
 
-    DrawText(Eyebrow, 48, 52, 3, Muted);
-    DrawText(
+    const int MainHeight =
+        std::clamp(
+            static_cast<int>(
+                static_cast<float>(Width) * 0.09f
+            ),
+            58,
+            120
+        );
+
+    const int MainWidth =
+        MenuTextWidth(
+            Main,
+            MainHeight,
+            900,
+            -0.075f
+        );
+
+    DrawMenuText(
         Main,
         static_cast<int>(Width) / 2 - MainWidth / 2,
-        static_cast<int>(Height) / 2 - 46,
-        MainScale,
-        Primary
+        static_cast<int>(Height) / 2 - MainHeight / 2,
+        MainHeight,
+        900,
+        -0.075f,
+        {226.0f / 255.0f, 217.0f / 255.0f, 147.0f / 255.0f},
+        1.0f,
+        false
     );
 
     const std::string Restart = "R  NEW SESSION";
-    const int RestartWidth = TextWidth(Restart, 3);
+    const int RestartWidth =
+        MenuTextWidth(
+            Restart,
+            12,
+            800,
+            0.17f
+        );
 
-    DrawText(
+    DrawMenuText(
         Restart,
         static_cast<int>(Width) / 2 - RestartWidth / 2,
-        static_cast<int>(Height) / 2 + 28,
-        3,
-        Muted
+        static_cast<int>(Height) / 2 + 54,
+        12,
+        800,
+        0.17f,
+        HtmlYellow,
+        0.62f,
+        false
     );
 }
 
@@ -2324,19 +2461,19 @@ void Renderer::EndFrame(
 
     if (MainMenuOpen)
     {
-        DrawStartScreen(Started);
+        DrawMainMenuV2(Started);
         return;
     }
 
     if (Paused)
     {
-        DrawPauseScreen();
+        DrawPauseMenuV2();
         return;
     }
 
     if (!Started)
     {
-        DrawStartScreen(false);
+        DrawMainMenuV2(false);
         return;
     }
 

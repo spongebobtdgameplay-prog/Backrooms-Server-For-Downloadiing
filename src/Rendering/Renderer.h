@@ -109,7 +109,9 @@ private:
         int PixelHeight,
         int Weight,
         float TrackingEm,
-        const glm::vec3& Color
+        const glm::vec3& Color,
+        float Opacity = 1.0f,
+        bool Shadow = false
     );
     int MenuTextWidth(
         const std::string& Text,

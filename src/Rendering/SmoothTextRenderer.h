@@ -36,7 +36,9 @@ public:
         int PixelHeight,
         int Weight,
         float TrackingEm,
-        const glm::vec3& Color
+        const glm::vec3& Color,
+        float Opacity = 1.0f,
+        bool Shadow = false
     );
 
 private:
@@ -68,6 +70,7 @@ private:
     GLuint VertexBuffer = 0;
 
     GLint ColorLocation = -1;
+    GLint OpacityLocation = -1;
     GLint TextureLocation = -1;
 
     uint32_t Width = 1600;

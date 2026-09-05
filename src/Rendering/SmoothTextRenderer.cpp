@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cwchar>
 #include <sstream>
 #include <vector>
 
@@ -29,13 +30,63 @@ void main()
 in vec2 vUv;
 uniform sampler2D uTexture;
 uniform vec3 uColor;
+uniform float uOpacity;
 out vec4 FragColor;
 void main()
 {
     float Alpha = texture(uTexture, vUv).r;
-    FragColor = vec4(uColor, Alpha);
+    FragColor = vec4(uColor, Alpha * uOpacity);
 }
 )GLSL";
+
+#ifdef _WIN32
+    int CALLBACK FontEnumerationCallback(
+        const LOGFONTW*,
+        const TEXTMETRICW*,
+        DWORD,
+        LPARAM Parameter
+    )
+    {
+        bool* Found = reinterpret_cast<bool*>(Parameter);
+        *Found = true;
+        return 0;
+    }
+
+    bool HasFontFace(HDC DeviceContext, const wchar_t* Face)
+    {
+        LOGFONTW Font{};
+        Font.lfCharSet = DEFAULT_CHARSET;
+        wcsncpy_s(Font.lfFaceName, Face, _TRUNCATE);
+
+        bool Found = false;
+        EnumFontFamiliesExW(
+            DeviceContext,
+            &Font,
+            FontEnumerationCallback,
+            reinterpret_cast<LPARAM>(&Found),
+            0
+        );
+        return Found;
+    }
+
+    const wchar_t* ResolveCssFontFace(HDC DeviceContext)
+    {
+        static constexpr const wchar_t* FontStack[] = {
+            L"Arial Narrow",
+            L"Helvetica Neue",
+            L"Arial",
+            L"Segoe UI"
+        };
+
+        for (const wchar_t* Face : FontStack)
+        {
+            if (HasFontFace(DeviceContext, Face))
+                return Face;
+        }
+
+        return L"Arial";
+    }
+#endif
 
     GLuint Compile(GLenum Type, const char* Source)
     {
@@ -138,6 +189,7 @@ bool SmoothTextRenderer::CreateShader()
     }
 
     ColorLocation = glGetUniformLocation(Program, "uColor");
+    OpacityLocation = glGetUniformLocation(Program, "uOpacity");
     TextureLocation = glGetUniformLocation(Program, "uTexture");
 
     glGenVertexArrays(1, &VertexArray);
@@ -241,6 +293,9 @@ SmoothTextRenderer::CachedText* SmoothTextRenderer::GetOrCreate(
             )
         );
 
+    const wchar_t* CssFace =
+        ResolveCssFontFace(DeviceContext);
+
     HFONT Font = CreateFontW(
         -PixelHeight,
         0,
@@ -253,9 +308,9 @@ SmoothTextRenderer::CachedText* SmoothTextRenderer::GetOrCreate(
         DEFAULT_CHARSET,
         OUT_TT_PRECIS,
         CLIP_DEFAULT_PRECIS,
-        ANTIALIASED_QUALITY,
+        CLEARTYPE_NATURAL_QUALITY,
         DEFAULT_PITCH | FF_SWISS,
-        L"Arial Narrow"
+        CssFace
     );
 
     if (Font == nullptr)
@@ -288,11 +343,13 @@ SmoothTextRenderer::CachedText* SmoothTextRenderer::GetOrCreate(
     GetTextMetricsW(DeviceContext, &Metrics);
 
     const int BitmapWidth =
-        std::max(Size.cx + 8, 1L);
+        std::max(Size.cx + 12, 1L);
 
     const int BitmapHeight =
         std::max(
-            static_cast<int>(Metrics.tmHeight) + 8,
+            static_cast<int>(Metrics.tmHeight) +
+                static_cast<int>(Metrics.tmExternalLeading) +
+                12,
             1
         );
 
@@ -341,8 +398,8 @@ SmoothTextRenderer::CachedText* SmoothTextRenderer::GetOrCreate(
 
     TextOutW(
         DeviceContext,
-        4,
-        2,
+        6,
+        3,
         Wide.c_str(),
         static_cast<int>(Wide.size())
     );
@@ -371,11 +428,20 @@ SmoothTextRenderer::CachedText* SmoothTextRenderer::GetOrCreate(
             const unsigned char Green = Source[SourceIndex + 1];
             const unsigned char Red = Source[SourceIndex + 2];
 
+            const int Coverage =
+                (
+                    static_cast<int>(Red) * 54 +
+                    static_cast<int>(Green) * 183 +
+                    static_cast<int>(Blue) * 19
+                ) >> 8;
+
             Alpha[
                 static_cast<std::size_t>(Y) *
                 static_cast<std::size_t>(BitmapWidth) +
                 static_cast<std::size_t>(X)
-            ] = std::max({Red, Green, Blue});
+            ] = static_cast<unsigned char>(
+                std::clamp(Coverage, 0, 255)
+            );
         }
     }
 
@@ -458,7 +524,7 @@ int SmoothTextRenderer::Measure(
         );
 
     return Entry != nullptr
-        ? std::max(Entry->Width - 8, 0)
+        ? std::max(Entry->Width - 12, 0)
         : 0;
 }
 
@@ -469,7 +535,9 @@ void SmoothTextRenderer::Draw(
     int PixelHeight,
     int Weight,
     float TrackingEm,
-    const glm::vec3& Color
+    const glm::vec3& Color,
+    float Opacity,
+    bool Shadow
 )
 {
     CachedText* Entry =
@@ -483,64 +551,102 @@ void SmoothTextRenderer::Draw(
     if (Entry == nullptr || Entry->Texture == 0)
         return;
 
-    const float Left =
-        static_cast<float>(X) /
-        static_cast<float>(Width) *
-        2.0f - 1.0f;
-
-    const float Right =
-        static_cast<float>(X + Entry->Width) /
-        static_cast<float>(Width) *
-        2.0f - 1.0f;
-
-    const float Top =
-        1.0f -
-        static_cast<float>(Y) /
-        static_cast<float>(Height) *
-        2.0f;
-
-    const float Bottom =
-        1.0f -
-        static_cast<float>(Y + Entry->Height) /
-        static_cast<float>(Height) *
-        2.0f;
-
-    const float Vertices[] = {
-        Left,  Top,    0.0f, 0.0f,
-        Left,  Bottom, 0.0f, 1.0f,
-        Right, Bottom, 1.0f, 1.0f,
-
-        Left,  Top,    0.0f, 0.0f,
-        Right, Bottom, 1.0f, 1.0f,
-        Right, Top,    1.0f, 0.0f
-    };
-
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(Program);
-    glUniform3f(
-        ColorLocation,
-        Color.r,
-        Color.g,
-        Color.b
-    );
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Entry->Texture);
     glUniform1i(TextureLocation, 0);
 
     glBindVertexArray(VertexArray);
     glBindBuffer(GL_ARRAY_BUFFER, VertexBuffer);
-    glBufferSubData(
-        GL_ARRAY_BUFFER,
-        0,
-        sizeof(Vertices),
-        Vertices
-    );
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    auto DrawPass = [&](
+        int DrawX,
+        int DrawY,
+        const glm::vec3& DrawColor,
+        float DrawOpacity
+    )
+    {
+        const float Left =
+            static_cast<float>(DrawX) /
+            static_cast<float>(Width) *
+            2.0f - 1.0f;
+
+        const float Right =
+            static_cast<float>(DrawX + Entry->Width) /
+            static_cast<float>(Width) *
+            2.0f - 1.0f;
+
+        const float Top =
+            1.0f -
+            static_cast<float>(DrawY) /
+            static_cast<float>(Height) *
+            2.0f;
+
+        const float Bottom =
+            1.0f -
+            static_cast<float>(DrawY + Entry->Height) /
+            static_cast<float>(Height) *
+            2.0f;
+
+        const float Vertices[] = {
+            Left,  Top,    0.0f, 0.0f,
+            Left,  Bottom, 0.0f, 1.0f,
+            Right, Bottom, 1.0f, 1.0f,
+
+            Left,  Top,    0.0f, 0.0f,
+            Right, Bottom, 1.0f, 1.0f,
+            Right, Top,    1.0f, 0.0f
+        };
+
+        glUniform3f(
+            ColorLocation,
+            DrawColor.r,
+            DrawColor.g,
+            DrawColor.b
+        );
+
+        glUniform1f(
+            OpacityLocation,
+            std::clamp(DrawOpacity, 0.0f, 1.0f)
+        );
+
+        glBufferSubData(
+            GL_ARRAY_BUFFER,
+            0,
+            sizeof(Vertices),
+            Vertices
+        );
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    };
+
+    if (Shadow)
+    {
+        DrawPass(
+            X,
+            Y + 2,
+            {0.0f, 0.0f, 0.0f},
+            Opacity * 0.58f
+        );
+
+        DrawPass(
+            X + 1,
+            Y + 3,
+            {0.0f, 0.0f, 0.0f},
+            Opacity * 0.24f
+        );
+    }
+
+    DrawPass(
+        X,
+        Y,
+        Color,
+        Opacity
+    );
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
