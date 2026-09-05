@@ -26,7 +26,7 @@ inline constexpr int ContentLeftMax = 110;
 inline constexpr int ContentBottomMin = 74;
 inline constexpr float ContentBottomViewport = 0.130000f;
 inline constexpr int ContentBottomMax = 150;
-inline constexpr int ContentWidthMax = 520;
+inline constexpr int ContentWidthMax = 680;
 inline constexpr int ContentViewportSubtract = 68;
 
 inline constexpr int IndexFont = 12;
@@ -62,14 +62,14 @@ inline constexpr int LoadMarginTop = 14;
 inline constexpr int LoadFont = 10;
 inline constexpr float LoadTracking = 0.160000f;
 
-inline constexpr CssColor Background{0.043137f, 0.039216f, 0.023529f, 1.000000f};
+inline constexpr CssColor Background{0.784314f, 0.733333f, 0.380392f, 1.000000f};
 inline constexpr CssColor MetaColor{0.168627f, 0.149020f, 0.062745f, 0.580000f};
 inline constexpr CssColor IndexColor{0.192157f, 0.164706f, 0.058824f, 0.670000f};
-inline constexpr CssColor IndexBorderColor{0.925490f, 0.886275f, 0.592157f, 0.420000f};
+inline constexpr CssColor IndexBorderColor{0.192157f, 0.164706f, 0.058824f, 0.420000f};
 inline constexpr CssColor TitleColor{0.152941f, 0.137255f, 0.058824f, 1.000000f};
 inline constexpr CssColor ParagraphColor{0.168627f, 0.145098f, 0.050980f, 0.720000f};
 inline constexpr CssColor ButtonColor{0.164706f, 0.145098f, 0.062745f, 1.000000f};
-inline constexpr CssColor ButtonBorderTopColor{0.945098f, 0.909804f, 0.627451f, 0.580000f};
-inline constexpr CssColor ButtonBorderBottomColor{0.945098f, 0.909804f, 0.627451f, 0.200000f};
+inline constexpr CssColor ButtonBorderTopColor{0.176471f, 0.152941f, 0.054902f, 0.560000f};
+inline constexpr CssColor ButtonBorderBottomColor{0.176471f, 0.152941f, 0.054902f, 0.250000f};
 inline constexpr CssColor LoadColor{0.176471f, 0.152941f, 0.054902f, 0.480000f};
 }
