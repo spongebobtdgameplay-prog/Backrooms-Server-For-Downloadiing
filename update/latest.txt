@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.25
-manifest_revision=33987784983
-published_at=2026-09-05T19:43:27Z
+version=0.3.26
+manifest_revision=33989026710
+published_at=2026-09-05T20:08:21Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.25&run=33987784983
-sha256=fb16de924792e6588c957859c315e4ab6129dcde8c5f8e58f5dbcc894f8b3c04
-notes=V0.3.25 replaces the procedural-looking exit with a real authored GLB door, restores the real Poly Haven breaker textures and changes the breaker door angle so the switches and wiring are visible, upgrades the monster encounter to audible long-range positional cues, and replaces the fixed 15x15 maze with deterministic streamed Backrooms chunks that rebuild around the player while fog hides the streaming frontier. This is the tested public V0.3.25 Windows release.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.26&run=33989026710
+sha256=d331b5024f27e2df0d4fce8cf184869bda0eefbeb8b5f5b35abc839bac245bde
+notes=V0.3.26 adds a GTA-style native map system for the infinite Level 0 world: a yellow wallpaper-textured corner minimap during gameplay, breaker/activated-breaker/exit/powered-exit/entity markers, a redesigned GTA-inspired pause menu with a MAP tab, M to open the full map directly, mouse drag plus WASD/arrow panning with no coordinate bounds, mouse-wheel zoom, R recenter, and deterministic map-only chunk generation so the full map can keep scrolling through the same infinite maze topology without loading full 3D environment geometry. The sprint HUD is moved above the minimap so the two systems do not overlap. This is the Windows-gated public V0.3.26 release.
