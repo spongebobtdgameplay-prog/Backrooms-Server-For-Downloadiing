@@ -54,6 +54,12 @@ public:
         const glm::vec3& Forward
     );
 
+    bool HasExitDoorModel() const;
+    void DrawExitDoor(
+        const glm::vec3& Position,
+        const glm::vec3& Forward
+    );
+
     bool HasEntityModels() const;
     void DrawEntity(
         const glm::vec3& Position,
@@ -219,6 +225,7 @@ private:
     std::vector<InstanceData> Instances;
 
     EntityModel BreakerModel;
+    EntityModel ExitDoorModel;
     EntityModel GhostEntityModel;
     EntityModel DemonEntityModel;
     SmoothTextRenderer MenuTextRenderer;

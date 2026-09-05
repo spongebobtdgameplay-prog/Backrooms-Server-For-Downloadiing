@@ -6,119 +6,127 @@
 #include <utility>
 #include <vector>
 
-WorldGenerator::WorldGenerator(uint32_t Seed)
+namespace
 {
-    RandomState = Seed == 0 ? 1 : Seed;
+    int FloorDivide(int Value, int Divisor)
+    {
+        int Quotient = Value / Divisor;
+        const int Remainder = Value % Divisor;
+
+        if (Remainder < 0)
+            --Quotient;
+
+        return Quotient;
+    }
 }
 
-float WorldGenerator::Random()
+WorldGenerator::WorldGenerator(uint32_t NewSeed)
 {
-    RandomState = 1664525u * RandomState + 1013904223u;
-    return static_cast<float>(RandomState) / 4294967296.0f;
+    Seed = NewSeed == 0 ? 1 : NewSeed;
+}
+
+uint32_t WorldGenerator::Hash(
+    int X,
+    int Z,
+    uint32_t Salt
+) const
+{
+    uint32_t Value =
+        Seed ^
+        static_cast<uint32_t>(X) * 0x9E3779B9u ^
+        static_cast<uint32_t>(Z) * 0x85EBCA6Bu ^
+        Salt * 0xC2B2AE35u;
+
+    Value ^= Value >> 16;
+    Value *= 0x7FEB352Du;
+    Value ^= Value >> 15;
+    Value *= 0x846CA68Bu;
+    Value ^= Value >> 16;
+
+    return Value;
+}
+
+float WorldGenerator::Random01(
+    int X,
+    int Z,
+    uint32_t Salt
+) const
+{
+    return
+        static_cast<float>(Hash(X, Z, Salt)) /
+        4294967296.0f;
+}
+
+int WorldGenerator::ChunkCoordinate(float Coordinate) const
+{
+    const int Cell =
+        static_cast<int>(
+            std::round(Coordinate / DefaultCellSize)
+        );
+
+    return FloorDivide(
+        Cell + ChunkHalfCells,
+        ChunkCellCount
+    );
 }
 
 WorldData WorldGenerator::Build()
 {
+    return BuildAround({0.0f, 0.0f, 0.0f});
+}
+
+WorldData WorldGenerator::BuildAround(
+    const glm::vec3& FocusPosition
+)
+{
     WorldData World;
-    CreateMaze(World);
+
+    World.ChunkCells = ChunkCellCount;
+    World.StreamRadius = ActiveChunkRadius;
+    World.Columns =
+        ChunkCellCount * (ActiveChunkRadius * 2 + 1);
+    World.Rows = World.Columns;
+    World.CellSize = DefaultCellSize;
+
+    World.CenterChunkX = ChunkCoordinate(FocusPosition.x);
+    World.CenterChunkZ = ChunkCoordinate(FocusPosition.z);
+
+    const int FirstChunkX =
+        World.CenterChunkX - ActiveChunkRadius;
+
+    const int FirstChunkZ =
+        World.CenterChunkZ - ActiveChunkRadius;
+
+    World.OriginCellX =
+        FirstChunkX * ChunkCellCount -
+        ChunkHalfCells;
+
+    World.OriginCellZ =
+        FirstChunkZ * ChunkCellCount -
+        ChunkHalfCells;
+
+    CreateStreamedMaze(World);
     BuildEnvironment(World);
+
     return World;
 }
 
-void WorldGenerator::CreateMaze(WorldData& World)
+bool WorldGenerator::NeedsRebuild(
+    const WorldData& World,
+    const glm::vec3& FocusPosition
+) const
 {
-    World.Cells.resize(static_cast<std::size_t>(World.Columns * World.Rows));
-
-    for (int Z = 0; Z < World.Rows; ++Z)
-    {
-        for (int X = 0; X < World.Columns; ++X)
-        {
-            MazeCell& Cell = World.Cell(X, Z);
-            Cell.X = X;
-            Cell.Z = Z;
-            Cell.Visited = false;
-            Cell.Walls = {true, true, true, true};
-        }
-    }
-
-    std::vector<MazeCell*> Stack;
-    MazeCell* Current = &World.Cell(0, 0);
-    Current->Visited = true;
-
-    int Visited = 1;
-    const int Total = World.Columns * World.Rows;
-
-    while (Visited < Total)
-    {
-        std::vector<std::pair<Direction, MazeCell*>> Neighbors;
-        const int X = Current->X;
-        const int Z = Current->Z;
-
-        if (Z > 0 && !World.Cell(X, Z - 1).Visited)
-            Neighbors.emplace_back(Direction::North, &World.Cell(X, Z - 1));
-
-        if (X < World.Columns - 1 && !World.Cell(X + 1, Z).Visited)
-            Neighbors.emplace_back(Direction::East, &World.Cell(X + 1, Z));
-
-        if (Z < World.Rows - 1 && !World.Cell(X, Z + 1).Visited)
-            Neighbors.emplace_back(Direction::South, &World.Cell(X, Z + 1));
-
-        if (X > 0 && !World.Cell(X - 1, Z).Visited)
-            Neighbors.emplace_back(Direction::West, &World.Cell(X - 1, Z));
-
-        if (!Neighbors.empty())
-        {
-            const std::size_t Index = static_cast<std::size_t>(
-                Random() * static_cast<float>(Neighbors.size())
-            ) % Neighbors.size();
-
-            auto [Dir, Next] = Neighbors[Index];
-
-            RemoveWall(World, *Current, *Next, Dir);
-            Stack.push_back(Current);
-
-            Current = Next;
-            Current->Visited = true;
-            ++Visited;
-        }
-        else
-        {
-            Current = Stack.back();
-            Stack.pop_back();
-        }
-    }
-
-    for (int I = 0; I < 68; ++I)
-    {
-        const int X = 1 + static_cast<int>(Random() * static_cast<float>(World.Columns - 2));
-        const int Z = 1 + static_cast<int>(Random() * static_cast<float>(World.Rows - 2));
-
-        MazeCell& Cell = World.Cell(X, Z);
-        const Direction Dir = static_cast<Direction>(static_cast<int>(Random() * 4.0f) % 4);
-
-        if (Dir == Direction::North)
-            RemoveWall(World, Cell, World.Cell(X, Z - 1), Dir);
-
-        if (Dir == Direction::East)
-            RemoveWall(World, Cell, World.Cell(X + 1, Z), Dir);
-
-        if (Dir == Direction::South)
-            RemoveWall(World, Cell, World.Cell(X, Z + 1), Dir);
-
-        if (Dir == Direction::West)
-            RemoveWall(World, Cell, World.Cell(X - 1, Z), Dir);
-    }
+    return
+        ChunkCoordinate(FocusPosition.x) != World.CenterChunkX ||
+        ChunkCoordinate(FocusPosition.z) != World.CenterChunkZ;
 }
 
 void WorldGenerator::RemoveWall(
-    WorldData& World,
     MazeCell& Current,
     MazeCell& Next,
     Direction Dir
-)
+) const
 {
-    static_cast<void>(World);
-
     if (Dir == Direction::North)
     {
         Current.Walls[0] = false;
@@ -144,16 +152,234 @@ void WorldGenerator::RemoveWall(
     }
 }
 
+void WorldGenerator::CreateChunkCells(
+    int ChunkX,
+    int ChunkZ,
+    std::array<MazeCell, ChunkCellCount * ChunkCellCount>& Cells
+) const
+{
+    auto CellAt = [&](int X, int Z) -> MazeCell&
+    {
+        return Cells[static_cast<std::size_t>(Z * ChunkCellCount + X)];
+    };
+
+    for (int Z = 0; Z < ChunkCellCount; ++Z)
+    {
+        for (int X = 0; X < ChunkCellCount; ++X)
+        {
+            MazeCell& Cell = CellAt(X, Z);
+            Cell.X = X;
+            Cell.Z = Z;
+            Cell.Visited = false;
+            Cell.Walls = {true, true, true, true};
+        }
+    }
+
+    uint32_t State = Hash(ChunkX, ChunkZ, 0x1347u);
+
+    auto NextRandom = [&]()
+    {
+        State = 1664525u * State + 1013904223u;
+        return State;
+    };
+
+    const int StartIndex =
+        static_cast<int>(NextRandom() % Cells.size());
+
+    MazeCell* Current =
+        &Cells[static_cast<std::size_t>(StartIndex)];
+
+    Current->Visited = true;
+
+    std::vector<MazeCell*> Stack;
+    Stack.reserve(Cells.size());
+
+    int Visited = 1;
+
+    while (Visited < static_cast<int>(Cells.size()))
+    {
+        std::array<std::pair<Direction, MazeCell*>, 4> Candidates{};
+        int CandidateCount = 0;
+
+        const int X = Current->X;
+        const int Z = Current->Z;
+
+        if (Z > 0 && !CellAt(X, Z - 1).Visited)
+            Candidates[static_cast<std::size_t>(CandidateCount++)] =
+                {Direction::North, &CellAt(X, Z - 1)};
+
+        if (
+            X < ChunkCellCount - 1 &&
+            !CellAt(X + 1, Z).Visited
+        )
+        {
+            Candidates[static_cast<std::size_t>(CandidateCount++)] =
+                {Direction::East, &CellAt(X + 1, Z)};
+        }
+
+        if (
+            Z < ChunkCellCount - 1 &&
+            !CellAt(X, Z + 1).Visited
+        )
+        {
+            Candidates[static_cast<std::size_t>(CandidateCount++)] =
+                {Direction::South, &CellAt(X, Z + 1)};
+        }
+
+        if (X > 0 && !CellAt(X - 1, Z).Visited)
+            Candidates[static_cast<std::size_t>(CandidateCount++)] =
+                {Direction::West, &CellAt(X - 1, Z)};
+
+        if (CandidateCount > 0)
+        {
+            const int Choice =
+                static_cast<int>(
+                    NextRandom() %
+                    static_cast<uint32_t>(CandidateCount)
+                );
+
+            const auto [Dir, Next] =
+                Candidates[static_cast<std::size_t>(Choice)];
+
+            RemoveWall(*Current, *Next, Dir);
+            Stack.push_back(Current);
+            Current = Next;
+            Current->Visited = true;
+            ++Visited;
+        }
+        else
+        {
+            Current = Stack.back();
+            Stack.pop_back();
+        }
+    }
+
+    for (int I = 0; I < 22; ++I)
+    {
+        const int X =
+            static_cast<int>(NextRandom() % ChunkCellCount);
+
+        const int Z =
+            static_cast<int>(NextRandom() % ChunkCellCount);
+
+        const Direction Dir =
+            static_cast<Direction>(NextRandom() % 4u);
+
+        MazeCell& Cell = CellAt(X, Z);
+
+        if (Dir == Direction::North && Z > 0)
+            RemoveWall(Cell, CellAt(X, Z - 1), Dir);
+
+        if (Dir == Direction::East && X < ChunkCellCount - 1)
+            RemoveWall(Cell, CellAt(X + 1, Z), Dir);
+
+        if (Dir == Direction::South && Z < ChunkCellCount - 1)
+            RemoveWall(Cell, CellAt(X, Z + 1), Dir);
+
+        if (Dir == Direction::West && X > 0)
+            RemoveWall(Cell, CellAt(X - 1, Z), Dir);
+    }
+
+    CellAt(ChunkHalfCells, 0).Walls[0] = false;
+    CellAt(ChunkCellCount - 1, ChunkHalfCells).Walls[1] = false;
+    CellAt(ChunkHalfCells, ChunkCellCount - 1).Walls[2] = false;
+    CellAt(0, ChunkHalfCells).Walls[3] = false;
+}
+
+void WorldGenerator::CreateStreamedMaze(WorldData& World)
+{
+    World.Cells.resize(
+        static_cast<std::size_t>(World.Columns * World.Rows)
+    );
+
+    const int FirstChunkX =
+        World.CenterChunkX - World.StreamRadius;
+
+    const int FirstChunkZ =
+        World.CenterChunkZ - World.StreamRadius;
+
+    for (
+        int ChunkZ = FirstChunkZ;
+        ChunkZ <= World.CenterChunkZ + World.StreamRadius;
+        ++ChunkZ
+    )
+    {
+        for (
+            int ChunkX = FirstChunkX;
+            ChunkX <= World.CenterChunkX + World.StreamRadius;
+            ++ChunkX
+        )
+        {
+            std::array<
+                MazeCell,
+                ChunkCellCount * ChunkCellCount
+            > ChunkCells{};
+
+            CreateChunkCells(
+                ChunkX,
+                ChunkZ,
+                ChunkCells
+            );
+
+            const int ChunkWorldCellX =
+                ChunkX * ChunkCellCount -
+                ChunkHalfCells;
+
+            const int ChunkWorldCellZ =
+                ChunkZ * ChunkCellCount -
+                ChunkHalfCells;
+
+            const int BaseLocalX =
+                (ChunkX - FirstChunkX) *
+                ChunkCellCount;
+
+            const int BaseLocalZ =
+                (ChunkZ - FirstChunkZ) *
+                ChunkCellCount;
+
+            for (int LocalZ = 0; LocalZ < ChunkCellCount; ++LocalZ)
+            {
+                for (int LocalX = 0; LocalX < ChunkCellCount; ++LocalX)
+                {
+                    const MazeCell& Source =
+                        ChunkCells[static_cast<std::size_t>(
+                            LocalZ * ChunkCellCount + LocalX
+                        )];
+
+                    MazeCell& Target = World.Cell(
+                        BaseLocalX + LocalX,
+                        BaseLocalZ + LocalZ
+                    );
+
+                    Target = Source;
+                    Target.X = ChunkWorldCellX + LocalX;
+                    Target.Z = ChunkWorldCellZ + LocalZ;
+                    Target.Visited = true;
+                }
+            }
+        }
+    }
+}
+
 void WorldGenerator::AddWall(
     WorldData& World,
     float X,
     float Z,
     float SizeX,
     float SizeZ
-)
+) const
 {
-    const glm::vec3 Position{X, World.WallHeight * 0.5f, Z};
-    const glm::vec3 Size{SizeX, World.WallHeight, SizeZ};
+    const glm::vec3 Position{
+        X,
+        World.WallHeight * 0.5f,
+        Z
+    };
+
+    const glm::vec3 Size{
+        SizeX,
+        World.WallHeight,
+        SizeZ
+    };
 
     World.Boxes.push_back({
         Position,
@@ -165,8 +391,16 @@ void WorldGenerator::AddWall(
     });
 
     World.Colliders.push_back({
-        {X - SizeX * 0.5f, 0.0f, Z - SizeZ * 0.5f},
-        {X + SizeX * 0.5f, World.WallHeight, Z + SizeZ * 0.5f}
+        {
+            X - SizeX * 0.5f,
+            0.0f,
+            Z - SizeZ * 0.5f
+        },
+        {
+            X + SizeX * 0.5f,
+            World.WallHeight,
+            Z + SizeZ * 0.5f
+        }
     });
 
     const glm::vec3 TrimSize{
@@ -185,12 +419,29 @@ void WorldGenerator::AddWall(
     });
 }
 
-void WorldGenerator::BuildEnvironment(WorldData& World)
+void WorldGenerator::BuildEnvironment(WorldData& World) const
 {
-    const float Width = static_cast<float>(World.Columns) * World.CellSize;
-    const float Depth = static_cast<float>(World.Rows) * World.CellSize;
-    const float CenterX = Width * 0.5f - World.CellSize * 0.5f;
-    const float CenterZ = Depth * 0.5f - World.CellSize * 0.5f;
+    const float Width =
+        static_cast<float>(World.Columns) *
+        World.CellSize;
+
+    const float Depth =
+        static_cast<float>(World.Rows) *
+        World.CellSize;
+
+    const float CenterX =
+        (
+            static_cast<float>(World.OriginCellX) +
+            static_cast<float>(World.Columns - 1) * 0.5f
+        ) *
+        World.CellSize;
+
+    const float CenterZ =
+        (
+            static_cast<float>(World.OriginCellZ) +
+            static_cast<float>(World.Rows - 1) * 0.5f
+        ) *
+        World.CellSize;
 
     World.Boxes.push_back({
         {CenterX, -0.06f, CenterZ},
@@ -210,17 +461,33 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
         static_cast<int>(SurfaceMaterial::Ceiling)
     });
 
-    for (int Z = 0; Z < World.Rows; ++Z)
-    {
-        for (int X = 0; X < World.Columns; ++X)
-        {
-            const MazeCell& Cell = World.Cell(X, Z);
-            const float CellX = static_cast<float>(X) * World.CellSize;
-            const float CellZ = static_cast<float>(Z) * World.CellSize;
+    World.OpenCells.reserve(
+        static_cast<std::size_t>(World.Columns * World.Rows)
+    );
 
-            World.OpenCells.push_back({CellX, 0.0f, CellZ});
+    for (int LocalZ = 0; LocalZ < World.Rows; ++LocalZ)
+    {
+        for (int LocalX = 0; LocalX < World.Columns; ++LocalX)
+        {
+            const MazeCell& Cell =
+                World.Cell(LocalX, LocalZ);
+
+            const float CellX =
+                static_cast<float>(Cell.X) *
+                World.CellSize;
+
+            const float CellZ =
+                static_cast<float>(Cell.Z) *
+                World.CellSize;
+
+            World.OpenCells.push_back({
+                CellX,
+                0.0f,
+                CellZ
+            });
 
             if (Cell.Walls[0])
+            {
                 AddWall(
                     World,
                     CellX,
@@ -228,8 +495,10 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     World.CellSize + World.WallThickness,
                     World.WallThickness
                 );
+            }
 
             if (Cell.Walls[3])
+            {
                 AddWall(
                     World,
                     CellX - World.CellSize * 0.5f,
@@ -237,8 +506,13 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     World.WallThickness,
                     World.CellSize + World.WallThickness
                 );
+            }
 
-            if (Z == World.Rows - 1 && Cell.Walls[2])
+            if (
+                LocalZ == World.Rows - 1 &&
+                Cell.Walls[2]
+            )
+            {
                 AddWall(
                     World,
                     CellX,
@@ -246,8 +520,13 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     World.CellSize + World.WallThickness,
                     World.WallThickness
                 );
+            }
 
-            if (X == World.Columns - 1 && Cell.Walls[1])
+            if (
+                LocalX == World.Columns - 1 &&
+                Cell.Walls[1]
+            )
+            {
                 AddWall(
                     World,
                     CellX + World.CellSize * 0.5f,
@@ -255,28 +534,54 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     World.WallThickness,
                     World.CellSize + World.WallThickness
                 );
+            }
 
-            if (Random() > 0.46f)
+            if (Random01(Cell.X, Cell.Z, 1u) > 0.46f)
             {
-                const float OffsetX = (Random() - 0.5f) * 2.15f;
-                const float OffsetZ = (Random() - 0.5f) * 2.15f;
+                const float OffsetX =
+                    (Random01(Cell.X, Cell.Z, 2u) - 0.5f) *
+                    2.15f;
+
+                const float OffsetZ =
+                    (Random01(Cell.X, Cell.Z, 3u) - 0.5f) *
+                    2.15f;
 
                 LightPoint Light;
+
                 Light.Position = {
                     CellX + OffsetX,
                     World.WallHeight - 0.18f,
                     CellZ + OffsetZ
                 };
-                Light.Color = {1.0f, 0.8796f, 0.5520f};
-                Light.BaseIntensity = 1.25f + Random() * 0.65f;
-                Light.FlickerSpeed = 20.0f + Random() * 22.0f;
-                Light.FlickerStrength = 0.015f + Random() * 0.055f;
-                Light.Phase = Random() * 100.0f;
-                Light.Faulty = Random() < 0.14f;
+
+                Light.Color = {
+                    1.0f,
+                    0.8796f,
+                    0.5520f
+                };
+
+                Light.BaseIntensity =
+                    1.25f +
+                    Random01(Cell.X, Cell.Z, 4u) * 0.65f;
+
+                Light.FlickerSpeed =
+                    20.0f +
+                    Random01(Cell.X, Cell.Z, 5u) * 22.0f;
+
+                Light.FlickerStrength =
+                    0.015f +
+                    Random01(Cell.X, Cell.Z, 6u) * 0.055f;
+
+                Light.Phase =
+                    Random01(Cell.X, Cell.Z, 7u) * 100.0f;
+
+                Light.Faulty =
+                    Random01(Cell.X, Cell.Z, 8u) < 0.14f;
 
                 World.Lights.push_back(Light);
 
-                const bool Rotate = Random() > 0.5f;
+                const bool Rotate =
+                    Random01(Cell.X, Cell.Z, 9u) > 0.5f;
 
                 World.Boxes.push_back({
                     {
@@ -308,27 +613,45 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
                     static_cast<int>(SurfaceMaterial::LightPanel)
                 });
             }
-        }
-    }
 
-    for (int Z = 1; Z < World.Rows - 1; ++Z)
-    {
-        for (int X = 1; X < World.Columns - 1; ++X)
-        {
-            if (Random() > 0.075f)
+            if (
+                LocalX <= 0 ||
+                LocalZ <= 0 ||
+                LocalX >= World.Columns - 1 ||
+                LocalZ >= World.Rows - 1 ||
+                Random01(Cell.X, Cell.Z, 10u) > 0.075f
+            )
+            {
                 continue;
+            }
 
             const float ColumnX =
-                static_cast<float>(X) * World.CellSize +
-                (Random() > 0.5f ? 1.7f : -1.7f);
+                CellX +
+                (
+                    Random01(Cell.X, Cell.Z, 11u) > 0.5f
+                        ? 1.7f
+                        : -1.7f
+                );
 
             const float ColumnZ =
-                static_cast<float>(Z) * World.CellSize +
-                (Random() > 0.5f ? 1.7f : -1.7f);
+                CellZ +
+                (
+                    Random01(Cell.X, Cell.Z, 12u) > 0.5f
+                        ? 1.7f
+                        : -1.7f
+                );
 
             World.Boxes.push_back({
-                {ColumnX, World.WallHeight * 0.5f, ColumnZ},
-                {0.52f, World.WallHeight, 0.52f},
+                {
+                    ColumnX,
+                    World.WallHeight * 0.5f,
+                    ColumnZ
+                },
+                {
+                    0.52f,
+                    World.WallHeight,
+                    0.52f
+                },
                 {0.5984f, 0.4937f, 0.1029f},
                 {0.01227f, 0.01090f, 0.00443f},
                 0.99f,
@@ -336,8 +659,16 @@ void WorldGenerator::BuildEnvironment(WorldData& World)
             });
 
             World.Colliders.push_back({
-                {ColumnX - 0.26f, 0.0f, ColumnZ - 0.26f},
-                {ColumnX + 0.26f, World.WallHeight, ColumnZ + 0.26f}
+                {
+                    ColumnX - 0.26f,
+                    0.0f,
+                    ColumnZ - 0.26f
+                },
+                {
+                    ColumnX + 0.26f,
+                    World.WallHeight,
+                    ColumnZ + 0.26f
+                }
             });
         }
     }

@@ -15,7 +15,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <vector>
 
@@ -404,6 +407,9 @@ bool EntityModel::Load(
     if (!CreateShader())
         return false;
 
+    const std::filesystem::path ModelDirectory =
+        std::filesystem::path(Path).parent_path();
+
     cgltf_options Options{};
     cgltf_data* Data = nullptr;
 
@@ -745,28 +751,66 @@ bool EntityModel::Load(
 
                     if (
                         Texture != nullptr &&
-                        Texture->image != nullptr &&
-                        Texture->image->buffer_view != nullptr &&
-                        Texture->image->buffer_view->buffer != nullptr &&
-                        Texture->image->buffer_view->buffer->data != nullptr
+                        Texture->image != nullptr
                     )
                     {
-                        const cgltf_buffer_view& View =
-                            *Texture->image->buffer_view;
+                        const cgltf_image& Image =
+                            *Texture->image;
 
-                        const unsigned char* ImageData =
-                            static_cast<const unsigned char*>(
-                                View.buffer->data
-                            ) +
-                            View.offset;
+                        if (
+                            Image.buffer_view != nullptr &&
+                            Image.buffer_view->buffer != nullptr &&
+                            Image.buffer_view->buffer->data != nullptr
+                        )
+                        {
+                            const cgltf_buffer_view& View =
+                                *Image.buffer_view;
 
-                        TargetPrimitive.Texture =
-                            CreateTexture(
-                                ImageData,
-                                static_cast<std::size_t>(
-                                    View.size
-                                )
+                            const unsigned char* ImageData =
+                                static_cast<const unsigned char*>(
+                                    View.buffer->data
+                                ) +
+                                View.offset;
+
+                            TargetPrimitive.Texture =
+                                CreateTexture(
+                                    ImageData,
+                                    static_cast<std::size_t>(
+                                        View.size
+                                    )
+                                );
+                        }
+                        else if (
+                            Image.uri != nullptr &&
+                            Image.uri[0] != '\0'
+                        )
+                        {
+                            const std::filesystem::path ImagePath =
+                                ModelDirectory /
+                                std::filesystem::path(Image.uri);
+
+                            std::ifstream ImageFile(
+                                ImagePath,
+                                std::ios::binary
                             );
+
+                            if (ImageFile.is_open())
+                            {
+                                std::vector<unsigned char> Bytes(
+                                    std::istreambuf_iterator<char>(ImageFile),
+                                    std::istreambuf_iterator<char>()
+                                );
+
+                                if (!Bytes.empty())
+                                {
+                                    TargetPrimitive.Texture =
+                                        CreateTexture(
+                                            Bytes.data(),
+                                            Bytes.size()
+                                        );
+                                }
+                            }
+                        }
                     }
                 }
             }

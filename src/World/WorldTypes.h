@@ -3,7 +3,6 @@
 #include <glm/glm.hpp>
 
 #include <array>
-#include <cstdint>
 #include <vector>
 
 struct AABB
@@ -12,7 +11,15 @@ struct AABB
     glm::vec3 Max{0.0f};
 };
 
-enum class SurfaceMaterial : int
+enum class Direction
+{
+    North = 0,
+    East = 1,
+    South = 2,
+    West = 3
+};
+
+enum class SurfaceMaterial
 {
     Generic = 0,
     Wallpaper = 1,
@@ -23,13 +30,21 @@ enum class SurfaceMaterial : int
     LightPanel = 6
 };
 
+struct MazeCell
+{
+    int X = 0;
+    int Z = 0;
+    std::array<bool, 4> Walls{true, true, true, true};
+    bool Visited = false;
+};
+
 struct SceneBox
 {
     glm::vec3 Position{0.0f};
     glm::vec3 Size{1.0f};
     glm::vec3 Color{1.0f};
     glm::vec3 Emissive{0.0f};
-    float Roughness = 1.0f;
+    float Roughness = 0.8f;
     int MaterialType = static_cast<int>(SurfaceMaterial::Generic);
 };
 
@@ -44,26 +59,17 @@ struct LightPoint
     bool Faulty = false;
 };
 
-struct MazeCell
-{
-    int X = 0;
-    int Z = 0;
-    bool Visited = false;
-    std::array<bool, 4> Walls{true, true, true, true};
-};
-
-enum class Direction : int
-{
-    North = 0,
-    East = 1,
-    South = 2,
-    West = 3
-};
-
 struct WorldData
 {
-    int Columns = 15;
-    int Rows = 15;
+    int Columns = 27;
+    int Rows = 27;
+    int ChunkCells = 9;
+    int StreamRadius = 1;
+    int CenterChunkX = 0;
+    int CenterChunkZ = 0;
+    int OriginCellX = -13;
+    int OriginCellZ = -13;
+
     float CellSize = 6.0f;
     float WallHeight = 3.18f;
     float WallThickness = 0.24f;
@@ -82,5 +88,17 @@ struct WorldData
     const MazeCell& Cell(int X, int Z) const
     {
         return Cells[static_cast<std::size_t>(Z * Columns + X)];
+    }
+
+    bool ContainsWorldCell(int WorldX, int WorldZ) const
+    {
+        const int LocalX = WorldX - OriginCellX;
+        const int LocalZ = WorldZ - OriginCellZ;
+
+        return
+            LocalX >= 0 &&
+            LocalZ >= 0 &&
+            LocalX < Columns &&
+            LocalZ < Rows;
     }
 };

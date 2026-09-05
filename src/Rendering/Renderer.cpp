@@ -331,7 +331,7 @@ void main()
     Lighting += vEmissive;
 
     float DistanceToCamera = length(vWorldPosition - uCameraPosition);
-    float FogAmount = smoothstep(26.0, 72.0, DistanceToCamera);
+    float FogAmount = smoothstep(24.0, 60.0, DistanceToCamera);
     vec3 FogColor = vec3(0.4735, 0.4342, 0.2582);
 
     vec3 FinalColor = mix(Lighting, FogColor, FogAmount);
@@ -808,7 +808,12 @@ bool Renderer::Initialize()
 
     BreakerModel.Load(
         "assets/models/power_box_01/power_box_01_1k.gltf",
-        1.05f
+        0.92f
+    );
+
+    ExitDoorModel.Load(
+        "assets/models/exit-door.glb",
+        2.34f
     );
 
     GhostEntityModel.Load(
@@ -840,6 +845,7 @@ void Renderer::Shutdown()
     MenuTextRenderer.Shutdown();
 
     BreakerModel.Shutdown();
+    ExitDoorModel.Shutdown();
     GhostEntityModel.Shutdown();
     DemonEntityModel.Shutdown();
 
@@ -1078,6 +1084,32 @@ void Renderer::DrawBreaker(
         return;
 
     BreakerModel.Draw(
+        View,
+        Projection,
+        CameraPosition,
+        Position,
+        Forward,
+        glm::vec3{1.0f},
+        ActiveLightPositions,
+        ActiveLightColors,
+        ActiveLightCount
+    );
+}
+
+bool Renderer::HasExitDoorModel() const
+{
+    return ExitDoorModel.IsReady();
+}
+
+void Renderer::DrawExitDoor(
+    const glm::vec3& Position,
+    const glm::vec3& Forward
+)
+{
+    if (!ExitDoorModel.IsReady())
+        return;
+
+    ExitDoorModel.Draw(
         View,
         Projection,
         CameraPosition,

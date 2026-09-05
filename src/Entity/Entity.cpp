@@ -51,19 +51,29 @@ int Entity::CellIndex(
     const WorldData& World
 ) const
 {
-    const int X = std::clamp(
-        static_cast<int>(std::round(Position.x / World.CellSize)),
+    const int WorldX =
+        static_cast<int>(
+            std::round(Position.x / World.CellSize)
+        );
+
+    const int WorldZ =
+        static_cast<int>(
+            std::round(Position.z / World.CellSize)
+        );
+
+    const int LocalX = std::clamp(
+        WorldX - World.OriginCellX,
         0,
         World.Columns - 1
     );
 
-    const int Z = std::clamp(
-        static_cast<int>(std::round(Position.z / World.CellSize)),
+    const int LocalZ = std::clamp(
+        WorldZ - World.OriginCellZ,
         0,
         World.Rows - 1
     );
 
-    return Z * World.Columns + X;
+    return LocalZ * World.Columns + LocalX;
 }
 
 std::vector<int> Entity::Neighbors(
@@ -74,19 +84,22 @@ std::vector<int> Entity::Neighbors(
     const MazeCell& Cell =
         World.Cells[static_cast<std::size_t>(Index)];
 
+    const int LocalX = Index % World.Columns;
+    const int LocalZ = Index / World.Columns;
+
     std::vector<int> Result;
 
-    if (!Cell.Walls[0] && Cell.Z > 0)
-        Result.push_back((Cell.Z - 1) * World.Columns + Cell.X);
+    if (!Cell.Walls[0] && LocalZ > 0)
+        Result.push_back(Index - World.Columns);
 
-    if (!Cell.Walls[1] && Cell.X < World.Columns - 1)
-        Result.push_back(Cell.Z * World.Columns + Cell.X + 1);
+    if (!Cell.Walls[1] && LocalX < World.Columns - 1)
+        Result.push_back(Index + 1);
 
-    if (!Cell.Walls[2] && Cell.Z < World.Rows - 1)
-        Result.push_back((Cell.Z + 1) * World.Columns + Cell.X);
+    if (!Cell.Walls[2] && LocalZ < World.Rows - 1)
+        Result.push_back(Index + World.Columns);
 
-    if (!Cell.Walls[3] && Cell.X > 0)
-        Result.push_back(Cell.Z * World.Columns + Cell.X - 1);
+    if (!Cell.Walls[3] && LocalX > 0)
+        Result.push_back(Index - 1);
 
     return Result;
 }

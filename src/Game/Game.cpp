@@ -11,6 +11,7 @@
 #include <limits>
 #include <sstream>
 #include <unordered_set>
+#include <utility>
 
 bool Game::Initialize(uint32_t NewWidth, uint32_t NewHeight)
 {
@@ -115,17 +116,28 @@ bool Game::TryMountBreaker(
     Breaker& Result
 ) const
 {
-    const int X = std::clamp(
-        static_cast<int>(std::round(CellCenter.x / World.CellSize)),
-        0,
-        World.Columns - 1
-    );
+    const int WorldX =
+        static_cast<int>(
+            std::round(CellCenter.x / World.CellSize)
+        );
 
-    const int Z = std::clamp(
-        static_cast<int>(std::round(CellCenter.z / World.CellSize)),
-        0,
-        World.Rows - 1
-    );
+    const int WorldZ =
+        static_cast<int>(
+            std::round(CellCenter.z / World.CellSize)
+        );
+
+    const int X = WorldX - World.OriginCellX;
+    const int Z = WorldZ - World.OriginCellZ;
+
+    if (
+        X < 0 ||
+        Z < 0 ||
+        X >= World.Columns ||
+        Z >= World.Rows
+    )
+    {
+        return false;
+    }
 
     const MazeCell& Cell = World.Cell(X, Z);
 
@@ -175,8 +187,8 @@ bool Game::TryMountBreaker(
         const uint32_t Hash =
             Seed ^
             static_cast<uint32_t>(Variant * 2246822519u) ^
-            static_cast<uint32_t>((X + 1) * 3266489917u) ^
-            static_cast<uint32_t>((Z + 1) * 668265263u);
+            static_cast<uint32_t>((WorldX + 4097) * 3266489917u) ^
+            static_cast<uint32_t>((WorldZ + 8191) * 668265263u);
 
         const float Along =
             (static_cast<float>(Hash % 1000u) / 999.0f - 0.5f) *
@@ -206,7 +218,7 @@ void Game::Reset()
     Seed = static_cast<uint32_t>(Now);
 
     WorldGenerator Generator(Seed);
-    World = Generator.Build();
+    World = Generator.BuildAround({0.0f, 0.0f, 0.0f});
 
     GamePlayer.Reset({0.0f, 1.65f, 0.0f});
     PreviousPlayerPosition = GamePlayer.Position();
@@ -315,6 +327,8 @@ void Game::Reset()
         ExitPosition.y = 0.0f;
         ExitForward = {0.0f, 0.0f, 1.0f};
     }
+
+    World.Colliders.push_back(ExitBounds());
 
     const glm::vec3 EntityPosition = Pick(50.0f);
     Hunter.Reset(EntityPosition);
@@ -662,6 +676,7 @@ void Game::Interact()
         if (State.BreakersActive == 1)
         {
             Hunter.Release();
+            Audio.PlayEntityRelease(Hunter.Position());
             Message = "SOMETHING HEARD THAT";
         }
         else if (State.CanExit())
@@ -733,6 +748,24 @@ void Game::Update(
         World.Colliders,
         MouseCaptured
     );
+
+    WorldGenerator Streamer(Seed);
+
+    if (Streamer.NeedsRebuild(World, GamePlayer.Position()))
+    {
+        WorldData StreamedWorld =
+            Streamer.BuildAround(GamePlayer.Position());
+
+        for (const Breaker& BreakerData : Breakers)
+        {
+            StreamedWorld.Colliders.push_back(
+                BreakerBounds(BreakerData)
+            );
+        }
+
+        StreamedWorld.Colliders.push_back(ExitBounds());
+        World = std::move(StreamedWorld);
+    }
 
     glm::vec3 PlayerTravel =
         GamePlayer.Position() - PreviousPlayerPosition;
@@ -918,7 +951,9 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
         }
     }
 
-    const glm::vec3 ExitRight{
+    if (!GameRenderer.HasExitDoorModel())
+    {
+        const glm::vec3 ExitRight{
         ExitForward.z,
         0.0f,
         -ExitForward.x
@@ -1043,6 +1078,8 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
         0.25f
     );
 
+    }
+
     if (!GameRenderer.HasEntityModels())
     {
         const std::vector<SceneBox> EntityBoxes =
@@ -1126,6 +1163,14 @@ void Game::Render(float Time)
                 BreakerData.Forward
             );
         }
+    }
+
+    if (GameRenderer.HasExitDoorModel())
+    {
+        GameRenderer.DrawExitDoor(
+            ExitPosition,
+            ExitForward
+        );
     }
 
     if (

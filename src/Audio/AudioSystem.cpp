@@ -116,8 +116,15 @@ bool AudioSystem::Initialize()
         "assets/audio/entity-metal.wav",
         false,
         true,
-        0.25f
+        0.48f
     );
+
+    if (EntityMetal != nullptr)
+    {
+        ma_sound_set_min_distance(EntityMetal, 2.0f);
+        ma_sound_set_max_distance(EntityMetal, 86.0f);
+        ma_sound_set_rolloff(EntityMetal, 0.42f);
+    }
 
     Shift = LoadSound(
         "assets/audio/shift.wav",
@@ -130,8 +137,15 @@ bool AudioSystem::Initialize()
         "assets/audio/entity-laugh.wav",
         false,
         true,
-        0.24f
+        0.46f
     );
+
+    if (EntityLaugh != nullptr)
+    {
+        ma_sound_set_min_distance(EntityLaugh, 2.0f);
+        ma_sound_set_max_distance(EntityLaugh, 78.0f);
+        ma_sound_set_rolloff(EntityLaugh, 0.48f);
+    }
 
     for (std::size_t I = 0; I < Footsteps.size(); ++I)
     {
@@ -158,7 +172,7 @@ bool AudioSystem::Initialize()
     if (Hum != nullptr)
         ma_sound_start(Hum);
 
-    EntityCueTimer = 3.5f;
+    EntityCueTimer = 0.85f;
     EntityCueIndex = 0;
     FootstepIndex = 0;
     Started = true;
@@ -284,45 +298,65 @@ void AudioSystem::Update(
         );
     }
 
-    if (EntityMetal != nullptr && EntityActive)
+    if (EntityActive)
     {
-        ma_sound_set_position(
-            EntityMetal,
-            EntityPosition.x,
-            EntityPosition.y + 0.9f,
-            EntityPosition.z
-        );
-
         EntityCueTimer -= std::max(DeltaTime, 0.0f);
 
         if (
             EntityCueTimer <= 0.0f &&
-            Distance < 42.0f
+            Distance < 92.0f
         )
         {
             const float Pitch =
-                0.82f +
-                static_cast<float>(EntityCueIndex % 4) * 0.055f;
+                0.86f +
+                static_cast<float>(EntityCueIndex % 5) * 0.035f;
 
-            RestartSpatial(
-                EntityMetal,
-                EntityPosition + glm::vec3{0.0f, 0.8f, 0.0f},
-                0.12f + Threat * 0.24f,
-                Pitch
-            );
+            if (
+                EntityLaugh != nullptr &&
+                EntityCueIndex % 3 == 2
+            )
+            {
+                RestartSpatial(
+                    EntityLaugh,
+                    EntityPosition + glm::vec3{0.0f, 1.25f, 0.0f},
+                    0.44f + Threat * 0.22f,
+                    0.91f + Threat * 0.04f
+                );
+            }
+            else
+            {
+                RestartSpatial(
+                    EntityMetal,
+                    EntityPosition + glm::vec3{0.0f, 0.8f, 0.0f},
+                    0.42f + Threat * 0.32f,
+                    Pitch
+                );
+            }
 
             ++EntityCueIndex;
 
             EntityCueTimer =
-                6.2f -
-                Threat * 3.7f +
-                static_cast<float>(EntityCueIndex % 3) * 0.55f;
+                4.4f -
+                Threat * 2.0f +
+                static_cast<float>(EntityCueIndex % 3) * 0.38f;
         }
     }
     else
     {
-        EntityCueTimer = 2.8f;
+        EntityCueTimer = 0.85f;
     }
+}
+
+void AudioSystem::PlayEntityRelease(const glm::vec3& Position)
+{
+    RestartSpatial(
+        EntityMetal,
+        Position + glm::vec3{0.0f, 0.9f, 0.0f},
+        0.78f,
+        0.86f
+    );
+
+    EntityCueTimer = 1.25f;
 }
 
 void AudioSystem::PlayBreaker(const glm::vec3& Position)

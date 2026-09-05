@@ -25,6 +25,7 @@ public:
     );
 
     void PlayBreaker(const glm::vec3& Position);
+    void PlayEntityRelease(const glm::vec3& Position);
     void PlayFootstep(const glm::vec3& Position);
     void PlayShift(bool DemonForm, const glm::vec3& Position);
     void PlayDeath();

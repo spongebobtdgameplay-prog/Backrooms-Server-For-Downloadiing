@@ -52,7 +52,7 @@
   - Original source: Poly Haven
   - License: CC0 1.0
   - Vendored from the public `lanathlor/pyrrhic-stars` mirror of the Poly Haven model.
-  - The native renderer uses the real mesh geometry and a neutral metal base color; external texture files are not required by this build.
+  - V0.3.25 ships the matching 1K diffuse, normal, and ARM texture files and teaches the native glTF loader to resolve external image URIs. The breaker door rotation is reduced so the switches and wiring remain readable from the hallway.
 
 ## Native environment and interaction audio
 
@@ -85,3 +85,11 @@
 ## Native audio packaging
 
 - V0.3.24 converts the credited recorded source files to mono 44.1 kHz PCM WAV at build-preparation time so the shipped native game does not depend on optional OGG/Vorbis decoder support.
+
+
+## Exit door model
+
+- `assets/models/exit-door.glb`
+  - Source: `spongebobtdgameplay-prog/The-Infinity-Store`, `Models/Architecture/GLB/Door_3.glb`.
+  - Usage: authored Level 0 exit-door mesh replacing the normal procedural box-built exit visual.
+  - This is shared project content from the user's Infinity Store repository.
