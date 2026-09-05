@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -501,49 +502,50 @@ void Renderer::DrawMainMenuV3(bool HasSession)
     auto DrawButton = [&](
         const UiRect& Rect,
         const std::string& Label,
-        float Hover,
-        bool Primary
+        float Hover
     )
     {
-        const float FillAmount =
-            (Primary ? 0.075f : 0.045f) + Hover * 0.12f;
+        const float HoverAmount =
+            std::clamp(Hover, 0.0f, 1.0f);
 
-        const float BorderAmount =
-            (Primary ? 0.48f : 0.32f) + Hover * 0.34f;
+        if (HoverAmount > 0.001f)
+        {
+            DrawRect(
+                Rect.X,
+                Rect.Y + 1,
+                Rect.Width,
+                std::max(Rect.Height - 2, 1),
+                Mix(YellowBackground, Ink, 0.08f * HoverAmount)
+            );
+        }
 
-        const glm::vec3 Fill =
-            Mix(YellowBackground, Ink, FillAmount);
+        const glm::vec3 TopBorder =
+            Mix(YellowBackground, Ink, 0.56f);
 
-        const glm::vec3 Border =
-            Mix(YellowBackground, Ink, BorderAmount);
+        const glm::vec3 BottomBorder =
+            Mix(YellowBackground, Ink, 0.25f);
 
         DrawRect(
             Rect.X,
             Rect.Y,
             Rect.Width,
-            Rect.Height,
-            Fill
+            1,
+            TopBorder
         );
 
-        DrawRect(Rect.X, Rect.Y, Rect.Width, 1, Border);
         DrawRect(
             Rect.X,
             Rect.Y + Rect.Height - 1,
             Rect.Width,
             1,
-            Border
-        );
-        DrawRect(Rect.X, Rect.Y, 1, Rect.Height, Border);
-        DrawRect(
-            Rect.X + Rect.Width - 1,
-            Rect.Y,
-            1,
-            Rect.Height,
-            Border
+            BottomBorder
         );
 
-        const int Slide =
-            static_cast<int>(std::round(Hover * 10.0f));
+        const int Padding =
+            ButtonPaddingX +
+            static_cast<int>(
+                std::round(HoverAmount * 10.0f)
+            );
 
         const int TextY =
             Rect.Y +
@@ -551,7 +553,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
 
         DrawMenuText(
             Label,
-            Rect.X + 16 + Slide,
+            Rect.X + Padding,
             TextY,
             ButtonFont,
             ButtonWeight,
@@ -572,7 +574,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
 
         DrawMenuText(
             Arrow,
-            Rect.X + Rect.Width - 16 - ArrowWidth + Slide / 2,
+            Rect.X + Rect.Width - Padding - ArrowWidth,
             Rect.Y +
                 std::max(0, (Rect.Height - ArrowFont) / 2),
             ArrowFont,
@@ -587,8 +589,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
     DrawButton(
         MainPrimaryRect,
         HasSession ? "RESUME SESSION" : "ENTER LEVEL 0",
-        MainPrimaryHover,
-        true
+        MainPrimaryHover
     );
 
     int HintY =
@@ -606,8 +607,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
         DrawButton(
             MainSecondaryRect,
             "NEW SESSION",
-            MainSecondaryHover,
-            false
+            MainSecondaryHover
         );
 
         HintY =
@@ -617,7 +617,7 @@ void Renderer::DrawMainMenuV3(bool HasSession)
     }
 
     DrawMenuText(
-        "MOUSE OR ENTER   WASD   SHIFT   E",
+        "WASD   SHIFT   MOUSE   E",
         ContentX,
         HintY,
         LoadFont,
@@ -750,7 +750,7 @@ void Renderer::DrawPauseMenuV3()
 
     const int ButtonWidth =
         std::min(
-            420,
+            ButtonWidthMax,
             std::max(
                 220,
                 static_cast<int>(Width) - ContentX - 34
@@ -764,14 +764,14 @@ void Renderer::DrawPauseMenuV3()
         ContentX,
         ButtonY,
         ButtonWidth,
-        58
+        ButtonHeight
     };
 
     PauseMainMenuRect = {
         ContentX,
-        ButtonY + 70,
+        ButtonY + ButtonHeight + 12,
         ButtonWidth,
-        58
+        ButtonHeight
     };
 
     auto DrawPauseButton = [&](
@@ -780,58 +780,68 @@ void Renderer::DrawPauseMenuV3()
         float Hover
     )
     {
-        const glm::vec3 Fill =
-            Mix(
-                YellowBackground,
-                Ink,
-                0.065f + Hover * 0.13f
-            );
+        const float HoverAmount =
+            std::clamp(Hover, 0.0f, 1.0f);
 
-        const glm::vec3 Border =
-            Mix(
-                YellowBackground,
-                Ink,
-                0.40f + Hover * 0.40f
+        if (HoverAmount > 0.001f)
+        {
+            DrawRect(
+                Rect.X,
+                Rect.Y + 1,
+                Rect.Width,
+                std::max(Rect.Height - 2, 1),
+                Mix(YellowBackground, Ink, 0.08f * HoverAmount)
             );
+        }
 
-        DrawRect(Rect.X, Rect.Y, Rect.Width, Rect.Height, Fill);
-        DrawRect(Rect.X, Rect.Y, Rect.Width, 1, Border);
+        DrawRect(
+            Rect.X,
+            Rect.Y,
+            Rect.Width,
+            1,
+            Mix(YellowBackground, Ink, 0.56f)
+        );
+
         DrawRect(
             Rect.X,
             Rect.Y + Rect.Height - 1,
             Rect.Width,
             1,
-            Border
-        );
-        DrawRect(Rect.X, Rect.Y, 1, Rect.Height, Border);
-        DrawRect(
-            Rect.X + Rect.Width - 1,
-            Rect.Y,
-            1,
-            Rect.Height,
-            Border
+            Mix(YellowBackground, Ink, 0.25f)
         );
 
-        const int Slide =
-            static_cast<int>(std::round(Hover * 10.0f));
+        const int Padding =
+            ButtonPaddingX +
+            static_cast<int>(
+                std::round(HoverAmount * 10.0f)
+            );
 
         DrawMenuText(
             Label,
-            Rect.X + 16 + Slide,
-            Rect.Y + 22,
-            12,
-            800,
-            0.17f,
+            Rect.X + Padding,
+            Rect.Y + std::max(0, (Rect.Height - ButtonFont) / 2),
+            ButtonFont,
+            ButtonWeight,
+            ButtonTracking,
             Ink,
             1.0f,
             false
         );
 
+        const std::string Arrow = ">";
+        const int ArrowWidth =
+            MenuTextWidth(
+                Arrow,
+                ArrowFont,
+                800,
+                0.0f
+            );
+
         DrawMenuText(
-            ">",
-            Rect.X + Rect.Width - 31 + Slide / 2,
-            Rect.Y + 18,
-            20,
+            Arrow,
+            Rect.X + Rect.Width - Padding - ArrowWidth,
+            Rect.Y + std::max(0, (Rect.Height - ArrowFont) / 2),
+            ArrowFont,
             800,
             0.0f,
             Ink,
@@ -853,12 +863,12 @@ void Renderer::DrawPauseMenuV3()
     );
 
     DrawMenuText(
-        "CLICK A BUTTON   ESC ALSO RESUMES",
+        "ESC ALSO RESUMES",
         ContentX,
         PauseMainMenuRect.Y + PauseMainMenuRect.Height + 18,
-        10,
+        LoadFont,
         500,
-        0.16f,
+        LoadTracking,
         Rgb(LoadColor),
         0.70f,
         false
@@ -868,6 +878,7 @@ void Renderer::DrawPauseMenuV3()
 }
 
 void Renderer::DrawGameplayOverlayV3(
+    float Stamina,
     int BreakersActive,
     int BreakersRequired,
     int InteractionType,
@@ -885,66 +896,30 @@ void Renderer::DrawGameplayOverlayV3(
 
     GameplayTextRenderer.Resize(Width, Height);
 
-    const glm::vec3 Panel{
-        10.0f / 255.0f,
-        9.0f / 255.0f,
-        6.0f / 255.0f
-    };
-
-    const glm::vec3 PanelSoft{
-        18.0f / 255.0f,
-        16.0f / 255.0f,
-        9.0f / 255.0f
-    };
-
-    const glm::vec3 Border{
-        110.0f / 255.0f,
-        101.0f / 255.0f,
-        51.0f / 255.0f
-    };
-
     const glm::vec3 Primary{
-        250.0f / 255.0f,
-        242.0f / 255.0f,
-        181.0f / 255.0f
+        248.0f / 255.0f,
+        239.0f / 255.0f,
+        173.0f / 255.0f
     };
 
     const glm::vec3 Muted{
-        190.0f / 255.0f,
-        180.0f / 255.0f,
-        119.0f / 255.0f
+        244.0f / 255.0f,
+        235.0f / 255.0f,
+        169.0f / 255.0f
     };
 
-    const int LeftX = 18;
-    const int LeftY = 18;
-    const int LeftWidth = 330;
-    const int LeftHeight = 66;
-
-    DrawRect(
-        LeftX,
-        LeftY,
-        LeftWidth,
-        LeftHeight,
-        Panel
-    );
-
-    DrawRect(
-        LeftX,
-        LeftY,
-        3,
-        LeftHeight,
-        Border
-    );
+    const int LeftX = Width <= 700 ? 18 : 26;
+    const int TopY = 24;
 
     GameplayTextRenderer.Draw(
         "LEVEL 0",
-        LeftX + 15,
-        LeftY + 9,
-        10,
+        LeftX,
+        TopY,
+        9,
         650,
-        0.18f,
+        0.24f,
         Muted,
-        1.0f,
+        0.68f,
         true
     );
 
@@ -957,66 +932,130 @@ void Renderer::DrawGameplayOverlayV3(
 
     GameplayTextRenderer.Draw(
         Objective.str(),
-        LeftX + 15,
-        LeftY + 30,
-        16,
+        LeftX,
+        TopY + 18,
+        13,
         800,
-        0.055f,
+        0.13f,
         Primary,
-        1.0f,
+        0.96f,
         true
     );
 
-    const int RightWidth = 168;
-    const int RightHeight = 66;
-    const int RightX =
-        static_cast<int>(Width) - RightWidth - 18;
-    const int RightY = 18;
+    std::ostringstream FpsStream;
 
-    DrawRect(
-        RightX,
-        RightY,
-        RightWidth,
-        RightHeight,
-        Panel
-    );
+    if (Fps > 0.0f)
+    {
+        FpsStream
+            << std::fixed
+            << std::setprecision(1)
+            << Fps
+            << " FPS";
+    }
+    else
+    {
+        FpsStream << "--.- FPS";
+    }
 
-    DrawRect(
-        RightX + RightWidth - 3,
-        RightY,
-        3,
-        RightHeight,
-        Border
-    );
+    const std::string FpsText = FpsStream.str();
+    const int RightMargin = Width <= 700 ? 18 : 26;
 
-    std::ostringstream FpsText;
-    FpsText
-        << static_cast<int>(std::round(Fps))
-        << " FPS";
+    const int FpsWidth =
+        GameplayTextRenderer.Measure(
+            FpsText,
+            11,
+            700,
+            0.10f
+        );
 
     GameplayTextRenderer.Draw(
-        FpsText.str(),
-        RightX + 14,
-        RightY + 10,
-        15,
-        800,
-        0.08f,
+        FpsText,
+        static_cast<int>(Width) - RightMargin - FpsWidth,
+        TopY,
+        11,
+        700,
+        0.10f,
         Primary,
-        1.0f,
+        0.86f,
         true
     );
 
+    const std::string BuildText =
+        std::string("BUILD  ") + BuildVersion::Text;
+
+    const int BuildWidth =
+        GameplayTextRenderer.Measure(
+            BuildText,
+            9,
+            600,
+            0.13f
+        );
+
     GameplayTextRenderer.Draw(
-        std::string("BUILD  ") + BuildVersion::Text,
-        RightX + 14,
-        RightY + 36,
+        BuildText,
+        static_cast<int>(Width) - RightMargin - BuildWidth,
+        TopY + 18,
         9,
-        650,
+        600,
         0.13f,
         Muted,
-        1.0f,
+        0.58f,
         true
     );
+
+    const int SprintY =
+        static_cast<int>(Height) - 34;
+
+    GameplayTextRenderer.Draw(
+        "SPRINT",
+        LeftX,
+        SprintY,
+        9,
+        700,
+        0.18f,
+        Muted,
+        0.78f,
+        true
+    );
+
+    const int SprintLabelWidth =
+        GameplayTextRenderer.Measure(
+            "SPRINT",
+            9,
+            700,
+            0.18f
+        );
+
+    const int BarX = LeftX + SprintLabelWidth + 10;
+    const int BarY = SprintY + 5;
+    const int BarWidth = 118;
+    const int BarHeight = 3;
+    const int FillWidth =
+        static_cast<int>(
+            std::round(
+                static_cast<float>(BarWidth) *
+                std::clamp(Stamina, 0.0f, 1.0f)
+            )
+        );
+
+    DrawRect(
+        BarX,
+        BarY,
+        BarWidth,
+        BarHeight,
+        {0.34f, 0.32f, 0.19f}
+    );
+
+    if (FillWidth > 0)
+    {
+        DrawRect(
+            BarX,
+            BarY,
+            FillWidth,
+            BarHeight,
+            {0.95f, 0.91f, 0.65f}
+        );
+    }
 
     std::string Prompt;
 
@@ -1030,73 +1069,49 @@ void Renderer::DrawGameplayOverlayV3(
         const int PromptTextWidth =
             GameplayTextRenderer.Measure(
                 Prompt,
-                14,
+                13,
                 800,
-                0.07f
+                0.08f
             );
 
-        const int PromptWidth =
-            std::clamp(PromptTextWidth + 92, 260, 480);
-
-        const int PromptHeight = 54;
+        const int PromptWidth = PromptTextWidth + 48;
         const int PromptX =
             static_cast<int>(Width) / 2 - PromptWidth / 2;
         const int PromptY =
-            static_cast<int>(Height) - 94;
+            static_cast<int>(Height) - 84;
 
-        DrawRect(
-            PromptX,
-            PromptY,
-            PromptWidth,
-            PromptHeight,
-            PanelSoft
-        );
+        const glm::vec3 KeyColor{
+            248.0f / 255.0f,
+            239.0f / 255.0f,
+            173.0f / 255.0f
+        };
 
-        DrawRect(
-            PromptX,
-            PromptY,
-            PromptWidth,
-            1,
-            Border
-        );
-
-        DrawRect(
-            PromptX,
-            PromptY + PromptHeight - 1,
-            PromptWidth,
-            1,
-            Border
-        );
-
-        DrawRect(
-            PromptX + 13,
-            PromptY + 12,
-            30,
-            30,
-            Border
-        );
+        DrawRect(PromptX, PromptY, 24, 1, KeyColor);
+        DrawRect(PromptX, PromptY + 23, 24, 1, KeyColor);
+        DrawRect(PromptX, PromptY, 1, 24, KeyColor);
+        DrawRect(PromptX + 23, PromptY, 1, 24, KeyColor);
 
         GameplayTextRenderer.Draw(
             "E",
-            PromptX + 23,
-            PromptY + 17,
-            14,
+            PromptX + 8,
+            PromptY + 4,
+            12,
             900,
             0.0f,
-            Panel,
+            Primary,
             1.0f,
-            false
+            true
         );
 
         GameplayTextRenderer.Draw(
             Prompt,
-            PromptX + 58,
-            PromptY + 18,
-            14,
+            PromptX + 36,
+            PromptY + 5,
+            13,
             800,
-            0.07f,
+            0.08f,
             Primary,
-            1.0f,
+            0.96f,
             true
         );
     }
