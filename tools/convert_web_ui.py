@@ -46,10 +46,20 @@ def split_media(css: str):
     return "\n".join(base_parts), "\n".join(media_parts)
 
 
-def blocks(css: str, selector_contains: str):
+def selector_matches(rule_selector: str, target: str) -> bool:
+    for raw_selector in rule_selector.split(","):
+        selector = " ".join(raw_selector.split())
+        if selector == target:
+            return True
+        if selector.endswith(" " + target):
+            return True
+    return False
+
+
+def blocks(css: str, selector: str):
     for match in BLOCK_RE.finditer(css):
-        selector = " ".join(match.group(1).split())
-        if selector_contains in selector:
+        rule_selector = " ".join(match.group(1).split())
+        if selector_matches(rule_selector, selector):
             props = {
                 k.strip(): " ".join(v.split())
                 for k, v in PROP_RE.findall(match.group(2))
@@ -116,6 +126,14 @@ def rgba(value: str, fallback=(1.0, 1.0, 1.0, 1.0)):
     return fallback
 
 
+def last_hex(value: str, fallback=(1.0, 1.0, 1.0, 1.0)):
+    matches = re.findall(r"#([0-9a-fA-F]{6})", value)
+    if not matches:
+        return fallback
+    raw = matches[-1]
+    return tuple(int(raw[i:i + 2], 16) / 255.0 for i in (0, 2, 4)) + (1.0,)
+
+
 def fmt(v: float) -> str:
     return f"{v:.6f}f"
 
@@ -171,14 +189,38 @@ def main() -> None:
 
     top_color = rgba(prop(base_css, ".MenuTop", "color", "rgba(232,224,165,0.46)"))
     index_color = rgba(prop(base_css, ".MenuIndex", "color", "rgba(240,231,162,0.62)"))
-    index_border = rgba(prop(base_css, ".MenuIndex", "border-bottom", "rgba(236,226,151,0.42)"))
+    index_border = rgba(
+        prop(
+            base_css,
+            ".MenuIndex",
+            "border-color",
+            prop(base_css, ".MenuIndex", "border-bottom", "rgba(236,226,151,0.42)"),
+        )
+    )
     title_color = rgba(prop(base_css, ".MenuContent h1", "color", "#e2d993"))
     paragraph_color = rgba(prop(base_css, ".MenuContent p", "color", "rgba(233,226,173,0.66)"))
     button_color = rgba(prop(base_css, "#StartButton", "color", "#f3ebaf"))
-    button_top = rgba(prop(base_css, "#StartButton", "border-top", "rgba(241,232,160,0.58)"))
-    button_bottom = rgba(prop(base_css, "#StartButton", "border-bottom", "rgba(241,232,160,0.2)"))
+    button_top = rgba(
+        prop(
+            base_css,
+            "#StartButton",
+            "border-top-color",
+            prop(base_css, "#StartButton", "border-top", "rgba(241,232,160,0.58)"),
+        )
+    )
+    button_bottom = rgba(
+        prop(
+            base_css,
+            "#StartButton",
+            "border-bottom-color",
+            prop(base_css, "#StartButton", "border-bottom", "rgba(241,232,160,0.2)"),
+        )
+    )
     load_color = rgba(prop(base_css, "#LoadStatus", "color", "rgba(232,224,165,0.34)"))
-    background_color = rgba("#0b0a06")
+    background_color = last_hex(
+        prop(base_css, "#StartScreen", "background", "#c8bb61"),
+        (200.0 / 255.0, 187.0 / 255.0, 97.0 / 255.0, 1.0),
+    )
 
     mobile_margin = px(prop(mobile_css, ".MenuTop", "left", "20px"))
     mobile_content_left = px(prop(mobile_css, ".MenuContent", "left", "24px"))
