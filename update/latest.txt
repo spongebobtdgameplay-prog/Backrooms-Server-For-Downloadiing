@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.13
-manifest_revision=33968870101
-published_at=2026-09-05T13:29:00Z
+version=0.3.14
+manifest_revision=33969782309
+published_at=2026-09-05T13:47:59Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.13&run=33968870101
-sha256=8c23bcda49aca94021dd58e84de93a7aa6927b6ed5e3a24617e68d100d2480d3
-notes=V0.3.13 fixes the start-screen skip caused by focus mouse clicks, keeps the real CSS-converted menu visible until Enter/Space is chosen, adds a clear ESC MENU control cue during gameplay, and reworks Level 0 rendering so wallpaper, carpet and ceiling keep visible texture instead of washing into flat yellow. Ambient/hemisphere light, fluorescent intensity, fog, material contrast and tone mapping were all rebalanced for stronger depth while preserving the original yellow Backrooms look.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.14&run=33969782309
+sha256=b89d7c33296293ecfe0699bdf19f272e1fc87e51c3cbdda0246d798320866f33
+notes=V0.3.14 removes the invented yellow native menu theme and restores the actual original browser UI style from style.css: dark radial/linear StartScreen background, original yellow typography, real 98px grid/noise, exact 680px content width, 11vw/150px title sizing, original paragraph weight/colors, and the real bordered ENTER LEVEL 0 button. It also removes the added ESC MENU black HUD box and reverts the V0.3.13 world-lighting/material guesses back to the pre-change browser-matched values. The CSS converter selector bug was fixed so it no longer misses the real selectors and silently generates fallback colors/sizes. This release also forces a fresh Windows publish so latest.txt advances to V0.3.14 with the new installer hash and cache-busted download URL.
