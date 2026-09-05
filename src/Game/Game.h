@@ -42,9 +42,9 @@ public:
         GameRenderer.BeginFrame();
 
         if (State.Paused)
-            GameRenderer.DrawPauseMenuV2();
+            GameRenderer.DrawPauseMenuV3();
         else
-            GameRenderer.DrawMainMenuV2(State.Started);
+            GameRenderer.DrawMainMenuV3(State.Started);
     }
 
     void Update(
@@ -66,7 +66,7 @@ private:
     };
 
     void Reset();
-    glm::vec3 PickOpenCell(float MinDistance);
+    glm::vec3 MenuPointerFromEvent(const SDL_Event& Event) const;
 
     void UpdateInteraction();
     void Interact();
