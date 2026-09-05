@@ -9,6 +9,7 @@ class Player
 {
 public:
     void Reset(const glm::vec3& Position);
+    void ShutdownInput();
 
     void HandleEvent(const SDL_Event& Event, bool MouseCaptured);
     void OnMouseCaptureChanged(bool Captured);
@@ -26,8 +27,13 @@ public:
     const glm::vec3& Position() const;
     float Stamina() const;
     float Fov() const;
+    bool TouchInputActive() const;
 
 private:
+    void TryOpenGamepad(SDL_JoystickID PreferredId = 0);
+    void CloseGamepad();
+    float GamepadAxis(SDL_GamepadAxis Axis) const;
+
     glm::vec3 PlayerPosition{0.0f, 1.65f, 0.0f};
 
     float Yaw = 0.0f;
@@ -39,6 +45,18 @@ private:
     float MouseDeltaY = 0.0f;
     bool MouseCapturedLastFrame = false;
     int IgnoreMouseMotionEvents = 0;
+
+    SDL_Gamepad* ActiveGamepad = nullptr;
+
+    bool TouchInputSeen = false;
+    bool MoveTouchActive = false;
+    bool LookTouchActive = false;
+    SDL_FingerID MoveFinger = 0;
+    SDL_FingerID LookFinger = 0;
+    glm::vec2 MoveTouchAnchor{0.0f};
+    glm::vec2 TouchMove{0.0f};
+    float TouchLookDeltaX = 0.0f;
+    float TouchLookDeltaY = 0.0f;
 
     float Bob = 0.0f;
     float BobTime = 0.0f;
