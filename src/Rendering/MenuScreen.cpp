@@ -93,164 +93,73 @@ namespace
 
 void Renderer::DrawMenuBackdrop()
 {
-    using namespace GeneratedWebUi;
+    // Direct native rendering of the original style.css StartScreen:
+    // radial-gradient(circle at 72% 42%, rgba(213,200,104,.16), transparent 34%),
+    // linear-gradient(115deg, #1c1a0e 0%, #0d0c08 56%, #070706 100%).
+    const glm::vec3 Left{28.0f / 255.0f, 26.0f / 255.0f, 14.0f / 255.0f};
+    const glm::vec3 Middle{13.0f / 255.0f, 12.0f / 255.0f, 8.0f / 255.0f};
+    const glm::vec3 Right{7.0f / 255.0f, 7.0f / 255.0f, 6.0f / 255.0f};
+    const glm::vec3 Glow{213.0f / 255.0f, 200.0f / 255.0f, 104.0f / 255.0f};
 
-    const glm::vec3 BackgroundColor = Rgb(Background);
+    const int W = static_cast<int>(Width);
+    const int H = static_cast<int>(Height);
+    constexpr int Band = 8;
 
-    DrawRect(
-        0,
-        0,
-        static_cast<int>(Width),
-        static_cast<int>(Height),
-        BackgroundColor
-    );
-
-    // Exact repeating-grid periods from the original #StartScreen CSS.
-    const CssColor VerticalCss{
-        87.0f / 255.0f,
-        77.0f / 255.0f,
-        28.0f / 255.0f,
-        0.055f
-    };
-
-    const CssColor VerticalEdgeCss{
-        71.0f / 255.0f,
-        62.0f / 255.0f,
-        22.0f / 255.0f,
-        0.045f
-    };
-
-    const CssColor HorizontalCss{
-        255.0f / 255.0f,
-        245.0f / 255.0f,
-        155.0f / 255.0f,
-        0.035f
-    };
-
-    const CssColor NoiseCss{
-        38.0f / 255.0f,
-        32.0f / 255.0f,
-        10.0f / 255.0f,
-        0.045f
-    };
-
-    const glm::vec3 Vertical =
-        Composite(VerticalCss, Background);
-
-    const glm::vec3 VerticalEdge =
-        Composite(VerticalEdgeCss, Background);
-
-    const glm::vec3 Horizontal =
-        Composite(HorizontalCss, Background);
-
-    const glm::vec3 Noise =
-        Composite(NoiseCss, Background);
-
-    for (
-        int X = 0;
-        X < static_cast<int>(Width);
-        X += 24
-    )
+    for (int X = 0; X < W; X += Band)
     {
-        DrawRect(
-            X,
-            0,
-            2,
-            static_cast<int>(Height),
-            Vertical
-        );
+        const float T = W > 1
+            ? static_cast<float>(X) / static_cast<float>(W - 1)
+            : 0.0f;
 
-        if (X + 23 < static_cast<int>(Width))
+        glm::vec3 Base;
+        if (T <= 0.56f)
         {
-            DrawRect(
-                X + 23,
-                0,
-                2,
-                static_cast<int>(Height),
-                VerticalEdge
-            );
+            const float Local = T / 0.56f;
+            Base = Left * (1.0f - Local) + Middle * Local;
         }
+        else
+        {
+            const float Local = (T - 0.56f) / 0.44f;
+            Base = Middle * (1.0f - Local) + Right * Local;
+        }
+
+        DrawRect(X, 0, std::min(Band, W - X), H, Base);
     }
 
-    for (
-        int Y = 31;
-        Y < static_cast<int>(Height);
-        Y += 32
-    )
+    const int CenterX = static_cast<int>(std::round(W * 0.72f));
+    const int CenterY = static_cast<int>(std::round(H * 0.42f));
+    const int RadiusX = std::max(1, static_cast<int>(std::round(W * 0.34f)));
+    const int RadiusY = std::max(1, static_cast<int>(std::round(H * 0.34f)));
+
+    for (int I = 10; I >= 1; --I)
     {
-        DrawRect(
-            0,
-            Y,
-            static_cast<int>(Width),
-            1,
-            Horizontal
-        );
+        const float T = static_cast<float>(I) / 10.0f;
+        const float Alpha = 0.016f * (1.0f - T + 0.10f);
+        const int RX = static_cast<int>(RadiusX * T);
+        const int RY = static_cast<int>(RadiusY * T);
+        const glm::vec3 Tint = Right * (1.0f - Alpha) + Glow * Alpha;
+        DrawRect(CenterX - RX, CenterY - RY, RX * 2, RY * 2, Tint);
     }
 
-    for (
-        int Y = 0;
-        Y < static_cast<int>(Height);
-        Y += 4
-    )
-    {
-        DrawRect(
-            0,
-            Y,
-            static_cast<int>(Width),
-            1,
-            Noise
-        );
-    }
+    // Exact 98px repeating grid from #StartScreen::before.
+    const glm::vec3 GridV = Right * 0.975f +
+        glm::vec3{235.0f / 255.0f, 224.0f / 255.0f, 143.0f / 255.0f} * 0.025f;
+    const glm::vec3 GridH = Right * 0.982f +
+        glm::vec3{235.0f / 255.0f, 224.0f / 255.0f, 143.0f / 255.0f} * 0.018f;
 
-    // Native approximation of the original ::after edge vignette.
-    constexpr int Steps = 24;
+    for (int X = 97; X < W; X += 98)
+        DrawRect(X, 0, 1, H, GridV);
 
-    for (int I = 0; I < Steps; ++I)
-    {
-        const float T =
-            static_cast<float>(I) /
-            static_cast<float>(Steps - 1);
+    for (int Y = 97; Y < H; Y += 98)
+        DrawRect(0, Y, W, 1, GridH);
 
-        const float Strength =
-            0.12f * (1.0f - T) * (1.0f - T);
+    // .MenuNoise: 1px line every 3px at the original tiny effective opacity.
+    const float NoiseAlpha = 0.12f * 0.018f;
+    const glm::vec3 NoiseColor = Right * (1.0f - NoiseAlpha) +
+        glm::vec3{1.0f} * NoiseAlpha;
 
-        const glm::vec3 Shade =
-            BackgroundColor * (1.0f - Strength);
-
-        const int Offset = I * 2;
-
-        DrawRect(
-            0,
-            Offset,
-            static_cast<int>(Width),
-            2,
-            Shade
-        );
-
-        DrawRect(
-            0,
-            static_cast<int>(Height) - Offset - 2,
-            static_cast<int>(Width),
-            2,
-            Shade
-        );
-
-        DrawRect(
-            Offset,
-            0,
-            2,
-            static_cast<int>(Height),
-            Shade
-        );
-
-        DrawRect(
-            static_cast<int>(Width) - Offset - 2,
-            0,
-            2,
-            static_cast<int>(Height),
-            Shade
-        );
-    }
+    for (int Y = 0; Y < H; Y += 3)
+        DrawRect(0, Y, W, 1, NoiseColor);
 }
 
 void Renderer::DrawMenuText(

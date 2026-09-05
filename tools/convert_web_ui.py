@@ -145,7 +145,7 @@ def main() -> None:
         "vh",
     )
     title_clamp = clamp_value(
-        prop(base_css, "#StartScreen .MenuContent h1", "font-size", "clamp(66px, 10vw, 138px)"),
+        prop(base_css, ".MenuContent h1", "font-size", "clamp(66px, 11vw, 150px)"),
         "vw",
     )
     mobile_title = clamp_value(
@@ -169,16 +169,16 @@ def main() -> None:
     paragraph_margin_top = p_margin_numbers[0] if p_margin_numbers else 24
     paragraph_margin_bottom = p_margin_numbers[1] if len(p_margin_numbers) > 1 else 30
 
-    top_color = rgba(prop(base_css, "#StartScreen .MenuTop", "color", "rgba(43,38,16,0.58)"))
-    index_color = rgba(prop(base_css, "#StartScreen .MenuIndex", "color", "rgba(49,42,15,0.67)"))
-    index_border = rgba(prop(base_css, "#StartScreen .MenuIndex", "border-color", "rgba(49,42,15,0.42)"))
-    title_color = rgba(prop(base_css, "#StartScreen .MenuContent h1", "color", "#27230f"))
-    paragraph_color = rgba(prop(base_css, "#StartScreen .MenuContent p", "color", "rgba(43,37,13,0.72)"))
-    button_color = rgba(prop(base_css, "#StartScreen #StartButton", "color", "#2a2510"))
-    button_top = rgba(prop(base_css, "#StartScreen #StartButton", "border-top-color", "rgba(45,39,14,0.56)"))
-    button_bottom = rgba(prop(base_css, "#StartScreen #StartButton", "border-bottom-color", "rgba(45,39,14,0.25)"))
-    load_color = rgba(prop(base_css, "#StartScreen #LoadStatus", "color", "rgba(45,39,14,0.48)"))
-    background_color = rgba("#c8bb61")
+    top_color = rgba(prop(base_css, ".MenuTop", "color", "rgba(232,224,165,0.46)"))
+    index_color = rgba(prop(base_css, ".MenuIndex", "color", "rgba(240,231,162,0.62)"))
+    index_border = rgba(prop(base_css, ".MenuIndex", "border-bottom", "rgba(236,226,151,0.42)"))
+    title_color = rgba(prop(base_css, ".MenuContent h1", "color", "#e2d993"))
+    paragraph_color = rgba(prop(base_css, ".MenuContent p", "color", "rgba(233,226,173,0.66)"))
+    button_color = rgba(prop(base_css, "#StartButton", "color", "#f3ebaf"))
+    button_top = rgba(prop(base_css, "#StartButton", "border-top", "rgba(241,232,160,0.58)"))
+    button_bottom = rgba(prop(base_css, "#StartButton", "border-bottom", "rgba(241,232,160,0.2)"))
+    load_color = rgba(prop(base_css, "#LoadStatus", "color", "rgba(232,224,165,0.34)"))
+    background_color = rgba("#0b0a06")
 
     mobile_margin = px(prop(mobile_css, ".MenuTop", "left", "20px"))
     mobile_content_left = px(prop(mobile_css, ".MenuContent", "left", "24px"))
@@ -223,13 +223,13 @@ inline constexpr int TitleMin = {int(title_clamp[0])};
 inline constexpr float TitleViewport = {fmt(title_clamp[1])};
 inline constexpr int TitleMax = {int(title_clamp[2])};
 inline constexpr int TitleWeight = {int(number(prop(base_css, '.MenuContent h1', 'font-weight', '900')))};
-inline constexpr float TitleTracking = {fmt(em(prop(base_css, '#StartScreen .MenuContent h1', 'letter-spacing', '-0.07em')))};
+inline constexpr float TitleTracking = {fmt(em(prop(base_css, '.MenuContent h1', 'letter-spacing', '-0.075em')))};
 inline constexpr float TitleLineHeight = {fmt(number(prop(base_css, '.MenuContent h1', 'line-height', '0.78')))};
 inline constexpr int TitleMarginTop = {title_margin_top};
 inline constexpr int TitleMarginBottom = {title_margin_bottom};
 
 inline constexpr int ParagraphFont = {px(prop(base_css, '.MenuContent p', 'font-size', '15px'))};
-inline constexpr int ParagraphWeight = {int(number(prop(base_css, '#StartScreen .MenuContent p', 'font-weight', '600')))};
+inline constexpr int ParagraphWeight = {int(number(prop(base_css, '.MenuContent p', 'font-weight', '400')))};
 inline constexpr float ParagraphLineHeight = {fmt(number(prop(base_css, '.MenuContent p', 'line-height', '1.6')))};
 inline constexpr int ParagraphWidthMax = {min_px(prop(base_css, '.MenuContent p', 'width', 'min(520px, 100%)'))};
 inline constexpr int ParagraphMarginTop = {paragraph_margin_top};
