@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.23
-manifest_revision=33983391855
-published_at=2026-09-05T18:17:28Z
+version=0.3.24
+manifest_revision=33985112020
+published_at=2026-09-05T18:49:55Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.23&run=33983391855
-sha256=390ef66363e32efad0afffb1c92060e9f9e8e63923767736f18dda55ca294891
-notes=V0.3.23 replaces the floating placeholder breakers with a real wall-mounted Poly Haven power-box model and proper wall-aligned collision. It upgrades the existing Quaternius entity into a stalking-to-chase encounter with a short warning window, distance-based pursuit speed and positional cues. The native soundscape now uses a recorded CC0 fluorescent-light hum, Kenney CC0 carpet footsteps, a real breaker switch sound and positional metal/entity cues instead of relying on the old synthetic ambience as the primary mix. Third-party model and audio attribution is recorded in THIRD_PARTY_ASSETS.md.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.24&run=33985112020
+sha256=078ef3f7a36e672472e8cee72a691c3e40b15afc9ef3b709ff471603bcb646ca
+notes=V0.3.24 fixes the V0.3.23 native runtime regression: assets now resolve from the installed executable folder, recorded audio ships as decoder-safe PCM WAV with stronger audible levels, the exit is mounted into a maze wall and rendered as a proper framed door with handle and power lamp, and the breaker fallback is a recognizable multi-switch electrical panel instead of a plain dark block. The normal Poly Haven breaker model remains the primary breaker visual when its asset loads successfully.
