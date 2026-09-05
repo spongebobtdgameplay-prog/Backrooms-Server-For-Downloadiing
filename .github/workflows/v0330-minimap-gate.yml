@@ -1,0 +1,57 @@
+name: V0.3.30 Minimap Gate
+
+on:
+  push:
+    branches:
+      - feature-v0.3.30-minimap-layout
+
+permissions:
+  contents: write
+
+jobs:
+  build-test:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply V0.3.30 minimap patch
+        run: python tools/v0330_minimap_patch.py
+
+      - name: Verify minimap source changes
+        shell: pwsh
+        run: |
+          $Map = Get-Content src/Rendering/MapOverlay.cpp -Raw
+          if ($Map -notmatch 'Compact \? 2\.05f : 2\.35f') { throw 'minimap zoom change missing' }
+          if ($Map -notmatch 'MarkerSafeInset = Detailed \? 0 : 12') { throw 'marker safe inset missing' }
+          if ($Map -notmatch 'ThreatNear \? "THREAT NEAR" : "MAP"') { throw 'clean map header missing' }
+          if ($Map -match 'ThreatNear \? "THREAT NEAR" : "M  MAP"') { throw 'old jammed minimap label remains' }
+          if ((Get-Content src/Core/Version.h -Raw) -notmatch '0\.3\.30') { throw 'version bump missing' }
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $Exe = Get-ChildItem -Path build -Filter "Backrooms Offical.exe" -Recurse | Select-Object -First 1
+          if (-not $Exe) { throw 'Backrooms Offical.exe was not produced' }
+          Write-Host "Built: $($Exe.FullName)"
+
+      - name: Commit tested V0.3.30 files
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt src/Core/Version.h src/Platform/Windows/Backrooms.rc src/Rendering/MapOverlay.cpp update/release_notes.txt
+          if (git diff --cached --quiet) {
+            Write-Host "No tested game changes to commit"
+            exit 0
+          }
+          git commit -m "Apply tested V0.3.30 minimap layout [skip ci]"
+          git push origin HEAD:feature-v0.3.30-minimap-layout
