@@ -1,0 +1,67 @@
+name: V0.3.27 Map Input Gate
+
+on:
+  push:
+    branches:
+      - feature-v0.3.27-map-waypoint-input
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v0327-map-input-gate
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature-v0.3.27-map-waypoint-input
+          fetch-depth: 0
+
+      - name: Apply V0.3.27 map input pass
+        run: python3 tools/apply_v0327_map_ui.py
+
+      - name: Remove temporary preparation files
+        run: |
+          rm -f tools/apply_v0327_map_ui.py
+          rm -f .github/workflows/v0327-map-gate.yml
+
+      - name: Commit prepared V0.3.27 source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Implement V0.3.27 infinite map waypoint and device controls [skip ci]"
+          git push origin HEAD:feature-v0.3.27-map-waypoint-input
+
+  build-windows:
+    needs: prepare
+    runs-on: windows-2022
+    steps:
+      - name: Checkout prepared feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature-v0.3.27-map-waypoint-input
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify V0.3.27 executable and source
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) { throw "Backrooms Offical.exe was not produced" }
+          if (!(Select-String -Path "src\Core\Version.h" -Pattern '0.3.27' -Quiet)) { throw "V0.3.27 version missing" }
+          if (!(Select-String -Path "src\World\WorldGenerator.cpp" -Pattern 'BuildMapRegion' -Quiet)) { throw "Infinite map region generator missing" }
+          if (!(Select-String -Path "src\Game\MapNavigation.cpp" -Pattern 'FindPath' -Quiet)) { throw "Waypoint pathfinder missing" }
+          if (!(Select-String -Path "src\Rendering\MapOverlay.cpp" -Pattern 'DrawMiniMapV2' -Quiet)) { throw "V2 minimap missing" }
+          if (!(Select-String -Path "src\Core\Application.cpp" -Pattern 'SDL_SetWindowFullscreen' -Quiet)) { throw "Fullscreen toggle missing" }
