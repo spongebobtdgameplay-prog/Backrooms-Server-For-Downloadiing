@@ -29,6 +29,13 @@ public:
         float TrackingEm
     );
 
+    int MeasureHeight(
+        const std::string& Text,
+        int PixelHeight,
+        int Weight,
+        float TrackingEm
+    );
+
     void Draw(
         const std::string& Text,
         int X,
