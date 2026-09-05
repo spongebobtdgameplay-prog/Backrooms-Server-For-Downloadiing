@@ -1,0 +1,205 @@
+name: Apply V0.3.20 Single HUD Fix
+
+on:
+  push:
+    branches:
+      - fix-v0.3.20-single-hud-no-flicker
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build:
+    if: github.event.head_commit.message != 'Apply V0.3.20 single HUD fix'
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix-v0.3.20-single-hud-no-flicker
+
+      - name: Apply source fix
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import re
+
+          renderer_path = Path("src/Rendering/Renderer.cpp")
+          renderer = renderer_path.read_text(encoding="utf-8")
+
+          pattern = re.compile(
+              r"void Renderer::DrawHud\(\n"
+              r"    int BreakersActive,\n"
+              r"    int BreakersRequired,\n"
+              r"    int InteractionType,\n"
+              r"    bool CanExit,\n"
+              r"    float Fps,\n"
+              r"    const std::string& Message\n"
+              r"\)\n"
+              r"\{[\s\S]*?\n\}\n\n"
+              r"void Renderer::DrawStartScreen"
+          )
+
+          replacement = '''void Renderer::DrawHud(
+              int BreakersActive,
+              int BreakersRequired,
+              int InteractionType,
+              bool CanExit,
+              float Fps,
+              const std::string& Message
+          )
+          {
+              static_cast<void>(BreakersActive);
+              static_cast<void>(BreakersRequired);
+              static_cast<void>(InteractionType);
+              static_cast<void>(CanExit);
+              static_cast<void>(Fps);
+
+              if (Message.empty())
+                  return;
+
+              const int MessageHeight =
+                  std::clamp(
+                      static_cast<int>(
+                          std::round(
+                              static_cast<float>(Width) * 0.02f
+                          )
+                      ),
+                      14,
+                      22
+                  );
+
+              const int MessageWidth =
+                  MenuTextWidth(
+                      Message,
+                      MessageHeight,
+                      800,
+                      0.24f
+                  );
+
+              DrawMenuText(
+                  Message,
+                  static_cast<int>(Width) / 2 - MessageWidth / 2,
+                  static_cast<int>(
+                      static_cast<float>(Height) * 0.19f
+                  ),
+                  MessageHeight,
+                  800,
+                  0.24f,
+                  {239.0f / 255.0f, 231.0f / 255.0f, 166.0f / 255.0f},
+                  1.0f,
+                  true
+              );
+          }
+
+          void Renderer::DrawStartScreen'''
+
+          renderer, count = pattern.subn(replacement, renderer, count=1)
+          if count != 1:
+              raise RuntimeError(f"Expected one legacy DrawHud body, replaced {count}")
+
+          old_end = '''    DrawCrosshair();
+              DrawStamina(Stamina);
+              DrawHud(
+                  BreakersActive,
+                  BreakersRequired,
+                  InteractionType,
+                  CanExit,
+                  Fps,
+                  Message
+              );'''
+
+          new_end = '''    static_cast<void>(Stamina);
+              DrawCrosshair();
+              DrawHud(
+                  BreakersActive,
+                  BreakersRequired,
+                  InteractionType,
+                  CanExit,
+                  Fps,
+                  Message
+              );'''
+
+          if old_end not in renderer:
+              raise RuntimeError("Legacy EndFrame HUD block was not found")
+
+          renderer = renderer.replace(old_end, new_end, 1)
+          renderer_path.write_text(renderer, encoding="utf-8")
+
+          interactive_path = Path("src/Rendering/InteractiveMenu.cpp")
+          interactive = interactive_path.read_text(encoding="utf-8")
+          old_bar = "    const int BarY = SprintY + 5;"
+          new_bar = "    const int BarY = SprintY + 3;"
+          if interactive.count(old_bar) != 1:
+              raise RuntimeError("Expected exactly one sprint bar Y expression")
+          interactive = interactive.replace(old_bar, new_bar, 1)
+          interactive_path.write_text(interactive, encoding="utf-8")
+
+          cmake_path = Path("CMakeLists.txt")
+          cmake = cmake_path.read_text(encoding="utf-8")
+          if "project(BackroomsOffical VERSION 0.3.19" not in cmake:
+              raise RuntimeError("CMake version is not V0.3.19")
+          cmake = cmake.replace(
+              "project(BackroomsOffical VERSION 0.3.19",
+              "project(BackroomsOffical VERSION 0.3.20",
+              1
+          )
+          cmake_path.write_text(cmake, encoding="utf-8")
+
+          version_path = Path("src/Core/Version.h")
+          version = version_path.read_text(encoding="utf-8")
+          if 'Text = "0.3.19"' not in version:
+              raise RuntimeError("Version.h is not V0.3.19")
+          version = version.replace('Text = "0.3.19"', 'Text = "0.3.20"', 1)
+          version_path.write_text(version, encoding="utf-8")
+
+          rc_path = Path("src/Platform/Windows/Backrooms.rc")
+          rc = rc_path.read_text(encoding="utf-8")
+          replacements = {
+              "FILEVERSION 0,3,19,0": "FILEVERSION 0,3,20,0",
+              "PRODUCTVERSION 0,3,19,0": "PRODUCTVERSION 0,3,20,0",
+              'VALUE "FileVersion", "0.3.19\\0"': 'VALUE "FileVersion", "0.3.20\\0"',
+              'VALUE "ProductVersion", "0.3.19\\0"': 'VALUE "ProductVersion", "0.3.20\\0"'
+          }
+          for old, new in replacements.items():
+              if old not in rc:
+                  raise RuntimeError(f"Missing RC version token: {old}")
+              rc = rc.replace(old, new, 1)
+          rc_path.write_text(rc, encoding="utf-8")
+
+          Path("update/release_notes.txt").write_text(
+              "V0.3.20 removes the duplicate legacy gameplay HUD that was still rendering underneath the V3 HUD and causing stacked LEVEL 0 / RESTORE POWER / FPS text and visible flicker. Gameplay now has one HUD owner: the V3 overlay handles objective, real FPS, interaction prompt, and sprint, while the legacy HUD path is limited to temporary center status messages only. The old legacy stamina draw is no longer called, and the V3 sprint bar is moved two pixels upward so the 3px bar is vertically centered against the 9px SPRINT label.\n",
+              encoding="utf-8"
+          )
+
+          final_renderer = renderer_path.read_text(encoding="utf-8")
+          if "DrawStamina(Stamina);" in final_renderer:
+              raise RuntimeError("Legacy stamina call still exists in EndFrame")
+          if interactive_path.read_text(encoding="utf-8").count(new_bar) != 1:
+              raise RuntimeError("Sprint alignment change was not applied exactly once")
+          '@ | python -
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) {
+            throw "Backrooms Offical.exe was not produced"
+          }
+
+      - name: Commit tested fix
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt src/Core/Version.h src/Platform/Windows/Backrooms.rc src/Rendering/Renderer.cpp src/Rendering/InteractiveMenu.cpp update/release_notes.txt
+          git commit -m "Apply V0.3.20 single HUD fix"
+          git push origin HEAD:fix-v0.3.20-single-hud-no-flicker
