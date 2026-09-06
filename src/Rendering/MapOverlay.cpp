@@ -208,13 +208,36 @@ void Renderer::DrawMapPanelV2(
     const float Scale = std::max(PixelsPerMeter, 0.1f);
     const float HalfCell = World.CellSize * 0.5f;
 
+    glm::vec2 MapForward = PlayerForward;
+    if (glm::length(MapForward) < 0.001f)
+        MapForward = {0.0f, -1.0f};
+    else
+        MapForward = glm::normalize(MapForward);
+
+    const glm::vec2 MapRight{-MapForward.y, MapForward.x};
+
     auto ToScreen = [&](float WorldX, float WorldZ)
     {
+        const glm::vec2 Delta{
+            WorldX - MapCenter.x,
+            WorldZ - MapCenter.y
+        };
+
+        if (!Detailed)
+        {
+            return glm::ivec2{
+                X + PanelWidth / 2 +
+                    static_cast<int>(std::round(glm::dot(Delta, MapRight) * Scale)),
+                Y + PanelHeight / 2 -
+                    static_cast<int>(std::round(glm::dot(Delta, MapForward) * Scale))
+            };
+        }
+
         return glm::ivec2{
             X + PanelWidth / 2 +
-                static_cast<int>(std::round((WorldX - MapCenter.x) * Scale)),
+                static_cast<int>(std::round(Delta.x * Scale)),
             Y + PanelHeight / 2 +
-                static_cast<int>(std::round((WorldZ - MapCenter.y) * Scale))
+                static_cast<int>(std::round(Delta.y * Scale))
         };
     };
 
@@ -227,6 +250,41 @@ void Renderer::DrawMapPanelV2(
             const MazeCell& Cell = World.Cell(LocalX, LocalZ);
             const float CenterX = static_cast<float>(Cell.X) * World.CellSize;
             const float CenterZ = static_cast<float>(Cell.Z) * World.CellSize;
+
+            if (!Detailed)
+            {
+                const glm::ivec2 NorthWest = ToScreen(CenterX - HalfCell, CenterZ - HalfCell);
+                const glm::ivec2 NorthEast = ToScreen(CenterX + HalfCell, CenterZ - HalfCell);
+                const glm::ivec2 SouthEast = ToScreen(CenterX + HalfCell, CenterZ + HalfCell);
+                const glm::ivec2 SouthWest = ToScreen(CenterX - HalfCell, CenterZ + HalfCell);
+
+                const int MinimumX = std::min({NorthWest.x, NorthEast.x, SouthEast.x, SouthWest.x});
+                const int MaximumX = std::max({NorthWest.x, NorthEast.x, SouthEast.x, SouthWest.x});
+                const int MinimumY = std::min({NorthWest.y, NorthEast.y, SouthEast.y, SouthWest.y});
+                const int MaximumY = std::max({NorthWest.y, NorthEast.y, SouthEast.y, SouthWest.y});
+
+                if (
+                    MaximumX < X ||
+                    MaximumY < Y ||
+                    MinimumX > X + PanelWidth ||
+                    MinimumY > Y + PanelHeight
+                )
+                {
+                    continue;
+                }
+
+                if (Cell.Walls[0])
+                    Line(NorthWest, NorthEast, WallThickness, Wall);
+                if (Cell.Walls[1])
+                    Line(NorthEast, SouthEast, WallThickness, Wall);
+                if (Cell.Walls[2])
+                    Line(SouthWest, SouthEast, WallThickness, Wall);
+                if (Cell.Walls[3])
+                    Line(NorthWest, SouthWest, WallThickness, Wall);
+
+                continue;
+            }
+
             const glm::ivec2 TopLeft = ToScreen(CenterX - HalfCell, CenterZ - HalfCell);
             const glm::ivec2 BottomRight = ToScreen(CenterX + HalfCell, CenterZ + HalfCell);
 
@@ -273,7 +331,7 @@ void Renderer::DrawMapPanelV2(
     {
         const glm::ivec2 Position = ToScreen(Marker.Position.x, Marker.Position.y);
 
-        const int MarkerSafeInset = Detailed ? 0 : 16;
+        const int MarkerSafeInset = Detailed ? 0 : 10;
 
         if (
             Position.x < X + MarkerSafeInset ||
@@ -291,20 +349,32 @@ void Renderer::DrawMapPanelV2(
             const glm::vec3 Glow = Active
                 ? glm::vec3{0.16f, 0.92f, 0.34f}
                 : glm::vec3{1.0f, 0.13f, 0.08f};
-            const int Radius = Detailed ? 8 : 8;
+            const int Radius = Detailed ? 8 : 4;
 
             FillCircle(Position.x, Position.y, Radius + 3, Ink);
             FillCircle(Position.x, Position.y, Radius + 1, Glow);
             FillCircle(Position.x, Position.y, std::max(Radius - 2, 2), Yellow);
 
+            const int IconReach = Detailed ? 4 : 2;
             Line(
-                {Position.x - 4, Position.y + 4},
-                {Position.x + 3, Position.y - 3},
-                2,
+                {Position.x - IconReach, Position.y + IconReach},
+                {Position.x + IconReach, Position.y - IconReach},
+                Detailed ? 2 : 1,
                 Ink
             );
-            FillCircle(Position.x + 4, Position.y - 4, 2, Ink);
-            ClipRect(Position.x - 6, Position.y + 3, 5, 3, Ink);
+            FillCircle(
+                Position.x + IconReach,
+                Position.y - IconReach,
+                Detailed ? 2 : 1,
+                Ink
+            );
+            ClipRect(
+                Position.x - (Detailed ? 6 : 3),
+                Position.y + (Detailed ? 3 : 2),
+                Detailed ? 5 : 3,
+                Detailed ? 3 : 2,
+                Ink
+            );
         }
         else if (Marker.Kind == MapMarkerKind::Exit || Marker.Kind == MapMarkerKind::ExitPowered)
         {
@@ -312,7 +382,7 @@ void Renderer::DrawMapPanelV2(
                 Marker.Kind == MapMarkerKind::ExitPowered
                     ? glm::vec3{0.16f, 0.95f, 0.42f}
                     : glm::vec3{0.96f, 0.94f, 0.80f};
-            const int Radius = Detailed ? 8 : 8;
+            const int Radius = Detailed ? 8 : 4;
             FillCircle(Position.x, Position.y, Radius + 2, Ink);
             FillCircle(Position.x, Position.y, Radius, Color);
             ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
@@ -324,7 +394,7 @@ void Renderer::DrawMapPanelV2(
             const glm::vec3 Threat = RedPhase
                 ? glm::vec3{1.0f, 0.035f, 0.02f}
                 : glm::vec3{0.50f, 0.015f, 0.012f};
-            const int Radius = Detailed ? 9 : 9;
+            const int Radius = Detailed ? 9 : 5;
             const glm::ivec2 Top{Position.x, Position.y - Radius};
             const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
             const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
@@ -360,7 +430,9 @@ void Renderer::DrawMapPanelV2(
     if (Waypoint.Active)
     {
         const glm::ivec2 Position = ToScreen(Waypoint.Position.x, Waypoint.Position.y);
-        const int Pulse = 9 + static_cast<int>((std::sin(Time * 5.0f) + 1.0f) * 2.0f);
+        const int Pulse = Detailed
+            ? 9 + static_cast<int>((std::sin(Time * 5.0f) + 1.0f) * 2.0f)
+            : 5 + static_cast<int>((std::sin(Time * 5.0f) + 1.0f) * 1.0f);
         Ring(Position.x, Position.y, Pulse + 3, 2, Ink);
         Ring(Position.x, Position.y, Pulse, 2, RouteColor);
         Line({Position.x - 5, Position.y}, {Position.x + 5, Position.y}, 2, RouteColor);
@@ -383,27 +455,28 @@ void Renderer::DrawMapPanelV2(
     }
 
     const glm::ivec2 PlayerScreen = ToScreen(PlayerPosition.x, PlayerPosition.y);
-    glm::vec2 Direction = PlayerForward;
+    glm::vec2 Direction = Detailed ? PlayerForward : glm::vec2{0.0f, -1.0f};
 
     if (glm::length(Direction) < 0.001f)
         Direction = {0.0f, -1.0f};
     else
         Direction = glm::normalize(Direction);
 
-    const glm::vec2 Right{Direction.y, -Direction.x};
-    const int ArrowLength = Detailed ? 14 : 16;
-    const int ArrowWidth = Detailed ? 8 : 9;
+    const glm::vec2 Right{-Direction.y, Direction.x};
+    const int ArrowLength = Detailed ? 14 : 9;
+    const int ArrowWidth = Detailed ? 8 : 5;
+    const float TailLength = Detailed ? 5.0f : 3.0f;
     const glm::ivec2 Tip{
         PlayerScreen.x + static_cast<int>(std::round(Direction.x * ArrowLength)),
         PlayerScreen.y + static_cast<int>(std::round(Direction.y * ArrowLength))
     };
     const glm::ivec2 Left{
-        PlayerScreen.x - static_cast<int>(std::round(Direction.x * 5.0f)) + static_cast<int>(std::round(Right.x * ArrowWidth)),
-        PlayerScreen.y - static_cast<int>(std::round(Direction.y * 5.0f)) + static_cast<int>(std::round(Right.y * ArrowWidth))
+        PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) + static_cast<int>(std::round(Right.x * ArrowWidth)),
+        PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) + static_cast<int>(std::round(Right.y * ArrowWidth))
     };
     const glm::ivec2 RightPoint{
-        PlayerScreen.x - static_cast<int>(std::round(Direction.x * 5.0f)) - static_cast<int>(std::round(Right.x * ArrowWidth)),
-        PlayerScreen.y - static_cast<int>(std::round(Direction.y * 5.0f)) - static_cast<int>(std::round(Right.y * ArrowWidth))
+        PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) - static_cast<int>(std::round(Right.x * ArrowWidth)),
+        PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) - static_cast<int>(std::round(Right.y * ArrowWidth))
     };
 
     FillTriangle(
@@ -413,7 +486,7 @@ void Renderer::DrawMapPanelV2(
         Ink
     );
     FillTriangle(Tip, Left, RightPoint, {0.98f, 0.97f, 0.86f});
-    FillCircle(PlayerScreen.x, PlayerScreen.y, 3, RouteColor);
+    FillCircle(PlayerScreen.x, PlayerScreen.y, Detailed ? 3 : 2, RouteColor);
 
     if (Detailed && !HoverLabel.empty() && GameplayTextRenderer.IsReady())
     {

@@ -78,6 +78,7 @@ private:
     void EndGame(bool Escaped);
 
     AABB BreakerBounds(const Breaker& BreakerData) const;
+    AABB BreakerInteractionBounds(const Breaker& BreakerData) const;
     AABB ExitBounds() const;
 
     std::vector<SceneBox> BuildDynamicBoxes() const;
