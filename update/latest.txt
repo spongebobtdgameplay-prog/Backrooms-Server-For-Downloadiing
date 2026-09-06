@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.31
-manifest_revision=34009642513
-published_at=2026-09-06T03:45:15Z
+version=0.3.32
+manifest_revision=34038033931
+published_at=2026-09-06T14:08:16Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.31&run=34009642513
-sha256=5148891c71fe896f798d1227c9cf1f33075777202cd0f1b763321c2ad28419da
-notes=V0.3.31 rebuilds the gameplay minimap presentation. The minimap is larger and uses a clean dark HUD frame with a dedicated MAP / LEVEL 0 header, a separate waypoint footer, an inset maze viewport, stronger local zoom, thicker readable maze walls, larger breaker/entity/player markers, and a clearer blue route. Marker clipping is prevented by safe inner bounds. The sprint meter is positioned from the minimap top so the two HUD elements always keep deliberate spacing. The center reticle is also larger with separated high-contrast ticks and a stronger center dot.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.32&run=34038033931
+sha256=0efbe6bff983b038725bb5e8f21cc20e4cd478761b835e58e492cda2032c8d7a
+notes=V0.3.32 fixes the gameplay minimap and wall-mounted breakers. The gameplay minimap now rotates around the player so the current camera direction always stays at the top while the full map remains world-fixed. Minimap breaker, exit, entity, waypoint, and player markers are reduced so they no longer cover the maze. Breakers are mounted farther out from the wall to account for the open cabinet model, use collision dimensions that match the visible model more closely, accept a slightly wider aiming target and longer interaction distance, and show a visible red indicator before activation and green indicator after activation.
