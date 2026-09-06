@@ -182,16 +182,27 @@ void Renderer::DrawMapPanelV2(
 
     DrawRect(X, Y, PanelWidth, PanelHeight, Yellow);
 
-    for (int StripeX = X + 28; StripeX < X + PanelWidth; StripeX += 56)
-        ClipRect(StripeX, Y, 1, PanelHeight, WallpaperLine);
-
-    for (int StripeX = X + 42; StripeX < X + PanelWidth; StripeX += 112)
-        ClipRect(StripeX, Y, 1, PanelHeight, WallpaperAccent);
-
-    for (int MotifY = Y + 34; MotifY < Y + PanelHeight; MotifY += 68)
+    if (Detailed)
     {
-        for (int MotifX = X + 14; MotifX < X + PanelWidth; MotifX += 56)
-            ClipRect(MotifX, MotifY, 8, 1, WallpaperLine);
+        for (int StripeX = X + 28; StripeX < X + PanelWidth; StripeX += 56)
+            ClipRect(StripeX, Y, 1, PanelHeight, WallpaperLine);
+
+        for (int StripeX = X + 42; StripeX < X + PanelWidth; StripeX += 112)
+            ClipRect(StripeX, Y, 1, PanelHeight, WallpaperAccent);
+
+        for (int MotifY = Y + 34; MotifY < Y + PanelHeight; MotifY += 68)
+        {
+            for (int MotifX = X + 14; MotifX < X + PanelWidth; MotifX += 56)
+                ClipRect(MotifX, MotifY, 8, 1, WallpaperLine);
+        }
+    }
+    else
+    {
+        for (int StripeX = X + 24; StripeX < X + PanelWidth; StripeX += 48)
+            ClipRect(StripeX, Y, 1, PanelHeight, WallpaperLine);
+
+        for (int StripeX = X + 36; StripeX < X + PanelWidth; StripeX += 96)
+            ClipRect(StripeX, Y, 1, PanelHeight, WallpaperAccent);
     }
 
     const float Scale = std::max(PixelsPerMeter, 0.1f);
@@ -207,7 +218,7 @@ void Renderer::DrawMapPanelV2(
         };
     };
 
-    const int WallThickness = 1;
+    const int WallThickness = Detailed ? 1 : 2;
 
     for (int LocalZ = 0; LocalZ < World.Rows; ++LocalZ)
     {
@@ -249,8 +260,8 @@ void Renderer::DrawMapPanelV2(
         {
             const glm::ivec2 A = ToScreen(Route[I - 1].x, Route[I - 1].y);
             const glm::ivec2 B = ToScreen(Route[I].x, Route[I].y);
-            Line(A, B, Detailed ? 6 : 4, RouteOuter);
-            Line(A, B, Detailed ? 3 : 2, RouteColor);
+            Line(A, B, Detailed ? 6 : 5, RouteOuter);
+            Line(A, B, 3, RouteColor);
         }
     }
 
@@ -262,7 +273,7 @@ void Renderer::DrawMapPanelV2(
     {
         const glm::ivec2 Position = ToScreen(Marker.Position.x, Marker.Position.y);
 
-        const int MarkerSafeInset = Detailed ? 0 : 12;
+        const int MarkerSafeInset = Detailed ? 0 : 16;
 
         if (
             Position.x < X + MarkerSafeInset ||
@@ -280,7 +291,7 @@ void Renderer::DrawMapPanelV2(
             const glm::vec3 Glow = Active
                 ? glm::vec3{0.16f, 0.92f, 0.34f}
                 : glm::vec3{1.0f, 0.13f, 0.08f};
-            const int Radius = Detailed ? 8 : 6;
+            const int Radius = Detailed ? 8 : 8;
 
             FillCircle(Position.x, Position.y, Radius + 3, Ink);
             FillCircle(Position.x, Position.y, Radius + 1, Glow);
@@ -301,7 +312,7 @@ void Renderer::DrawMapPanelV2(
                 Marker.Kind == MapMarkerKind::ExitPowered
                     ? glm::vec3{0.16f, 0.95f, 0.42f}
                     : glm::vec3{0.96f, 0.94f, 0.80f};
-            const int Radius = Detailed ? 8 : 6;
+            const int Radius = Detailed ? 8 : 8;
             FillCircle(Position.x, Position.y, Radius + 2, Ink);
             FillCircle(Position.x, Position.y, Radius, Color);
             ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
@@ -313,7 +324,7 @@ void Renderer::DrawMapPanelV2(
             const glm::vec3 Threat = RedPhase
                 ? glm::vec3{1.0f, 0.035f, 0.02f}
                 : glm::vec3{0.50f, 0.015f, 0.012f};
-            const int Radius = Detailed ? 9 : 7;
+            const int Radius = Detailed ? 9 : 9;
             const glm::ivec2 Top{Position.x, Position.y - Radius};
             const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
             const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
@@ -380,8 +391,8 @@ void Renderer::DrawMapPanelV2(
         Direction = glm::normalize(Direction);
 
     const glm::vec2 Right{Direction.y, -Direction.x};
-    const int ArrowLength = Detailed ? 14 : 11;
-    const int ArrowWidth = Detailed ? 8 : 6;
+    const int ArrowLength = Detailed ? 14 : 16;
+    const int ArrowWidth = Detailed ? 8 : 9;
     const glm::ivec2 Tip{
         PlayerScreen.x + static_cast<int>(std::round(Direction.x * ArrowLength)),
         PlayerScreen.y + static_cast<int>(std::round(Direction.y * ArrowLength))
@@ -402,7 +413,7 @@ void Renderer::DrawMapPanelV2(
         Ink
     );
     FillTriangle(Tip, Left, RightPoint, {0.98f, 0.97f, 0.86f});
-    FillCircle(PlayerScreen.x, PlayerScreen.y, Detailed ? 3 : 2, RouteColor);
+    FillCircle(PlayerScreen.x, PlayerScreen.y, 3, RouteColor);
 
     if (Detailed && !HoverLabel.empty() && GameplayTextRenderer.IsReady())
     {
@@ -430,11 +441,12 @@ void Renderer::DrawMapPanelV2(
         );
     }
 
-    const glm::vec3 Frame{0.34f, 0.31f, 0.15f};
-    DrawRect(X, Y, PanelWidth, 1, Frame);
-    DrawRect(X, Y + PanelHeight - 1, PanelWidth, 1, Frame);
-    DrawRect(X, Y, 1, PanelHeight, Frame);
-    DrawRect(X + PanelWidth - 1, Y, 1, PanelHeight, Frame);
+    const glm::vec3 Frame{0.24f, 0.22f, 0.10f};
+    const int FrameThickness = Detailed ? 1 : 2;
+    DrawRect(X, Y, PanelWidth, FrameThickness, Frame);
+    DrawRect(X, Y + PanelHeight - FrameThickness, PanelWidth, FrameThickness, Frame);
+    DrawRect(X, Y, FrameThickness, PanelHeight, Frame);
+    DrawRect(X + PanelWidth - FrameThickness, Y, FrameThickness, PanelHeight, Frame);
 }
 
 void Renderer::DrawMiniMapV2(
@@ -453,28 +465,64 @@ void Renderer::DrawMiniMapV2(
 
     const bool Compact = Width < 900 || Height < 620;
     const int MapWidth = std::clamp(
-        static_cast<int>(Width * (Compact ? 0.235f : 0.145f)),
-        Compact ? 184 : 210,
-        Compact ? 236 : 246
+        static_cast<int>(Width * (Compact ? 0.29f : 0.19f)),
+        Compact ? 220 : 280,
+        Compact ? 280 : 330
     );
     const int MapHeight = std::clamp(
-        static_cast<int>(Height * (Compact ? 0.185f : 0.160f)),
-        Compact ? 118 : 136,
-        Compact ? 158 : 154
+        static_cast<int>(Height * (Compact ? 0.22f : 0.205f)),
+        Compact ? 148 : 172,
+        Compact ? 188 : 202
     );
-    const int Margin = std::clamp(static_cast<int>(Width * 0.015f), 16, 24);
+    const int Margin = std::clamp(static_cast<int>(Width * 0.015f), 16, 26);
     const int MapX = Margin;
     const int MapY = static_cast<int>(Height) - MapHeight - Margin;
-    const int HeaderHeight = 22;
+    const int HeaderHeight = 30;
+    const int FooterHeight = Waypoint.Active ? 25 : 0;
+    const int FrameThickness = 2;
+    const int InnerPadding = 6;
+
+    const int InnerX = MapX + FrameThickness + InnerPadding;
+    const int InnerY = MapY + HeaderHeight + InnerPadding;
+    const int InnerWidth = std::max(
+        MapWidth - (FrameThickness + InnerPadding) * 2,
+        1
+    );
+    const int InnerHeight = std::max(
+        MapHeight - HeaderHeight - FooterHeight - FrameThickness - InnerPadding * 2,
+        1
+    );
+
+    const glm::vec3 Ink = LevelZeroInk();
+    const glm::vec3 WarmText{0.97f, 0.93f, 0.66f};
+    const glm::vec3 PanelFill{0.805f, 0.755f, 0.405f};
+    const glm::vec3 Frame{0.075f, 0.068f, 0.032f};
+    const glm::vec3 Shadow{0.055f, 0.050f, 0.026f};
+    const glm::vec3 HeaderIdle{0.115f, 0.105f, 0.052f};
+    const glm::vec3 HeaderAlert{0.42f, 0.018f, 0.012f};
+    const glm::vec3 RouteAccent{0.245f, 0.545f, 0.965f};
+    const bool ThreatNear = std::isfinite(ThreatDistance) && ThreatDistance < 36.0f;
+    const bool RedPhase = ThreatNear && std::fmod(Time * 7.0f, 1.0f) < 0.5f;
+    const glm::vec3 HeaderFill = RedPhase ? HeaderAlert : HeaderIdle;
+
+    DrawRect(MapX + 4, MapY + 4, MapWidth, MapHeight, Shadow);
+    DrawRect(MapX, MapY, MapWidth, MapHeight, Frame);
+    DrawRect(
+        MapX + FrameThickness,
+        MapY + FrameThickness,
+        MapWidth - FrameThickness * 2,
+        MapHeight - FrameThickness * 2,
+        PanelFill
+    );
 
     DrawMapPanelV2(
         World,
-        MapX,
-        MapY,
-        MapWidth,
-        MapHeight,
+        InnerX,
+        InnerY,
+        InnerWidth,
+        InnerHeight,
         PlayerPosition,
-        Compact ? 2.05f : 2.35f,
+        Compact ? 2.45f : 2.70f,
         PlayerPosition,
         PlayerForward,
         Markers,
@@ -484,21 +532,46 @@ void Renderer::DrawMiniMapV2(
         Time
     );
 
-    const glm::vec3 Ink = LevelZeroInk();
-    const glm::vec3 HeaderFill{0.805f, 0.752f, 0.405f};
-    const glm::vec3 Separator{0.30f, 0.275f, 0.13f};
-    const bool ThreatNear = std::isfinite(ThreatDistance) && ThreatDistance < 36.0f;
+    DrawRect(
+        MapX + FrameThickness,
+        MapY + FrameThickness,
+        MapWidth - FrameThickness * 2,
+        HeaderHeight - FrameThickness,
+        HeaderFill
+    );
+    DrawRect(
+        MapX + FrameThickness,
+        MapY + HeaderHeight - 2,
+        MapWidth - FrameThickness * 2,
+        2,
+        ThreatNear ? glm::vec3{0.95f, 0.05f, 0.025f} : RouteAccent
+    );
 
-    DrawRect(MapX + 1, MapY + 1, MapWidth - 2, HeaderHeight, HeaderFill);
-    DrawRect(MapX + 1, MapY + HeaderHeight, MapWidth - 2, 1, Separator);
+    if (Waypoint.Active)
+    {
+        const int FooterY = MapY + MapHeight - FooterHeight - FrameThickness;
+        DrawRect(
+            MapX + FrameThickness,
+            FooterY,
+            MapWidth - FrameThickness * 2,
+            FooterHeight,
+            HeaderIdle
+        );
+        DrawRect(
+            MapX + FrameThickness,
+            FooterY,
+            MapWidth - FrameThickness * 2,
+            2,
+            RouteAccent
+        );
+    }
 
     if (ThreatNear)
     {
-        const bool RedPhase = std::fmod(Time * 7.0f, 1.0f) < 0.5f;
         const glm::vec3 Alert = RedPhase
             ? glm::vec3{0.98f, 0.025f, 0.015f}
-            : glm::vec3{0.015f, 0.012f, 0.008f};
-        const int Border = RedPhase ? 5 : 4;
+            : glm::vec3{0.04f, 0.02f, 0.012f};
+        const int Border = RedPhase ? 4 : 3;
         DrawRect(MapX - Border, MapY - Border, MapWidth + Border * 2, Border, Alert);
         DrawRect(MapX - Border, MapY + MapHeight, MapWidth + Border * 2, Border, Alert);
         DrawRect(MapX - Border, MapY, Border, MapHeight, Alert);
@@ -508,63 +581,78 @@ void Renderer::DrawMiniMapV2(
     if (GameplayTextRenderer.IsReady())
     {
         GameplayTextRenderer.Resize(Width, Height);
+
         GameplayTextRenderer.Draw(
-            ThreatNear ? "THREAT NEAR" : "MAP",
-            MapX + 9,
-            MapY + 5,
-            9,
+            ThreatNear ? "THREAT" : "MAP",
+            MapX + 11,
+            MapY + 7,
+            11,
             850,
-            0.09f,
-            ThreatNear ? glm::vec3{0.78f, 0.025f, 0.015f} : Ink,
+            0.08f,
+            ThreatNear ? glm::vec3{1.0f, 0.76f, 0.62f} : WarmText,
             1.0f,
             true
         );
 
         GameplayTextRenderer.Draw(
-            "M",
-            MapX + MapWidth - 22,
-            MapY + 5,
+            "LEVEL 0",
+            MapX + 61,
+            MapY + 8,
             9,
-            800,
-            0.02f,
-            Ink,
-            0.72f,
+            700,
+            0.08f,
+            WarmText,
+            0.82f,
+            true
+        );
+
+        const std::string ExpandHint = "M  EXPAND";
+        const int ExpandWidth = GameplayTextRenderer.Measure(
+            ExpandHint,
+            9,
+            750,
+            0.05f
+        );
+        GameplayTextRenderer.Draw(
+            ExpandHint,
+            MapX + MapWidth - 11 - ExpandWidth,
+            MapY + 8,
+            9,
+            750,
+            0.05f,
+            WarmText,
+            0.86f,
             true
         );
 
         if (Waypoint.Active)
         {
-            const int FooterHeight = 21;
-            DrawRect(
-                MapX + 1,
-                MapY + MapHeight - FooterHeight - 1,
-                MapWidth - 2,
-                FooterHeight,
-                HeaderFill
-            );
-            DrawRect(
-                MapX + 1,
-                MapY + MapHeight - FooterHeight - 1,
-                MapWidth - 2,
-                1,
-                Separator
-            );
-
             std::ostringstream Distance;
-            Distance << "WAYPOINT  " << std::fixed << std::setprecision(0) << Waypoint.DistanceMeters << " M";
+            Distance
+                << "DESTINATION  "
+                << std::fixed
+                << std::setprecision(0)
+                << Waypoint.DistanceMeters
+                << " M";
+
             GameplayTextRenderer.Draw(
                 Distance.str(),
-                MapX + 9,
-                MapY + MapHeight - 18,
+                MapX + 11,
+                MapY + MapHeight - FooterHeight + 6,
                 9,
                 800,
                 0.05f,
-                Ink,
+                WarmText,
                 1.0f,
                 true
             );
         }
     }
+
+    DrawRect(MapX, MapY, MapWidth, FrameThickness, Frame);
+    DrawRect(MapX, MapY + MapHeight - FrameThickness, MapWidth, FrameThickness, Frame);
+    DrawRect(MapX, MapY, FrameThickness, MapHeight, Frame);
+    DrawRect(MapX + MapWidth - FrameThickness, MapY, FrameThickness, MapHeight, Frame);
 }
 
 void Renderer::DrawFullMapV2(

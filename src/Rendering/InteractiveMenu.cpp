@@ -1014,17 +1014,30 @@ void Renderer::DrawGameplayOverlayV3(
             HighStamina * Amount;
     }
 
-    const int SprintFontHeight = 10;
-    const int SprintY =
-        std::max(80, static_cast<int>(Height) - 226);
+    const bool CompactHud = Width < 900 || Height < 620;
+    const int MiniMapHeight = std::clamp(
+        static_cast<int>(Height * (CompactHud ? 0.22f : 0.205f)),
+        CompactHud ? 148 : 172,
+        CompactHud ? 188 : 202
+    );
+    const int MiniMapMargin = std::clamp(
+        static_cast<int>(Width * 0.015f),
+        16,
+        26
+    );
+    const int MiniMapTop =
+        static_cast<int>(Height) - MiniMapHeight - MiniMapMargin;
+
+    const int SprintFontHeight = 11;
+    const int SprintY = std::max(80, MiniMapTop - 36);
 
     GameplayTextRenderer.Draw(
         "SPRINT",
         LeftX,
         SprintY,
         SprintFontHeight,
-        750,
-        0.16f,
+        780,
+        0.15f,
         StaminaColor,
         1.0f,
         true
@@ -1034,13 +1047,13 @@ void Renderer::DrawGameplayOverlayV3(
         GameplayTextRenderer.Measure(
             "SPRINT",
             SprintFontHeight,
-            750,
-            0.16f
+            780,
+            0.15f
         );
 
     const int BarX = LeftX + SprintLabelWidth + 12;
-    const int BarWidth = 132;
-    const int BarHeight = 5;
+    const int BarWidth = 148;
+    const int BarHeight = 6;
     const int TextRasterTopPadding = 4;
     const int BarY =
         SprintY +
@@ -1056,11 +1069,19 @@ void Renderer::DrawGameplayOverlayV3(
         );
 
     DrawRect(
+        BarX - 1,
+        BarY - 1,
+        BarWidth + 2,
+        BarHeight + 2,
+        {0.07f, 0.065f, 0.035f}
+    );
+
+    DrawRect(
         BarX,
         BarY,
         BarWidth,
         BarHeight,
-        {0.20f, 0.18f, 0.11f}
+        {0.18f, 0.16f, 0.085f}
     );
 
     if (FillWidth > 0)
