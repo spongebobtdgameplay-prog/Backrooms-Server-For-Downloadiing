@@ -817,14 +817,11 @@ bool Renderer::Initialize()
     );
 
     GhostEntityModel.Load(
-        "assets/models/entity-ghost.glb",
-        2.18f
+        "assets/models/backrooms_entity.glb",
+        2.62f
     );
 
-    DemonEntityModel.Load(
-        "assets/models/entity-demon.glb",
-        2.35f
-    );
+    DemonEntityModel.Shutdown();
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -1126,7 +1123,7 @@ void Renderer::DrawExitDoor(
 
 bool Renderer::HasEntityModels() const
 {
-    return true;
+    return GhostEntityModel.IsReady();
 }
 
 void Renderer::DrawEntity(
@@ -1137,89 +1134,46 @@ void Renderer::DrawEntity(
     float ShiftProgress
 )
 {
+    if (!GhostEntityModel.IsReady())
+        return;
+
     glm::vec3 Direction = Forward;
     Direction.y = 0.0f;
-
     if (glm::length(Direction) < 0.001f)
         Direction = {0.0f, 0.0f, -1.0f};
     else
         Direction = glm::normalize(Direction);
 
-    const float Yaw = std::atan2(Direction.x, Direction.z);
-    const float GaitSpeed = DemonForm ? 10.2f : 8.4f;
-    const float Gait = std::sin(RenderTime * GaitSpeed);
-    const float OppositeGait = std::sin(RenderTime * GaitSpeed + 3.14159265f);
-    const float Bob = std::abs(std::sin(RenderTime * GaitSpeed)) * 0.045f;
+    const glm::vec3 Right{Direction.z, 0.0f, -Direction.x};
+    const float Gait = std::sin(RenderTime * 9.4f);
+    const float Bob = std::abs(Gait) * 0.035f;
+    const float Sway = std::sin(RenderTime * 4.7f) * 0.022f;
+    const float TurnSway = std::sin(RenderTime * 3.1f) * 0.028f;
+    glm::vec3 AnimatedForward = Direction + Right * TurnSway;
+    AnimatedForward = glm::normalize(AnimatedForward);
+
     const float Shift = std::clamp(ShiftProgress, 0.0f, 1.0f);
-    const float Hunch = DemonForm ? 0.26f : 0.15f;
-
-    const glm::vec3 BodyColor = DemonForm
-        ? glm::vec3{0.105f, 0.040f, 0.032f}
-        : glm::vec3{0.050f, 0.052f, 0.046f};
-    const glm::vec3 LimbColor = DemonForm
-        ? glm::vec3{0.075f, 0.026f, 0.022f}
-        : glm::vec3{0.035f, 0.038f, 0.034f};
-    const glm::vec3 FaceColor = DemonForm
-        ? glm::vec3{0.125f, 0.105f, 0.082f}
-        : glm::vec3{0.090f, 0.092f, 0.080f};
-    const glm::vec3 EyeColor = DemonForm
-        ? glm::vec3{0.70f, 0.055f, 0.025f}
-        : glm::vec3{0.32f, 0.31f, 0.19f};
-
-    const glm::mat4 Root =
-        glm::translate(
-            glm::mat4(1.0f),
-            Position + glm::vec3{0.0f, Bob, 0.0f}
-        ) *
-        glm::rotate(
-            glm::mat4(1.0f),
-            Yaw,
-            glm::vec3{0.0f, 1.0f, 0.0f}
-        );
-
-    auto PushPart = [&](const glm::vec3& LocalPosition,
-                        const glm::vec3& Size,
-                        float RotateX,
-                        float RotateZ,
-                        const glm::vec3& Color,
-                        const glm::vec3& Emissive,
-                        float Roughness)
-    {
-        InstanceData Instance;
-        Instance.Model =
-            Root *
-            glm::translate(glm::mat4(1.0f), LocalPosition) *
-            glm::rotate(glm::mat4(1.0f), RotateX, glm::vec3{1.0f, 0.0f, 0.0f}) *
-            glm::rotate(glm::mat4(1.0f), RotateZ, glm::vec3{0.0f, 0.0f, 1.0f}) *
-            glm::scale(glm::mat4(1.0f), Size);
-        Instance.Color = glm::vec4(Color, 1.0f);
-        Instance.EmissiveRoughness = glm::vec4(Emissive, Roughness);
-        Instance.SurfaceData = glm::vec4(0.0f);
-        Instances.push_back(Instance);
+    const float Stretch = 1.0f + std::abs(Gait) * 0.018f + (DemonForm ? 0.018f : 0.0f);
+    const glm::vec3 VisualScale{
+        1.0f - std::abs(Gait) * 0.008f,
+        Stretch,
+        1.0f
     };
 
-    const float BodyLean = Hunch + Gait * 0.025f;
-    const float ArmSwing = Gait * (DemonForm ? 0.72f : 0.58f);
-    const float LegSwing = Gait * (DemonForm ? 0.55f : 0.44f);
+    GhostEntityModel.Draw(
+        View,
+        Projection,
+        CameraPosition,
+        Position + Right * Sway + glm::vec3{0.0f, Bob, 0.0f},
+        AnimatedForward,
+        VisualScale,
+        ActiveLightPositions,
+        ActiveLightColors,
+        ActiveLightCount
+    );
 
-    PushPart({0.0f, 1.30f, 0.0f}, {0.42f, 0.72f, 0.28f}, BodyLean, 0.0f, BodyColor, {0.0f, 0.0f, 0.0f}, 0.94f);
-    PushPart({0.0f, 0.83f, -0.025f}, {0.33f, 0.30f, 0.24f}, BodyLean * 0.45f, 0.0f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.96f);
-    PushPart({0.0f, 1.78f, -0.035f}, {0.14f, 0.20f, 0.14f}, BodyLean * 0.70f, 0.0f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.96f);
-    PushPart({0.0f, 2.04f, 0.02f}, {0.29f, 0.34f, 0.30f}, BodyLean * 0.9f - Gait * 0.02f, Gait * 0.025f, FaceColor, {0.0f, 0.0f, 0.0f}, 0.92f);
-
-    PushPart({-0.43f, 1.34f, 0.0f}, {0.14f, 0.82f, 0.14f}, ArmSwing, -0.08f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.97f);
-    PushPart({0.43f, 1.34f, 0.0f}, {0.14f, 0.82f, 0.14f}, OppositeGait * (DemonForm ? 0.72f : 0.58f), 0.08f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.97f);
-    PushPart({-0.50f, 0.83f, 0.02f}, {0.13f, 0.48f, 0.13f}, ArmSwing * 0.45f + 0.18f, -0.04f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.98f);
-    PushPart({0.50f, 0.83f, 0.02f}, {0.13f, 0.48f, 0.13f}, OppositeGait * 0.32f + 0.18f, 0.04f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.98f);
-
-    PushPart({-0.17f, 0.44f, 0.0f}, {0.17f, 0.78f, 0.18f}, LegSwing, 0.0f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.98f);
-    PushPart({0.17f, 0.44f, 0.0f}, {0.17f, 0.78f, 0.18f}, OppositeGait * (DemonForm ? 0.55f : 0.44f), 0.0f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.98f);
-    PushPart({-0.17f, 0.08f, 0.10f}, {0.19f, 0.12f, 0.34f}, 0.0f, 0.0f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.99f);
-    PushPart({0.17f, 0.08f, 0.10f}, {0.19f, 0.12f, 0.34f}, 0.0f, 0.0f, LimbColor, {0.0f, 0.0f, 0.0f}, 0.99f);
-
-    const float EyeLift = 2.075f + (1.0f - Shift) * 0.025f;
-    PushPart({-0.075f, EyeLift, 0.175f}, {0.045f, 0.035f, 0.025f}, 0.0f, 0.0f, EyeColor, EyeColor * 0.45f, 0.55f);
-    PushPart({0.075f, EyeLift, 0.175f}, {0.045f, 0.035f, 0.025f}, 0.0f, 0.0f, EyeColor, EyeColor * 0.45f, 0.55f);
+    static_cast<void>(PreviousDemonForm);
+    static_cast<void>(Shift);
 }
 
 void Renderer::DrawCrosshair()

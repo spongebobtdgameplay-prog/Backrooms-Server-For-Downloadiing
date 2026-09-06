@@ -146,6 +146,11 @@ void Renderer::UpdateInterface(float DeltaTime)
     );
 
     MoveToward(
+        FullMapMainMenuHover,
+        FullMapMainMenuRect.Contains(MenuPointerX, MenuPointerY)
+    );
+
+    MoveToward(
         FullMapRandomHover,
         FullMapRandomRect.Contains(MenuPointerX, MenuPointerY)
     );

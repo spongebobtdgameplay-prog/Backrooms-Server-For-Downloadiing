@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "GeneratedWebUi.h"
 
 #include <algorithm>
 #include <cmath>
@@ -312,15 +313,55 @@ void Renderer::DrawMapPanelV2(
         }
     }
 
-    if (Route.size() >= 2)
+    if (Detailed && Route.size() >= 2)
     {
         for (std::size_t I = 1; I < Route.size(); ++I)
         {
             const glm::ivec2 A = ToScreen(Route[I - 1].x, Route[I - 1].y);
             const glm::ivec2 B = ToScreen(Route[I].x, Route[I].y);
-            Line(A, B, Detailed ? 6 : 3, RouteOuter);
-            Line(A, B, Detailed ? 3 : 1, RouteColor);
+            Line(A, B, 6, RouteOuter);
+            Line(A, B, 3, RouteColor);
         }
+    }
+
+    auto CssColor = [](const GeneratedWebUi::CssColor& Color)
+    {
+        return glm::vec3{Color.R, Color.G, Color.B};
+    };
+
+    auto DrawMiniGlyph = [&](
+        const std::string& Glyph,
+        const glm::ivec2& Position,
+        int FontSize,
+        const glm::vec3& Color
+    )
+    {
+        if (Detailed || !GameplayTextRenderer.IsReady())
+            return;
+
+        const int GlyphWidth = GameplayTextRenderer.Measure(Glyph, FontSize, 800, 0.0f);
+        GameplayTextRenderer.Draw(
+            Glyph,
+            Position.x - GlyphWidth / 2,
+            Position.y - FontSize / 2 - 4,
+            FontSize,
+            800,
+            0.0f,
+            Color,
+            1.0f,
+            false
+        );
+    };
+
+    if (!Detailed)
+    {
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(
+            X,
+            static_cast<int>(Height) - (Y + PanelHeight),
+            PanelWidth,
+            PanelHeight
+        );
     }
 
     float HoverDistance = std::numeric_limits<float>::max();
@@ -331,55 +372,55 @@ void Renderer::DrawMapPanelV2(
     {
         const glm::ivec2 Position = ToScreen(Marker.Position.x, Marker.Position.y);
 
+        if (!Detailed)
+        {
+            if (Marker.Kind == MapMarkerKind::Breaker)
+            {
+                DrawMiniGlyph("\xE2\x97\x8B", Position, GeneratedWebUi::MiniMapBreakerFont, CssColor(GeneratedWebUi::MiniMapBreakerColor));
+            }
+            else if (Marker.Kind == MapMarkerKind::BreakerActive)
+            {
+                DrawMiniGlyph("\xE2\x97\x8F", Position, GeneratedWebUi::MiniMapBreakerFont, CssColor(GeneratedWebUi::MiniMapBreakerActiveColor));
+            }
+            else if (Marker.Kind == MapMarkerKind::Exit)
+            {
+                DrawMiniGlyph("\xE2\x96\xA1", Position, GeneratedWebUi::MiniMapExitFont, CssColor(GeneratedWebUi::MiniMapExitColor));
+            }
+            else if (Marker.Kind == MapMarkerKind::ExitPowered)
+            {
+                DrawMiniGlyph("\xE2\x96\xA0", Position, GeneratedWebUi::MiniMapExitFont, CssColor(GeneratedWebUi::MiniMapExitPoweredColor));
+            }
+            else
+            {
+                DrawMiniGlyph("\xE2\x97\x86", Position, GeneratedWebUi::MiniMapThreatFont, CssColor(GeneratedWebUi::MiniMapThreatColor));
+            }
+            continue;
+        }
+
         if (Marker.Kind == MapMarkerKind::Breaker || Marker.Kind == MapMarkerKind::BreakerActive)
         {
             const bool Active = Marker.Kind == MapMarkerKind::BreakerActive;
             const glm::vec3 Glow = Active
                 ? glm::vec3{0.16f, 0.92f, 0.34f}
                 : glm::vec3{1.0f, 0.13f, 0.08f};
-
-            if (!Detailed)
-            {
-                FillCircle(Position.x, Position.y, 3, Ink);
-                FillCircle(Position.x, Position.y, 2, Glow);
-            }
-            else
-            {
-                const int Radius = 8;
-                FillCircle(Position.x, Position.y, Radius + 3, Ink);
-                FillCircle(Position.x, Position.y, Radius + 1, Glow);
-                FillCircle(Position.x, Position.y, Radius - 2, Yellow);
-                Line(
-                    {Position.x - 4, Position.y + 4},
-                    {Position.x + 4, Position.y - 4},
-                    2,
-                    Ink
-                );
-                FillCircle(Position.x + 4, Position.y - 4, 2, Ink);
-                ClipRect(Position.x - 6, Position.y + 3, 5, 3, Ink);
-            }
+            const int Radius = 8;
+            FillCircle(Position.x, Position.y, Radius + 3, Ink);
+            FillCircle(Position.x, Position.y, Radius + 1, Glow);
+            FillCircle(Position.x, Position.y, Radius - 2, Yellow);
+            Line({Position.x - 4, Position.y + 4}, {Position.x + 4, Position.y - 4}, 2, Ink);
+            FillCircle(Position.x + 4, Position.y - 4, 2, Ink);
+            ClipRect(Position.x - 6, Position.y + 3, 5, 3, Ink);
         }
         else if (Marker.Kind == MapMarkerKind::Exit || Marker.Kind == MapMarkerKind::ExitPowered)
         {
-            const glm::vec3 Color =
-                Marker.Kind == MapMarkerKind::ExitPowered
-                    ? glm::vec3{0.16f, 0.95f, 0.42f}
-                    : glm::vec3{0.96f, 0.94f, 0.80f};
-
-            if (!Detailed)
-            {
-                ClipRect(Position.x - 3, Position.y - 3, 7, 7, Ink);
-                ClipRect(Position.x - 2, Position.y - 2, 5, 5, Color);
-                ClipRect(Position.x, Position.y - 1, 1, 3, Ink);
-            }
-            else
-            {
-                const int Radius = 8;
-                FillCircle(Position.x, Position.y, Radius + 2, Ink);
-                FillCircle(Position.x, Position.y, Radius, Color);
-                ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
-                ClipRect(Position.x + 2, Position.y, 2, 2, Ink);
-            }
+            const glm::vec3 Color = Marker.Kind == MapMarkerKind::ExitPowered
+                ? glm::vec3{0.16f, 0.95f, 0.42f}
+                : glm::vec3{0.96f, 0.94f, 0.80f};
+            const int Radius = 8;
+            FillCircle(Position.x, Position.y, Radius + 2, Ink);
+            FillCircle(Position.x, Position.y, Radius, Color);
+            ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
+            ClipRect(Position.x + 2, Position.y, 2, 2, Ink);
         }
         else
         {
@@ -387,45 +428,27 @@ void Renderer::DrawMapPanelV2(
             const glm::vec3 Threat = RedPhase
                 ? glm::vec3{1.0f, 0.035f, 0.02f}
                 : glm::vec3{0.50f, 0.015f, 0.012f};
-
-            if (!Detailed)
-            {
-                ClipRect(Position.x - 3, Position.y - 3, 7, 7, Ink);
-                ClipRect(Position.x - 2, Position.y - 2, 5, 5, Threat);
-            }
-            else
-            {
-                const int Radius = 9;
-                const glm::ivec2 Top{Position.x, Position.y - Radius};
-                const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
-                const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
-                FillTriangle(
-                    {Top.x + 1, Top.y + 2},
-                    {LeftPoint.x + 1, LeftPoint.y + 2},
-                    {RightPoint.x + 1, RightPoint.y + 2},
-                    Ink
-                );
-                FillTriangle(Top, LeftPoint, RightPoint, Threat);
-                ClipRect(Position.x - 1, Position.y - 2, 2, 6, Yellow);
-                FillCircle(Position.x, Position.y + 6, 1, Yellow);
-            }
+            const int Radius = 9;
+            const glm::ivec2 Top{Position.x, Position.y - Radius};
+            const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
+            const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
+            FillTriangle({Top.x + 1, Top.y + 2}, {LeftPoint.x + 1, LeftPoint.y + 2}, {RightPoint.x + 1, RightPoint.y + 2}, Ink);
+            FillTriangle(Top, LeftPoint, RightPoint, Threat);
+            ClipRect(Position.x - 1, Position.y - 2, 2, 6, Yellow);
+            FillCircle(Position.x, Position.y + 6, 1, Yellow);
         }
 
-        if (Detailed)
+        const float DeltaX = static_cast<float>(Position.x) - MenuPointerX;
+        const float DeltaY = static_cast<float>(Position.y) - MenuPointerY;
+        const float Distance = std::sqrt(DeltaX * DeltaX + DeltaY * DeltaY);
+        if (Distance < 18.0f && Distance < HoverDistance)
         {
-            const float DeltaX = static_cast<float>(Position.x) - MenuPointerX;
-            const float DeltaY = static_cast<float>(Position.y) - MenuPointerY;
-            const float Distance = std::sqrt(DeltaX * DeltaX + DeltaY * DeltaY);
-
-            if (Distance < 18.0f && Distance < HoverDistance)
-            {
-                HoverDistance = Distance;
-                const float Meters = glm::distance(PlayerPosition, Marker.Position);
-                std::ostringstream Label;
-                Label << MarkerName(Marker.Kind) << "   " << std::fixed << std::setprecision(0) << Meters << " M";
-                HoverLabel = Label.str();
-                HoverScreen = Position;
-            }
+            HoverDistance = Distance;
+            const float Meters = glm::distance(PlayerPosition, Marker.Position);
+            std::ostringstream Label;
+            Label << MarkerName(Marker.Kind) << "   " << std::fixed << std::setprecision(0) << Meters << " M";
+            HoverLabel = Label.str();
+            HoverScreen = Position;
         }
     }
 
@@ -434,8 +457,7 @@ void Renderer::DrawMapPanelV2(
         const glm::ivec2 Position = ToScreen(Waypoint.Position.x, Waypoint.Position.y);
         if (!Detailed)
         {
-            Ring(Position.x, Position.y, 4, 1, Ink);
-            ClipRect(Position.x - 1, Position.y - 1, 3, 3, RouteColor);
+            DrawMiniGlyph("\xE2\x97\x89", Position, GeneratedWebUi::MiniMapWaypointFont, CssColor(GeneratedWebUi::MiniMapWaypointColor));
         }
         else
         {
@@ -444,14 +466,10 @@ void Renderer::DrawMapPanelV2(
             Ring(Position.x, Position.y, Pulse, 2, RouteColor);
             Line({Position.x - 5, Position.y}, {Position.x + 5, Position.y}, 2, RouteColor);
             Line({Position.x, Position.y - 5}, {Position.x, Position.y + 5}, 2, RouteColor);
-        }
 
-        if (Detailed)
-        {
             const float DeltaX = static_cast<float>(Position.x) - MenuPointerX;
             const float DeltaY = static_cast<float>(Position.y) - MenuPointerY;
             const float Distance = std::sqrt(DeltaX * DeltaX + DeltaY * DeltaY);
-
             if (Distance < 20.0f && Distance < HoverDistance)
             {
                 std::ostringstream Label;
@@ -470,34 +488,33 @@ void Renderer::DrawMapPanelV2(
     else
         Direction = glm::normalize(Direction);
 
-    const glm::vec2 Right{-Direction.y, Direction.x};
-    const int ArrowLength = Detailed ? 14 : 5;
-    const int ArrowWidth = Detailed ? 8 : 3;
-    const float TailLength = Detailed ? 5.0f : 1.0f;
-    const glm::ivec2 Tip{
-        PlayerScreen.x + static_cast<int>(std::round(Direction.x * ArrowLength)),
-        PlayerScreen.y + static_cast<int>(std::round(Direction.y * ArrowLength))
-    };
-    const glm::ivec2 Left{
-        PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) + static_cast<int>(std::round(Right.x * ArrowWidth)),
-        PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) + static_cast<int>(std::round(Right.y * ArrowWidth))
-    };
-    const glm::ivec2 RightPoint{
-        PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) - static_cast<int>(std::round(Right.x * ArrowWidth)),
-        PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) - static_cast<int>(std::round(Right.y * ArrowWidth))
-    };
-
-    if (Detailed)
+    if (!Detailed)
     {
-        FillTriangle(
-            {Tip.x + 2, Tip.y + 2},
-            {Left.x + 2, Left.y + 2},
-            {RightPoint.x + 2, RightPoint.y + 2},
-            Ink
-        );
+        DrawMiniGlyph("\xE2\x96\xB2", PlayerScreen, GeneratedWebUi::MiniMapPlayerFont, CssColor(GeneratedWebUi::MiniMapPlayerColor));
+        glDisable(GL_SCISSOR_TEST);
     }
-    FillTriangle(Tip, Left, RightPoint, {0.98f, 0.97f, 0.86f});
-    FillCircle(PlayerScreen.x, PlayerScreen.y, Detailed ? 3 : 1, RouteColor);
+    else
+    {
+        const glm::vec2 Right{-Direction.y, Direction.x};
+        const int ArrowLength = 14;
+        const int ArrowWidth = 8;
+        const float TailLength = 5.0f;
+        const glm::ivec2 Tip{
+            PlayerScreen.x + static_cast<int>(std::round(Direction.x * ArrowLength)),
+            PlayerScreen.y + static_cast<int>(std::round(Direction.y * ArrowLength))
+        };
+        const glm::ivec2 Left{
+            PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) + static_cast<int>(std::round(Right.x * ArrowWidth)),
+            PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) + static_cast<int>(std::round(Right.y * ArrowWidth))
+        };
+        const glm::ivec2 RightPoint{
+            PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) - static_cast<int>(std::round(Right.x * ArrowWidth)),
+            PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) - static_cast<int>(std::round(Right.y * ArrowWidth))
+        };
+        FillTriangle({Tip.x + 2, Tip.y + 2}, {Left.x + 2, Left.y + 2}, {RightPoint.x + 2, RightPoint.y + 2}, Ink);
+        FillTriangle(Tip, Left, RightPoint, {0.98f, 0.97f, 0.86f});
+        FillCircle(PlayerScreen.x, PlayerScreen.y, 3, RouteColor);
+    }
 
     if (Detailed && !HoverLabel.empty() && GameplayTextRenderer.IsReady())
     {
@@ -779,10 +796,12 @@ void Renderer::DrawFullMapV2(
     const int Gap = Compact ? 7 : 10;
 
     const int BackWidth = Compact ? 112 : 142;
+    const int MainMenuWidth = Compact ? 122 : 156;
     const int RandomWidth = Compact ? 148 : 190;
     const int ClearWidth = Compact ? 116 : 148;
 
     FullMapBackRect = {Margin, ButtonY, BackWidth, ButtonHeight};
+    FullMapMainMenuRect = {Margin + BackWidth + Gap, ButtonY, MainMenuWidth, ButtonHeight};
     FullMapClearRect = {
         static_cast<int>(Width) - Margin - ClearWidth,
         ButtonY,
@@ -824,7 +843,8 @@ void Renderer::DrawFullMapV2(
         );
     };
 
-    DrawButton(FullMapBackRect, "\xE2\x86\x90  BACK", FullMapBackHover);
+    DrawButton(FullMapBackRect, "RESUME", FullMapBackHover);
+    DrawButton(FullMapMainMenuRect, "MAIN MENU", FullMapMainMenuHover);
     DrawButton(FullMapRandomRect, "RANDOM DESTINATION", FullMapRandomHover);
     DrawButton(FullMapClearRect, "CLEAR MARKER", FullMapClearHover);
 
@@ -890,7 +910,7 @@ void Renderer::DrawFullMapV2(
 
     const int FooterY = static_cast<int>(Height) - FooterHeight + 11;
     GameplayTextRenderer.Draw(
-        "ESC BACK   /   CLICK WAYPOINT   /   DRAG PAN   /   WHEEL ZOOM   /   R RECENTER   /   G RANDOM",
+        "ESC RESUME   /   CLICK WAYPOINT   /   DRAG PAN   /   WHEEL ZOOM   /   R RECENTER   /   G RANDOM",
         Margin,
         FooterY,
         Compact ? 8 : 9,
@@ -933,6 +953,8 @@ MapUiAction Renderer::HitTestFullMap() const
 {
     if (FullMapBackRect.Contains(MenuPointerX, MenuPointerY))
         return MapUiAction::Back;
+    if (FullMapMainMenuRect.Contains(MenuPointerX, MenuPointerY))
+        return MapUiAction::MainMenu;
     if (FullMapRandomRect.Contains(MenuPointerX, MenuPointerY))
         return MapUiAction::RandomDestination;
     if (FullMapClearRect.Contains(MenuPointerX, MenuPointerY))

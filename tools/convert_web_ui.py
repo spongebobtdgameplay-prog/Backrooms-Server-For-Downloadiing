@@ -225,6 +225,21 @@ def main() -> None:
     mobile_margin = px(prop(mobile_css, ".MenuTop", "left", "20px"))
     mobile_content_left = px(prop(mobile_css, ".MenuContent", "left", "24px"))
 
+    minimap_route_thickness = px(prop(base_css, "#MiniMapNative .Route", "height", "0px"))
+    minimap_route_color = rgba(prop(base_css, "#MiniMapNative .Route", "color", "#3e8bf6"))
+    minimap_player_font = px(prop(base_css, "#MiniMapNative .PlayerMarker", "font-size", "13px"))
+    minimap_player_color = rgba(prop(base_css, "#MiniMapNative .PlayerMarker", "color", "#fffbd4"))
+    minimap_breaker_font = px(prop(base_css, "#MiniMapNative .BreakerMarker", "font-size", "13px"))
+    minimap_breaker_color = rgba(prop(base_css, "#MiniMapNative .BreakerMarker", "color", "#ff4630"))
+    minimap_breaker_active_color = rgba(prop(base_css, "#MiniMapNative .BreakerMarkerActive", "color", "#2fea59"))
+    minimap_exit_font = px(prop(base_css, "#MiniMapNative .ExitMarker", "font-size", "13px"))
+    minimap_exit_color = rgba(prop(base_css, "#MiniMapNative .ExitMarker", "color", "#f5f0cc"))
+    minimap_exit_powered_color = rgba(prop(base_css, "#MiniMapNative .ExitMarkerPowered", "color", "#2ff06b"))
+    minimap_threat_font = px(prop(base_css, "#MiniMapNative .ThreatMarker", "font-size", "14px"))
+    minimap_threat_color = rgba(prop(base_css, "#MiniMapNative .ThreatMarker", "color", "#ff2f20"))
+    minimap_waypoint_font = px(prop(base_css, "#MiniMapNative .WaypointMarker", "font-size", "14px"))
+    minimap_waypoint_color = rgba(prop(base_css, "#MiniMapNative .WaypointMarker", "color", "#3e8bf6"))
+
     out = f'''#pragma once
 
 // AUTO-GENERATED from assets/ui/original/style.css by tools/convert_web_ui.py.
@@ -288,6 +303,22 @@ inline constexpr int ArrowFont = {px(prop(base_css, '.ButtonArrow', 'font-size',
 inline constexpr int LoadMarginTop = {px(prop(base_css, '#LoadStatus', 'margin-top', '14px'))};
 inline constexpr int LoadFont = {px(prop(base_css, '#LoadStatus', 'font-size', '10px'))};
 inline constexpr float LoadTracking = {fmt(em(prop(base_css, '#LoadStatus', 'letter-spacing', '0.16em')))};
+
+inline constexpr int MiniMapRouteThickness = {minimap_route_thickness};
+inline constexpr int MiniMapPlayerFont = {minimap_player_font};
+inline constexpr int MiniMapBreakerFont = {minimap_breaker_font};
+inline constexpr int MiniMapExitFont = {minimap_exit_font};
+inline constexpr int MiniMapThreatFont = {minimap_threat_font};
+inline constexpr int MiniMapWaypointFont = {minimap_waypoint_font};
+
+{color('MiniMapRouteColor', minimap_route_color)}
+{color('MiniMapPlayerColor', minimap_player_color)}
+{color('MiniMapBreakerColor', minimap_breaker_color)}
+{color('MiniMapBreakerActiveColor', minimap_breaker_active_color)}
+{color('MiniMapExitColor', minimap_exit_color)}
+{color('MiniMapExitPoweredColor', minimap_exit_powered_color)}
+{color('MiniMapThreatColor', minimap_threat_color)}
+{color('MiniMapWaypointColor', minimap_waypoint_color)}
 
 {color('Background', background_color)}
 {color('MetaColor', top_color)}

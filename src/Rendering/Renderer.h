@@ -44,6 +44,7 @@ enum class MapUiAction
 {
     None,
     Back,
+    MainMenu,
     RandomDestination,
     ClearWaypoint
 };
@@ -318,6 +319,7 @@ private:
     UiRect PauseMainMenuRect;
     UiRect FullMapRect;
     UiRect FullMapBackRect;
+    UiRect FullMapMainMenuRect;
     UiRect FullMapRandomRect;
     UiRect FullMapClearRect;
 
@@ -330,6 +332,7 @@ private:
     float PauseResumeHover = 0.0f;
     float PauseMainMenuHover = 0.0f;
     float FullMapBackHover = 0.0f;
+    float FullMapMainMenuHover = 0.0f;
     float FullMapRandomHover = 0.0f;
     float FullMapClearHover = 0.0f;
 
