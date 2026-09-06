@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.34
-manifest_revision=34040604152
-published_at=2026-09-06T14:57:35Z
+version=0.3.35
+manifest_revision=34058377866
+published_at=2026-09-06T20:37:14Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.34&run=34040604152
-sha256=280d9ae0995b332d5a87f6e011debef28b0c50ee5062b7b567ee8feb10507a7e
-notes=V0.3.34 replaces the static clown-like entity presentation with a dark animated humanoid silhouette that visibly walks, leans, bobs, and swings its limbs while chasing. The repeating laugh cue was removed, entity pursuit is faster and repaths more often, release grace is shorter, and the gameplay minimap now uses thinner route lines plus smaller, simpler breaker, exit, threat, waypoint, and player markers. Edge clipping remains intact.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.35&run=34058377866
+sha256=d97d40de66ea26b8713340b209719d1a610d0eaf3ffdaffb5019f509314a4f37
+notes=V0.3.35 uses the supplied Backrooms Entity mesh as the gameplay hunter, replaces the streamed-chunk-only chase with route generation spanning the hunter and player, adds spatial running footsteps tied to actual hunter movement, removes the old random metallic/shift scare cues, converts compact minimap marker styling from the original CSS source into antialiased native glyphs, removes the jagged compact route line, and makes ESC/menu open directly into the map with RESUME and MAIN MENU actions instead of a separate pause-tab layer.
