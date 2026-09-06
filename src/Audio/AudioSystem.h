@@ -45,17 +45,18 @@ private:
         float Pitch = 1.0f
     );
 
+    void PlayEntityStep(const glm::vec3& Position, float Threat);
+
     ma_engine* Engine = nullptr;
     ma_sound* Hum = nullptr;
     ma_sound* BreakerTrip = nullptr;
-    ma_sound* EntityMetal = nullptr;
-    ma_sound* Shift = nullptr;
-    ma_sound* EntityLaugh = nullptr;
     std::array<ma_sound*, 4> Footsteps{};
+    std::array<ma_sound*, 4> EntityFootsteps{};
 
-    float EntityCueTimer = 3.5f;
-    int EntityCueIndex = 0;
+    glm::vec3 PreviousEntityPosition{0.0f};
+    float EntityFootstepDistance = 0.0f;
+    int EntityFootstepIndex = 0;
     int FootstepIndex = 0;
-
+    bool TrackingEntity = false;
     bool Started = false;
 };

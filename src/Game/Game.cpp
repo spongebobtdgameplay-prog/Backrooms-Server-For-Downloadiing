@@ -630,7 +630,7 @@ void Game::Reset()
     World.Colliders.push_back(ExitBounds());
 
     const glm::vec3 EntityPosition = Pick(50.0f);
-    Hunter.Reset(EntityPosition);
+    Hunter.Reset(EntityPosition, Seed);
 
     InteractionType = 0;
     InteractionIndex = -1;
@@ -700,7 +700,7 @@ void Game::HandleEvent(
 
         if (KeyDown && Event.key.scancode == SDL_SCANCODE_ESCAPE)
         {
-            CloseMap(true);
+            CloseMap(false);
             return;
         }
 
@@ -718,7 +718,7 @@ void Game::HandleEvent(
             )
         )
         {
-            CloseMap(true);
+            CloseMap(false);
             return;
         }
 
@@ -777,7 +777,17 @@ void Game::HandleEvent(
 
             if (Action == MapUiAction::Back)
             {
-                CloseMap(true);
+                CloseMap(false);
+                return;
+            }
+
+            if (Action == MapUiAction::MainMenu)
+            {
+                MapOpen = false;
+                MapReturnToPause = false;
+                State.Paused = false;
+                State.MainMenuOpen = true;
+                GameRenderer.ClearMenuPointer();
                 return;
             }
 
@@ -851,7 +861,17 @@ void Game::HandleEvent(
 
             if (Action == MapUiAction::Back)
             {
-                CloseMap(true);
+                CloseMap(false);
+                return;
+            }
+
+            if (Action == MapUiAction::MainMenu)
+            {
+                MapOpen = false;
+                MapReturnToPause = false;
+                State.Paused = false;
+                State.MainMenuOpen = true;
+                GameRenderer.ClearMenuPointer();
                 return;
             }
 
@@ -1107,8 +1127,7 @@ void Game::HandleEvent(
         )
     )
     {
-        State.Paused = true;
-        GameRenderer.ClearMenuPointer();
+        OpenMap(false);
         return;
     }
 

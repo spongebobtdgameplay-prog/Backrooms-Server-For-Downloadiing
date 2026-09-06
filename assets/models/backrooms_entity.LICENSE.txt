@@ -1,0 +1,7 @@
+Backrooms Entity
+Author: lol's studios
+Source: https://sketchfab.com/3d-models/backrooms-entity-fcd3af4ee1a34588a5436cbf11837d29
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+
+The author, source, and license above are embedded in the supplied GLB metadata.

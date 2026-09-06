@@ -4,12 +4,13 @@
 
 #include <glm/glm.hpp>
 
+#include <cstdint>
 #include <vector>
 
 class Entity
 {
 public:
-    void Reset(const glm::vec3& StartPosition);
+    void Reset(const glm::vec3& StartPosition, uint32_t WorldSeed);
     void Release();
 
     bool Update(
@@ -48,15 +49,17 @@ private:
 
     void BuildPath(
         const glm::vec3& Target,
-        const WorldData& World
+        const WorldData& CollisionWorld
     );
 
     glm::vec3 EntityPosition{0.0f};
     glm::vec3 Direction{0.0f, 0.0f, -1.0f};
 
-    float Radius = 0.43f;
+    uint32_t Seed = 1;
+    float Radius = 0.28f;
     float RepathTimer = 0.0f;
-    float RepathInterval = 0.18f;
+    float RepathInterval = 0.11f;
+    float StuckTimer = 0.0f;
 
     float ShiftTimer = 7.0f;
     float ShiftProgress = 1.0f;
@@ -68,7 +71,8 @@ private:
     bool PreviousDemonForm = false;
     bool ShiftedThisFrame = false;
 
-    int TargetCell = -1;
+    int TargetWorldX = 0;
+    int TargetWorldZ = 0;
     std::vector<glm::vec3> Path;
     std::size_t PathIndex = 0;
 };

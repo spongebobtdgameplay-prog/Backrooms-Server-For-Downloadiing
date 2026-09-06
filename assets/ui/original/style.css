@@ -342,6 +342,46 @@ canvas {
   line-height: 1.6;
 }
 
+#MiniMapNative .Route {
+  height: 0px;
+  color: #3e8bf6;
+}
+
+#MiniMapNative .PlayerMarker {
+  font-size: 13px;
+  color: #fffbd4;
+}
+
+#MiniMapNative .BreakerMarker {
+  font-size: 13px;
+  color: #ff4630;
+}
+
+#MiniMapNative .BreakerMarkerActive {
+  font-size: 13px;
+  color: #2fea59;
+}
+
+#MiniMapNative .ExitMarker {
+  font-size: 13px;
+  color: #f5f0cc;
+}
+
+#MiniMapNative .ExitMarkerPowered {
+  font-size: 13px;
+  color: #2ff06b;
+}
+
+#MiniMapNative .ThreatMarker {
+  font-size: 14px;
+  color: #ff2f20;
+}
+
+#MiniMapNative .WaypointMarker {
+  font-size: 14px;
+  color: #3e8bf6;
+}
+
 .Hidden {
   display: none !important;
 }
