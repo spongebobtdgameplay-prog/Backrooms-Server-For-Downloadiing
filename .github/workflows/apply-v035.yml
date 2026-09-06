@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   apply-build-commit:
-    if: ${{ !contains(github.event.head_commit.message, '[v035-built]') }}
+    if: ${{ contains(github.event.head_commit.message, '[run-v035]') && !contains(github.event.head_commit.message, '[v035-built]') }}
     runs-on: windows-2022
     steps:
       - name: Checkout
