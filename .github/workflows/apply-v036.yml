@@ -1,0 +1,84 @@
+name: Apply V0.3.36 Map Rebuild
+
+on:
+  push:
+    branches:
+      - work/v0.3.36-map-rebuild
+
+permissions:
+  contents: write
+
+jobs:
+  apply-build-commit:
+    if: ${{ contains(github.event.head_commit.message, '[run-v036]') && !contains(github.event.head_commit.message, '[v036-built]') }}
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: work/v0.3.36-map-rebuild
+          fetch-depth: 0
+
+      - name: Rebuild and verify patch
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import base64, hashlib, lzma
+          source = Path('.v036/patch.xz.b64').read_text(encoding='utf-8').strip()
+          patch = lzma.decompress(base64.b64decode(source))
+          expected = '10392cbfa3e961ee94eb7787f1ded1d01680556fed448d91a65da6cdaad5a315'
+          actual = hashlib.sha256(patch).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'Patch SHA mismatch: {actual}')
+          Path('apply_v036.py').write_bytes(patch)
+          print(f'patch verified: {actual}')
+          '@ | python -
+
+      - name: Apply V0.3.36 source changes
+        shell: pwsh
+        run: |
+          python apply_v036.py
+          Remove-Item apply_v036.py
+
+      - name: Regenerate CSS native UI constants
+        shell: pwsh
+        run: python tools/convert_web_ui.py assets/ui/original/style.css src/Rendering/GeneratedWebUi.h
+
+      - name: Configure Windows Release
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build Windows Release
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify V0.3.36 map rebuild
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) { throw "Backrooms Offical.exe was not produced" }
+          $Version = Get-Content "src\Core\Version.h" -Raw
+          if ($Version -notmatch '0\.3\.36') { throw "Version was not updated to 0.3.36" }
+          $Generated = Get-Content "src\Rendering\GeneratedWebUi.h" -Raw
+          if ($Generated -notmatch 'MapBackgroundColor') { throw "CSS map constants were not generated" }
+          if ($Generated -notmatch 'FullMapRouteThickness') { throw "Full map route constants were not generated" }
+          $Map = Get-Content "src\Rendering\MapOverlay.cpp" -Raw
+          if ($Map -match 'for \(int I = 0; I <= Steps; \+\+I\)') { throw "Old rectangle-step line renderer still exists" }
+          if ($Map -notmatch 'DrawUiTriangles') { throw "Vector map renderer is not wired" }
+          $Game = Get-Content "src\Game\Game.cpp" -Raw
+          if ($Game -match 'WaypointPath\.push_back\(Start\);\s*WaypointPath\.push_back\(WaypointPosition\)') { throw "Fake straight-line waypoint fallback still exists" }
+
+      - name: Remove temporary staging files
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force .v036
+          Remove-Item -Force .github\workflows\apply-v036.yml
+
+      - name: Commit verified V0.3.36
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Build V0.3.36 map and minimap rebuild [v036-built]"
+          git push origin HEAD:work/v0.3.36-map-rebuild
