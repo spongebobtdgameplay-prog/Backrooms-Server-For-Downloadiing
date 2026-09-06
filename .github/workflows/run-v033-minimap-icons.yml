@@ -1,0 +1,49 @@
+name: Run V0.3.33 Minimap Fix
+
+on:
+  push:
+    branches:
+      - work/v0.3.33-minimap-icons
+    paths:
+      - .github/workflows/run-v033-minimap-icons.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: work/v0.3.33-minimap-icons
+          fetch-depth: 0
+
+      - name: Apply patch
+        shell: pwsh
+        run: python tools/apply_v033.py
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) {
+            throw "Backrooms Offical.exe was not produced"
+          }
+
+      - name: Commit tested changes
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt src/Core/Version.h src/Platform/Windows/Backrooms.rc src/Rendering/MapOverlay.cpp update/release_notes.txt
+          git commit -m "Fix V0.3.33 minimap icon clipping and marker design"
+          git push origin HEAD:work/v0.3.33-minimap-icons
