@@ -495,7 +495,7 @@ bool Game::TryMountBreaker(
 
         Result.Position =
             WallCenter +
-            Forward * (World.WallThickness * 0.5f + 0.11f) +
+            Forward * (World.WallThickness * 0.5f + 0.36f) +
             Right * Along;
 
         Result.Position.y = 0.88f;
@@ -1193,12 +1193,12 @@ AABB Game::BreakerBounds(const Breaker& BreakerData) const
     };
 
     const float HalfX =
-        std::abs(Right.x) * 0.40f +
-        std::abs(Forward.x) * 0.18f;
+        std::abs(Right.x) * 0.35f +
+        std::abs(Forward.x) * 0.36f;
 
     const float HalfZ =
-        std::abs(Right.z) * 0.40f +
-        std::abs(Forward.z) * 0.18f;
+        std::abs(Right.z) * 0.35f +
+        std::abs(Forward.z) * 0.36f;
 
     return {
         {
@@ -1208,9 +1208,20 @@ AABB Game::BreakerBounds(const Breaker& BreakerData) const
         },
         {
             BreakerData.Position.x + HalfX,
-            BreakerData.Position.y + 1.05f,
+            BreakerData.Position.y + 0.94f,
             BreakerData.Position.z + HalfZ
         }
+    };
+}
+
+AABB Game::BreakerInteractionBounds(const Breaker& BreakerData) const
+{
+    const AABB Physical = BreakerBounds(BreakerData);
+    const glm::vec3 Expansion{0.12f, 0.12f, 0.12f};
+
+    return {
+        Physical.Min - Expansion,
+        Physical.Max + Expansion
     };
 }
 
@@ -1243,7 +1254,7 @@ void Game::UpdateInteraction()
         GamePlayer.Forward()
     };
 
-    const float MaxDistance = 2.5f;
+    const float MaxDistance = 2.85f;
 
     const RayHit WallHit =
         Raycast::AgainstWorld(
@@ -1264,7 +1275,7 @@ void Game::UpdateInteraction()
 
         const RayHit Hit = Raycast::AgainstAABB(
             ViewRay,
-            BreakerBounds(Breakers[I]),
+            BreakerInteractionBounds(Breakers[I]),
             BestDistance
         );
 
@@ -1629,6 +1640,49 @@ std::vector<SceneBox> Game::BuildDynamicBoxes() const
             );
         }
     }
+
+    if (GameRenderer.HasBreakerModel())
+{
+    for (const Breaker& BreakerData : Breakers)
+    {
+        const glm::vec3 Forward = BreakerData.Forward;
+        const bool FacingX = std::abs(Forward.x) > 0.5f;
+
+        const glm::vec3 BackingSize = FacingX
+            ? glm::vec3{0.035f, 0.13f, 0.17f}
+            : glm::vec3{0.17f, 0.13f, 0.035f};
+
+        const glm::vec3 LightSize = FacingX
+            ? glm::vec3{0.028f, 0.078f, 0.078f}
+            : glm::vec3{0.078f, 0.078f, 0.028f};
+
+        Boxes.push_back({
+            BreakerData.Position -
+                Forward * 0.155f +
+                glm::vec3{0.0f, 0.76f, 0.0f},
+            BackingSize,
+            {0.035f, 0.038f, 0.033f},
+            {0.0f, 0.0f, 0.0f},
+            0.42f,
+            static_cast<int>(SurfaceMaterial::Fixture)
+        });
+
+        Boxes.push_back({
+            BreakerData.Position -
+                Forward * 0.13f +
+                glm::vec3{0.0f, 0.76f, 0.0f},
+            LightSize,
+            BreakerData.Active
+                ? glm::vec3{0.10f, 0.46f, 0.13f}
+                : glm::vec3{0.50f, 0.07f, 0.045f},
+            BreakerData.Active
+                ? glm::vec3{0.035f, 0.30f, 0.055f}
+                : glm::vec3{0.28f, 0.012f, 0.006f},
+            0.18f,
+            static_cast<int>(SurfaceMaterial::Fixture)
+        });
+    }
+}
 
     if (!GameRenderer.HasExitDoorModel())
     {
