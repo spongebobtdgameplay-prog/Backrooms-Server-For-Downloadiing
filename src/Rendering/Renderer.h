@@ -272,11 +272,23 @@ private:
         int RectHeight,
         const glm::vec3& Color
     );
+    bool CreateUiShapeResources();
+    void DestroyUiShapeResources();
+    void DrawUiTriangles(
+        const std::vector<glm::vec2>& Vertices,
+        const glm::vec3& Color
+    );
 
     GLuint Program = 0;
     GLuint VertexArray = 0;
     GLuint VertexBuffer = 0;
     GLuint InstanceBuffer = 0;
+
+    GLuint UiShapeProgram = 0;
+    GLuint UiShapeVertexArray = 0;
+    GLuint UiShapeVertexBuffer = 0;
+    GLint UiShapeViewportLocation = -1;
+    GLint UiShapeColorLocation = -1;
 
     GLint ViewLocation = -1;
     GLint ProjectionLocation = -1;

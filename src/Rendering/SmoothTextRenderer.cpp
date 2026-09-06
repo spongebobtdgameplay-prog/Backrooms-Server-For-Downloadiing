@@ -72,10 +72,10 @@ void main()
     const wchar_t* ResolveCssFontFace(HDC DeviceContext)
     {
         static constexpr const wchar_t* FontStack[] = {
-            L"Arial Narrow",
-            L"Helvetica Neue",
+            L"Segoe UI Variable",
+            L"Segoe UI",
             L"Arial",
-            L"Segoe UI"
+            L"Tahoma"
         };
 
         for (const wchar_t* Face : FontStack)
@@ -84,7 +84,7 @@ void main()
                 return Face;
         }
 
-        return L"Arial";
+        return L"Segoe UI";
     }
 #endif
 

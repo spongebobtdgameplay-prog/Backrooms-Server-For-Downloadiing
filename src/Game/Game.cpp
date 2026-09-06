@@ -150,8 +150,12 @@ void Game::SetWaypoint(const glm::vec2& Position)
     };
     WaypointActive = true;
     RebuildWaypointPath();
-    Message = "WAYPOINT SET";
-    MessageTimer = 1.2f;
+
+    if (WaypointActive)
+    {
+        Message = "WAYPOINT SET";
+        MessageTimer = 1.2f;
+    }
 }
 
 void Game::SetRandomWaypoint()
@@ -215,17 +219,23 @@ void Game::RebuildWaypointPath()
         return;
 
     const glm::vec2 Start{GamePlayer.Position().x, GamePlayer.Position().z};
-    const glm::vec2 Midpoint = (Start + WaypointPosition) * 0.5f;
+    const float CellSize = std::max(World.CellSize, 1.0f);
+    const glm::vec2 Requested{
+        std::round(WaypointPosition.x / CellSize) * CellSize,
+        std::round(WaypointPosition.y / CellSize) * CellSize
+    };
+
+    const glm::vec2 Midpoint = (Start + Requested) * 0.5f;
     const float Span = std::max(
-        std::abs(WaypointPosition.x - Start.x),
-        std::abs(WaypointPosition.y - Start.y)
+        std::abs(Requested.x - Start.x),
+        std::abs(Requested.y - Start.y)
     );
     const float ChunkMeters = std::max(
         World.CellSize * static_cast<float>(World.ChunkCells),
         1.0f
     );
     const int Radius = std::clamp(
-        static_cast<int>(std::ceil(Span * 0.5f / ChunkMeters)) + 3,
+        static_cast<int>(std::ceil(Span * 0.5f / ChunkMeters)) + 4,
         2,
         32
     );
@@ -236,19 +246,57 @@ void Game::RebuildWaypointPath()
         Radius
     );
 
-    WaypointPath = MapNavigation::FindPath(
-        RouteWorld,
-        Start,
-        WaypointPosition
-    );
+    std::vector<glm::vec2> BestPath;
+    glm::vec2 BestTarget = Requested;
 
-    if (WaypointPath.empty())
+    for (int Ring = 0; Ring <= 4 && BestPath.empty(); ++Ring)
     {
-        WaypointPath.push_back(Start);
-        WaypointPath.push_back(WaypointPosition);
+        for (int Z = -Ring; Z <= Ring && BestPath.empty(); ++Z)
+        {
+            for (int X = -Ring; X <= Ring; ++X)
+            {
+                if (
+                    Ring > 0 &&
+                    std::abs(X) != Ring &&
+                    std::abs(Z) != Ring
+                )
+                {
+                    continue;
+                }
+
+                const glm::vec2 Candidate =
+                    Requested +
+                    glm::vec2{
+                        static_cast<float>(X) * CellSize,
+                        static_cast<float>(Z) * CellSize
+                    };
+
+                std::vector<glm::vec2> CandidatePath =
+                    MapNavigation::FindPath(RouteWorld, Start, Candidate);
+
+                if (CandidatePath.empty())
+                    continue;
+
+                BestTarget = Candidate;
+                BestPath = std::move(CandidatePath);
+                break;
+            }
+        }
     }
 
-    const float CellSize = std::max(World.CellSize, 1.0f);
+    if (BestPath.empty())
+    {
+        WaypointActive = false;
+        WaypointPath.clear();
+        WaypointRepathTimer = 0.0f;
+        Message = "NO REACHABLE ROUTE";
+        MessageTimer = 1.4f;
+        return;
+    }
+
+    WaypointPosition = BestTarget;
+    WaypointPath = std::move(BestPath);
+
     WaypointRouteCellX = static_cast<int>(std::round(Start.x / CellSize));
     WaypointRouteCellZ = static_cast<int>(std::round(Start.y / CellSize));
     WaypointRepathTimer = 0.65f;
@@ -820,7 +868,7 @@ void Game::HandleEvent(
         {
             if (
                 MapDragging &&
-                MapDragDistance <= 6.0f &&
+                MapDragDistance <= 14.0f &&
                 GameRenderer.PointerInsideFullMap()
             )
             {
@@ -935,7 +983,7 @@ void Game::HandleEvent(
             GameRenderer.SetMenuPointer(Pointer.x, Pointer.y);
 
             if (
-                MapDragDistance <= 10.0f &&
+                MapDragDistance <= 18.0f &&
                 GameRenderer.PointerInsideFullMap()
             )
             {

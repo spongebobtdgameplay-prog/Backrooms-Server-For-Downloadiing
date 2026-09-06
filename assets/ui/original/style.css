@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
   background: #0b0a06;
   color: #eee8b1;
 }
@@ -342,44 +342,114 @@ canvas {
   line-height: 1.6;
 }
 
+
+
+#MapNative {
+  background-color: #d1c66f;
+  color: #24210f;
+  border-color: #514a22;
+}
+
+#MapNative .Grid {
+  color: #b8ad5e;
+}
+
+#MapNative .Wall {
+  height: 1px;
+  color: #292611;
+}
+
+#MapNative .RouteOuter {
+  height: 4px;
+  color: #4a4524;
+}
+
+#FullMapNative .Route {
+  height: 2px;
+  color: #2f7ed8;
+}
+
+#FullMapNative .Title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #25210e;
+}
+
+#FullMapNative .Meta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #655e31;
+}
+
+#FullMapNative .PlayerMarker {
+  font-size: 16px;
+  color: #fffbe3;
+}
+
+#FullMapNative .WaypointMarker {
+  font-size: 18px;
+  color: #2588ef;
+}
+
+#MiniMapNative .Wall {
+  height: 1px;
+  color: #24210f;
+}
+
 #MiniMapNative .Route {
-  height: 0px;
-  color: #3e8bf6;
+  height: 2px;
+  color: #2f86ee;
 }
 
 #MiniMapNative .PlayerMarker {
-  font-size: 13px;
-  color: #fffbd4;
+  font-size: 14px;
+  color: #fffbe3;
 }
 
 #MiniMapNative .BreakerMarker {
-  font-size: 13px;
-  color: #ff4630;
+  font-size: 12px;
+  color: #ff4936;
 }
 
 #MiniMapNative .BreakerMarkerActive {
-  font-size: 13px;
-  color: #2fea59;
+  font-size: 12px;
+  color: #35e563;
 }
 
 #MiniMapNative .ExitMarker {
-  font-size: 13px;
-  color: #f5f0cc;
+  font-size: 12px;
+  color: #f7f1c9;
 }
 
 #MiniMapNative .ExitMarkerPowered {
-  font-size: 13px;
-  color: #2ff06b;
+  font-size: 12px;
+  color: #33e76a;
 }
 
 #MiniMapNative .ThreatMarker {
-  font-size: 14px;
-  color: #ff2f20;
+  font-size: 13px;
+  color: #ff3b2c;
 }
 
 #MiniMapNative .WaypointMarker {
-  font-size: 14px;
-  color: #3e8bf6;
+  font-size: 15px;
+  color: #2f8fff;
+}
+
+#MiniMapNative .Header {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #f7efb4;
+}
+
+#MiniMapNative .Meta {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #e8dda0;
 }
 
 .Hidden {

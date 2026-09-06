@@ -62,21 +62,44 @@ inline constexpr int LoadMarginTop = 14;
 inline constexpr int LoadFont = 10;
 inline constexpr float LoadTracking = 0.160000f;
 
-inline constexpr int MiniMapRouteThickness = 0;
-inline constexpr int MiniMapPlayerFont = 13;
-inline constexpr int MiniMapBreakerFont = 13;
-inline constexpr int MiniMapExitFont = 13;
-inline constexpr int MiniMapThreatFont = 14;
-inline constexpr int MiniMapWaypointFont = 14;
+inline constexpr int MapRouteOuterThickness = 4;
+inline constexpr int FullMapRouteThickness = 2;
+inline constexpr int FullMapTitleFont = 26;
+inline constexpr int FullMapTitleWeight = 700;
+inline constexpr float FullMapTitleTracking = 0.010000f;
+inline constexpr int FullMapMetaFont = 11;
+inline constexpr int FullMapMetaWeight = 600;
+inline constexpr float FullMapMetaTracking = 0.060000f;
+inline constexpr int FullMapPlayerSize = 16;
+inline constexpr int FullMapWaypointSize = 18;
 
-inline constexpr CssColor MiniMapRouteColor{0.243137f, 0.545098f, 0.964706f, 1.000000f};
-inline constexpr CssColor MiniMapPlayerColor{1.000000f, 0.984314f, 0.831373f, 1.000000f};
-inline constexpr CssColor MiniMapBreakerColor{1.000000f, 0.274510f, 0.188235f, 1.000000f};
-inline constexpr CssColor MiniMapBreakerActiveColor{0.184314f, 0.917647f, 0.349020f, 1.000000f};
-inline constexpr CssColor MiniMapExitColor{0.960784f, 0.941176f, 0.800000f, 1.000000f};
-inline constexpr CssColor MiniMapExitPoweredColor{0.184314f, 0.941176f, 0.419608f, 1.000000f};
-inline constexpr CssColor MiniMapThreatColor{1.000000f, 0.184314f, 0.125490f, 1.000000f};
-inline constexpr CssColor MiniMapWaypointColor{0.243137f, 0.545098f, 0.964706f, 1.000000f};
+inline constexpr int MiniMapWallThickness = 1;
+inline constexpr int MiniMapRouteThickness = 2;
+inline constexpr int MiniMapPlayerFont = 14;
+inline constexpr int MiniMapBreakerFont = 12;
+inline constexpr int MiniMapExitFont = 12;
+inline constexpr int MiniMapThreatFont = 13;
+inline constexpr int MiniMapWaypointFont = 15;
+
+inline constexpr CssColor MapBackgroundColor{0.819608f, 0.776471f, 0.435294f, 1.000000f};
+inline constexpr CssColor MapFrameColor{0.317647f, 0.290196f, 0.133333f, 1.000000f};
+inline constexpr CssColor MapGridColor{0.721569f, 0.678431f, 0.368627f, 1.000000f};
+inline constexpr CssColor MapWallColor{0.160784f, 0.149020f, 0.066667f, 1.000000f};
+inline constexpr CssColor MapRouteOuterColor{0.290196f, 0.270588f, 0.141176f, 1.000000f};
+inline constexpr CssColor FullMapRouteColor{0.184314f, 0.494118f, 0.847059f, 1.000000f};
+inline constexpr CssColor FullMapTitleColor{0.145098f, 0.129412f, 0.054902f, 1.000000f};
+inline constexpr CssColor FullMapMetaColor{0.396078f, 0.368627f, 0.192157f, 1.000000f};
+inline constexpr CssColor FullMapPlayerColor{1.000000f, 0.984314f, 0.890196f, 1.000000f};
+inline constexpr CssColor FullMapWaypointColor{0.145098f, 0.533333f, 0.937255f, 1.000000f};
+
+inline constexpr CssColor MiniMapRouteColor{0.184314f, 0.525490f, 0.933333f, 1.000000f};
+inline constexpr CssColor MiniMapPlayerColor{1.000000f, 0.984314f, 0.890196f, 1.000000f};
+inline constexpr CssColor MiniMapBreakerColor{1.000000f, 0.286275f, 0.211765f, 1.000000f};
+inline constexpr CssColor MiniMapBreakerActiveColor{0.207843f, 0.898039f, 0.388235f, 1.000000f};
+inline constexpr CssColor MiniMapExitColor{0.968627f, 0.945098f, 0.788235f, 1.000000f};
+inline constexpr CssColor MiniMapExitPoweredColor{0.200000f, 0.905882f, 0.415686f, 1.000000f};
+inline constexpr CssColor MiniMapThreatColor{1.000000f, 0.231373f, 0.172549f, 1.000000f};
+inline constexpr CssColor MiniMapWaypointColor{0.184314f, 0.560784f, 1.000000f, 1.000000f};
 
 inline constexpr CssColor Background{0.784314f, 0.733333f, 0.380392f, 1.000000f};
 inline constexpr CssColor MetaColor{0.168627f, 0.149020f, 0.062745f, 0.580000f};
