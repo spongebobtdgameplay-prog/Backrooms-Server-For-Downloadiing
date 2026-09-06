@@ -34,7 +34,7 @@ void Entity::Release()
 {
     Active = true;
     RepathTimer = 0.0f;
-    ReleaseGraceTimer = 5.0f;
+    ReleaseGraceTimer = 2.2f;
     EncounterAge = 0.0f;
 }
 
@@ -271,13 +271,13 @@ bool Entity::Update(
     );
 
     float MoveSpeed =
-        1.65f + ChaseBlend * 1.75f;
+        2.15f + ChaseBlend * 2.35f;
 
     if (ReleaseGraceTimer > 0.0f)
-        MoveSpeed = std::min(MoveSpeed, 1.15f);
+        MoveSpeed = std::min(MoveSpeed, 1.55f);
 
     if (DemonForm && ReleaseGraceTimer <= 0.0f)
-        MoveSpeed += 0.28f;
+        MoveSpeed += 0.42f;
 
     RepathTimer -= DeltaTime;
 

@@ -133,19 +133,7 @@ bool AudioSystem::Initialize()
         0.28f
     );
 
-    EntityLaugh = LoadSound(
-        "assets/audio/entity-laugh.wav",
-        false,
-        true,
-        0.46f
-    );
-
-    if (EntityLaugh != nullptr)
-    {
-        ma_sound_set_min_distance(EntityLaugh, 2.0f);
-        ma_sound_set_max_distance(EntityLaugh, 78.0f);
-        ma_sound_set_rolloff(EntityLaugh, 0.48f);
-    }
+    EntityLaugh = nullptr;
 
     for (std::size_t I = 0; I < Footsteps.size(); ++I)
     {
@@ -311,27 +299,12 @@ void AudioSystem::Update(
                 0.86f +
                 static_cast<float>(EntityCueIndex % 5) * 0.035f;
 
-            if (
-                EntityLaugh != nullptr &&
-                EntityCueIndex % 3 == 2
-            )
-            {
-                RestartSpatial(
-                    EntityLaugh,
-                    EntityPosition + glm::vec3{0.0f, 1.25f, 0.0f},
-                    0.44f + Threat * 0.22f,
-                    0.91f + Threat * 0.04f
-                );
-            }
-            else
-            {
-                RestartSpatial(
-                    EntityMetal,
-                    EntityPosition + glm::vec3{0.0f, 0.8f, 0.0f},
-                    0.42f + Threat * 0.32f,
-                    Pitch
-                );
-            }
+            RestartSpatial(
+                EntityMetal,
+                EntityPosition + glm::vec3{0.0f, 0.8f, 0.0f},
+                0.34f + Threat * 0.30f,
+                0.78f + Threat * 0.08f + static_cast<float>(EntityCueIndex % 3) * 0.025f
+            );
 
             ++EntityCueIndex;
 
@@ -405,16 +378,8 @@ void AudioSystem::PlayShift(
         DemonForm ? 0.88f : 1.04f
     );
 
-    if (DemonForm)
-    {
-        RestartSpatial(
-            EntityLaugh,
-            Position + glm::vec3{0.0f, 1.3f, 0.0f},
-            0.22f,
-            0.90f
-        );
-    }
 }
+
 
 void AudioSystem::PlayDeath()
 {

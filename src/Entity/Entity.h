@@ -56,7 +56,7 @@ private:
 
     float Radius = 0.43f;
     float RepathTimer = 0.0f;
-    float RepathInterval = 0.34f;
+    float RepathInterval = 0.18f;
 
     float ShiftTimer = 7.0f;
     float ShiftProgress = 1.0f;
