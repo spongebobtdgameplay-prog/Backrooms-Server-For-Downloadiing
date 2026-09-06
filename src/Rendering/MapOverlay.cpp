@@ -241,7 +241,7 @@ void Renderer::DrawMapPanelV2(
         };
     };
 
-    const int WallThickness = Detailed ? 1 : 2;
+    const int WallThickness = 1;
 
     for (int LocalZ = 0; LocalZ < World.Rows; ++LocalZ)
     {
@@ -331,50 +331,34 @@ void Renderer::DrawMapPanelV2(
     {
         const glm::ivec2 Position = ToScreen(Marker.Position.x, Marker.Position.y);
 
-        const int MarkerSafeInset = Detailed ? 0 : 10;
-
-        if (
-            Position.x < X + MarkerSafeInset ||
-            Position.y < Y + MarkerSafeInset ||
-            Position.x > X + PanelWidth - 1 - MarkerSafeInset ||
-            Position.y > Y + PanelHeight - 1 - MarkerSafeInset
-        )
-        {
-            continue;
-        }
-
         if (Marker.Kind == MapMarkerKind::Breaker || Marker.Kind == MapMarkerKind::BreakerActive)
         {
             const bool Active = Marker.Kind == MapMarkerKind::BreakerActive;
             const glm::vec3 Glow = Active
                 ? glm::vec3{0.16f, 0.92f, 0.34f}
                 : glm::vec3{1.0f, 0.13f, 0.08f};
-            const int Radius = Detailed ? 8 : 4;
 
-            FillCircle(Position.x, Position.y, Radius + 3, Ink);
-            FillCircle(Position.x, Position.y, Radius + 1, Glow);
-            FillCircle(Position.x, Position.y, std::max(Radius - 2, 2), Yellow);
-
-            const int IconReach = Detailed ? 4 : 2;
-            Line(
-                {Position.x - IconReach, Position.y + IconReach},
-                {Position.x + IconReach, Position.y - IconReach},
-                Detailed ? 2 : 1,
-                Ink
-            );
-            FillCircle(
-                Position.x + IconReach,
-                Position.y - IconReach,
-                Detailed ? 2 : 1,
-                Ink
-            );
-            ClipRect(
-                Position.x - (Detailed ? 6 : 3),
-                Position.y + (Detailed ? 3 : 2),
-                Detailed ? 5 : 3,
-                Detailed ? 3 : 2,
-                Ink
-            );
+            if (!Detailed)
+            {
+                FillCircle(Position.x, Position.y, 4, Ink);
+                FillCircle(Position.x, Position.y, 3, Glow);
+                ClipRect(Position.x - 1, Position.y - 1, 2, 2, Ink);
+            }
+            else
+            {
+                const int Radius = 8;
+                FillCircle(Position.x, Position.y, Radius + 3, Ink);
+                FillCircle(Position.x, Position.y, Radius + 1, Glow);
+                FillCircle(Position.x, Position.y, Radius - 2, Yellow);
+                Line(
+                    {Position.x - 4, Position.y + 4},
+                    {Position.x + 4, Position.y - 4},
+                    2,
+                    Ink
+                );
+                FillCircle(Position.x + 4, Position.y - 4, 2, Ink);
+                ClipRect(Position.x - 6, Position.y + 3, 5, 3, Ink);
+            }
         }
         else if (Marker.Kind == MapMarkerKind::Exit || Marker.Kind == MapMarkerKind::ExitPowered)
         {
@@ -382,11 +366,21 @@ void Renderer::DrawMapPanelV2(
                 Marker.Kind == MapMarkerKind::ExitPowered
                     ? glm::vec3{0.16f, 0.95f, 0.42f}
                     : glm::vec3{0.96f, 0.94f, 0.80f};
-            const int Radius = Detailed ? 8 : 4;
-            FillCircle(Position.x, Position.y, Radius + 2, Ink);
-            FillCircle(Position.x, Position.y, Radius, Color);
-            ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
-            ClipRect(Position.x + 2, Position.y, 2, 2, Ink);
+
+            if (!Detailed)
+            {
+                ClipRect(Position.x - 4, Position.y - 4, 9, 9, Ink);
+                ClipRect(Position.x - 3, Position.y - 3, 7, 7, Color);
+                ClipRect(Position.x + 1, Position.y - 2, 1, 5, Ink);
+            }
+            else
+            {
+                const int Radius = 8;
+                FillCircle(Position.x, Position.y, Radius + 2, Ink);
+                FillCircle(Position.x, Position.y, Radius, Color);
+                ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
+                ClipRect(Position.x + 2, Position.y, 2, 2, Ink);
+            }
         }
         else
         {
@@ -394,19 +388,34 @@ void Renderer::DrawMapPanelV2(
             const glm::vec3 Threat = RedPhase
                 ? glm::vec3{1.0f, 0.035f, 0.02f}
                 : glm::vec3{0.50f, 0.015f, 0.012f};
-            const int Radius = Detailed ? 9 : 5;
-            const glm::ivec2 Top{Position.x, Position.y - Radius};
-            const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
-            const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
-            FillTriangle(
-                {Top.x + 1, Top.y + 2},
-                {LeftPoint.x + 1, LeftPoint.y + 2},
-                {RightPoint.x + 1, RightPoint.y + 2},
-                Ink
-            );
-            FillTriangle(Top, LeftPoint, RightPoint, Threat);
-            ClipRect(Position.x - 1, Position.y - 2, 2, 6, Yellow);
-            FillCircle(Position.x, Position.y + 6, 1, Yellow);
+
+            if (!Detailed)
+            {
+                const int Radius = 4;
+                const glm::ivec2 Top{Position.x, Position.y - Radius};
+                const glm::ivec2 LeftPoint{Position.x - Radius, Position.y};
+                const glm::ivec2 Bottom{Position.x, Position.y + Radius};
+                const glm::ivec2 RightPoint{Position.x + Radius, Position.y};
+                FillTriangle(Top, LeftPoint, RightPoint, Threat);
+                FillTriangle(Bottom, LeftPoint, RightPoint, Threat);
+                ClipRect(Position.x, Position.y, 1, 1, Yellow);
+            }
+            else
+            {
+                const int Radius = 9;
+                const glm::ivec2 Top{Position.x, Position.y - Radius};
+                const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
+                const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
+                FillTriangle(
+                    {Top.x + 1, Top.y + 2},
+                    {LeftPoint.x + 1, LeftPoint.y + 2},
+                    {RightPoint.x + 1, RightPoint.y + 2},
+                    Ink
+                );
+                FillTriangle(Top, LeftPoint, RightPoint, Threat);
+                ClipRect(Position.x - 1, Position.y - 2, 2, 6, Yellow);
+                FillCircle(Position.x, Position.y + 6, 1, Yellow);
+            }
         }
 
         if (Detailed)
@@ -463,9 +472,9 @@ void Renderer::DrawMapPanelV2(
         Direction = glm::normalize(Direction);
 
     const glm::vec2 Right{-Direction.y, Direction.x};
-    const int ArrowLength = Detailed ? 14 : 9;
-    const int ArrowWidth = Detailed ? 8 : 5;
-    const float TailLength = Detailed ? 5.0f : 3.0f;
+    const int ArrowLength = Detailed ? 14 : 7;
+    const int ArrowWidth = Detailed ? 8 : 4;
+    const float TailLength = Detailed ? 5.0f : 2.0f;
     const glm::ivec2 Tip{
         PlayerScreen.x + static_cast<int>(std::round(Direction.x * ArrowLength)),
         PlayerScreen.y + static_cast<int>(std::round(Direction.y * ArrowLength))
