@@ -31,7 +31,7 @@ jobs:
           if not parts:
               raise SystemExit('No model chunks found')
           raw = lzma.decompress(base64.b64decode(''.join(parts)))
-          expected = '975f9a1a764b49f26e9d7ca96648c7c03398a2678706c70ae0d970d682a04c4d'
+          expected = '38a653fab454e59dc504f07666d31912dc32828bb9c37229f2c3c745e649f23e'
           actual = hashlib.sha256(raw).hexdigest()
           if actual != expected:
               raise SystemExit(f'Entity model SHA mismatch: {actual}')
@@ -68,7 +68,7 @@ jobs:
           $Version = Get-Content "src\Core\Version.h" -Raw
           if ($Version -notmatch '0\.3\.35') { throw "Version was not updated to 0.3.35" }
           $ModelHash = (Get-FileHash "build\Release\assets\models\backrooms_entity.glb" -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($ModelHash -ne "975f9a1a764b49f26e9d7ca96648c7c03398a2678706c70ae0d970d682a04c4d") { throw "Packaged entity model hash mismatch" }
+          if ($ModelHash -ne "38a653fab454e59dc504f07666d31912dc32828bb9c37229f2c3c745e649f23e") { throw "Packaged entity model hash mismatch" }
 
       - name: Remove temporary staging files
         shell: pwsh
