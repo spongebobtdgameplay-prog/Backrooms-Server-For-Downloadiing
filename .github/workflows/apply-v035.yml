@@ -1,0 +1,76 @@
+name: Apply V0.3.35 Patch
+
+on:
+  push:
+    branches:
+      - tmp-v035-publish3
+
+permissions:
+  contents: write
+
+jobs:
+  apply-build-commit:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: tmp-v035-publish3
+          fetch-depth: 0
+
+      - name: Rebuild supplied entity model
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import base64, lzma
+          parts = []
+          for path in sorted(Path('.v035/model').glob('*.txt')):
+              parts.append(path.read_text(encoding='utf-8').strip())
+          if not parts:
+              raise SystemExit('No model chunks found')
+          raw = lzma.decompress(base64.b64decode(''.join(parts)))
+          out = Path('assets/models/backrooms_entity.glb')
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_bytes(raw)
+          print(f'wrote {out} ({len(raw)} bytes)')
+          '@ | python -
+
+      - name: Apply source patch
+        shell: pwsh
+        run: python .v035/patch/00.txt
+
+      - name: Regenerate native CSS constants
+        shell: pwsh
+        run: python tools/convert_web_ui.py assets/ui/original/style.css src/Rendering/GeneratedWebUi.h
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify V0.3.35 runtime files
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) { throw "Backrooms Offical.exe was not produced" }
+          if (!(Test-Path "build\Release\assets\models\backrooms_entity.glb")) { throw "Supplied entity model was not packaged" }
+          $Version = Get-Content "src\Core\Version.h" -Raw
+          if ($Version -notmatch '0\.3\.35') { throw "Version was not updated to 0.3.35" }
+
+      - name: Remove temporary staging files
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force .v035
+          Remove-Item -Force .github\workflows\apply-v035.yml
+
+      - name: Commit verified V0.3.35
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Build V0.3.35 entity chase, audio, minimap and menu"
+          git push origin HEAD:tmp-v035-publish3
