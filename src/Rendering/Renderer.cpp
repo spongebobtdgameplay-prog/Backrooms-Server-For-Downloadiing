@@ -1212,29 +1212,82 @@ void Renderer::DrawCrosshair()
     const int CenterY = static_cast<int>(Height / 2);
 
     const glm::vec3 Stroke{
-        0.055f,
-        0.050f,
-        0.032f
+        0.035f,
+        0.032f,
+        0.020f
     };
 
     const glm::vec3 Reticle{
-        0.98f,
-        0.955f,
-        0.78f
+        1.0f,
+        0.965f,
+        0.72f
     };
 
-    DrawRect(CenterX - 12, CenterY - 2, 7, 3, Stroke);
-    DrawRect(CenterX + 5, CenterY - 2, 7, 3, Stroke);
-    DrawRect(CenterX - 2, CenterY - 12, 3, 7, Stroke);
-    DrawRect(CenterX - 2, CenterY + 5, 3, 7, Stroke);
+    const int Gap = 8;
+    const int TickLength = 9;
+    const int StrokeThickness = 4;
+    const int TickThickness = 2;
 
-    DrawRect(CenterX - 11, CenterY - 1, 5, 1, Reticle);
-    DrawRect(CenterX + 6, CenterY - 1, 5, 1, Reticle);
-    DrawRect(CenterX - 1, CenterY - 11, 1, 5, Reticle);
-    DrawRect(CenterX - 1, CenterY + 6, 1, 5, Reticle);
+    DrawRect(
+        CenterX - Gap - TickLength - 1,
+        CenterY - StrokeThickness / 2,
+        TickLength + 2,
+        StrokeThickness,
+        Stroke
+    );
+    DrawRect(
+        CenterX + Gap - 1,
+        CenterY - StrokeThickness / 2,
+        TickLength + 2,
+        StrokeThickness,
+        Stroke
+    );
+    DrawRect(
+        CenterX - StrokeThickness / 2,
+        CenterY - Gap - TickLength - 1,
+        StrokeThickness,
+        TickLength + 2,
+        Stroke
+    );
+    DrawRect(
+        CenterX - StrokeThickness / 2,
+        CenterY + Gap - 1,
+        StrokeThickness,
+        TickLength + 2,
+        Stroke
+    );
 
-    DrawRect(CenterX - 2, CenterY - 2, 3, 3, Stroke);
-    DrawRect(CenterX - 1, CenterY - 1, 1, 1, Reticle);
+    DrawRect(
+        CenterX - Gap - TickLength,
+        CenterY - TickThickness / 2,
+        TickLength,
+        TickThickness,
+        Reticle
+    );
+    DrawRect(
+        CenterX + Gap,
+        CenterY - TickThickness / 2,
+        TickLength,
+        TickThickness,
+        Reticle
+    );
+    DrawRect(
+        CenterX - TickThickness / 2,
+        CenterY - Gap - TickLength,
+        TickThickness,
+        TickLength,
+        Reticle
+    );
+    DrawRect(
+        CenterX - TickThickness / 2,
+        CenterY + Gap,
+        TickThickness,
+        TickLength,
+        Reticle
+    );
+
+    DrawRect(CenterX - 2, CenterY - 2, 5, 5, Stroke);
+    DrawRect(CenterX - 1, CenterY - 1, 3, 3, Reticle);
 }
 
 void Renderer::DrawStamina(float Stamina)
