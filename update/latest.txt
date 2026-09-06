@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.33
-manifest_revision=34039013895
-published_at=2026-09-06T14:26:50Z
+version=0.3.34
+manifest_revision=34040604152
+published_at=2026-09-06T14:57:35Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.33&run=34039013895
-sha256=d67f550aa81e908247a4f3e22b832b34752de7a6cb4390fc2e8e9c6483c6c912
-notes=V0.3.33 cleans up the gameplay minimap presentation. Gameplay minimap markers no longer disappear when their center leaves the viewport; they are drawn normally and clipped by the minimap bounds so partially visible icons remain at the edge. Breaker, exit, entity, and player markers were redesigned into smaller, simpler shapes, and local maze walls use a thinner one-pixel stroke to reduce the chunky appearance while the camera-relative rotation remains unchanged.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.34&run=34040604152
+sha256=280d9ae0995b332d5a87f6e011debef28b0c50ee5062b7b567ee8feb10507a7e
+notes=V0.3.34 replaces the static clown-like entity presentation with a dark animated humanoid silhouette that visibly walks, leans, bobs, and swings its limbs while chasing. The repeating laugh cue was removed, entity pursuit is faster and repaths more often, release grace is shorter, and the gameplay minimap now uses thinner route lines plus smaller, simpler breaker, exit, threat, waypoint, and player markers. Edge clipping remains intact.
