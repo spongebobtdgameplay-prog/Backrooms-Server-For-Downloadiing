@@ -1,0 +1,68 @@
+name: V0.3.31 Minimap Polish Gate
+
+on:
+  push:
+    branches:
+      - feature-v0.3.31-minimap-polish
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v0331-minimap-polish
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply V0.3.31 minimap polish
+        shell: pwsh
+        run: python tools/apply_v0331_minimap_polish.py
+
+      - name: Verify source changes
+        shell: pwsh
+        run: |
+          $Map = Get-Content "src\Rendering\MapOverlay.cpp" -Raw
+          $Ui = Get-Content "src\Rendering\InteractiveMenu.cpp" -Raw
+          $Renderer = Get-Content "src\Rendering\Renderer.cpp" -Raw
+          $Version = Get-Content "src\Core\Version.h" -Raw
+
+          if ($Map -notmatch 'M  EXPAND') { throw 'New minimap header was not applied' }
+          if ($Map -notmatch 'InnerPadding = 6') { throw 'Inset minimap viewport missing' }
+          if ($Map -notmatch 'Detailed \? 1 : 2') { throw 'Minimap wall thickness change missing' }
+          if ($Ui -notmatch 'MiniMapTop - 36') { throw 'Sprint/minimap spacing fix missing' }
+          if ($Ui -notmatch 'BarWidth = 148') { throw 'Sprint bar polish missing' }
+          if ($Renderer -notmatch 'TickLength = 9') { throw 'Reticle polish missing' }
+          if ($Version -notmatch '0\.3\.31') { throw 'Version was not bumped to 0.3.31' }
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) {
+            throw "Backrooms Offical.exe was not produced"
+          }
+
+      - name: Commit tested V0.3.31 files
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/v0331-minimap-polish-gate.yml
+          git rm tools/apply_v0331_minimap_polish.py
+          git add CMakeLists.txt src/Core/Version.h src/Platform/Windows/Backrooms.rc src/Rendering/MapOverlay.cpp src/Rendering/InteractiveMenu.cpp src/Rendering/Renderer.cpp update/release_notes.txt
+          git commit -m "Apply tested V0.3.31 minimap polish [skip ci]"
+          git push origin HEAD:feature-v0.3.31-minimap-polish
