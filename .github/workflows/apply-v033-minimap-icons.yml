@@ -1,0 +1,257 @@
+name: Apply V0.3.33 Minimap Icon Fixes
+
+on:
+  push:
+    branches:
+      - work/v0.3.33-minimap-icons
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-build:
+    if: ${{ !contains(github.event.head_commit.message, '[patch-applied]') }}
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: work/v0.3.33-minimap-icons
+          fetch-depth: 0
+
+      - name: Apply fixes
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{path}: expected one match, got {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+
+          map_path = 'src/Rendering/MapOverlay.cpp'
+
+          replace_once(
+              map_path,
+              '''        const int MarkerSafeInset = Detailed ? 0 : 10;
+
+        if (
+            Position.x < X + MarkerSafeInset ||
+            Position.y < Y + MarkerSafeInset ||
+            Position.x > X + PanelWidth - 1 - MarkerSafeInset ||
+            Position.y > Y + PanelHeight - 1 - MarkerSafeInset
+        )
+        {
+            continue;
+        }
+
+''',
+              ''
+          )
+
+          replace_once(
+              map_path,
+              '''            const bool Active = Marker.Kind == MapMarkerKind::BreakerActive;
+            const glm::vec3 Glow = Active
+                ? glm::vec3{0.16f, 0.92f, 0.34f}
+                : glm::vec3{1.0f, 0.13f, 0.08f};
+            const int Radius = Detailed ? 8 : 4;
+
+            FillCircle(Position.x, Position.y, Radius + 3, Ink);
+            FillCircle(Position.x, Position.y, Radius + 1, Glow);
+            FillCircle(Position.x, Position.y, std::max(Radius - 2, 2), Yellow);
+
+            const int IconReach = Detailed ? 4 : 2;
+            Line(
+                {Position.x - IconReach, Position.y + IconReach},
+                {Position.x + IconReach, Position.y - IconReach},
+                Detailed ? 2 : 1,
+                Ink
+            );
+            FillCircle(
+                Position.x + IconReach,
+                Position.y - IconReach,
+                Detailed ? 2 : 1,
+                Ink
+            );
+            ClipRect(
+                Position.x - (Detailed ? 6 : 3),
+                Position.y + (Detailed ? 3 : 2),
+                Detailed ? 5 : 3,
+                Detailed ? 3 : 2,
+                Ink
+            );
+''',
+              '''            const bool Active = Marker.Kind == MapMarkerKind::BreakerActive;
+            const glm::vec3 Glow = Active
+                ? glm::vec3{0.16f, 0.92f, 0.34f}
+                : glm::vec3{1.0f, 0.13f, 0.08f};
+
+            if (!Detailed)
+            {
+                FillCircle(Position.x, Position.y, 4, Ink);
+                FillCircle(Position.x, Position.y, 3, Glow);
+                ClipRect(Position.x - 1, Position.y - 1, 2, 2, Ink);
+            }
+            else
+            {
+                const int Radius = 8;
+                FillCircle(Position.x, Position.y, Radius + 3, Ink);
+                FillCircle(Position.x, Position.y, Radius + 1, Glow);
+                FillCircle(Position.x, Position.y, Radius - 2, Yellow);
+                Line(
+                    {Position.x - 4, Position.y + 4},
+                    {Position.x + 4, Position.y - 4},
+                    2,
+                    Ink
+                );
+                FillCircle(Position.x + 4, Position.y - 4, 2, Ink);
+                ClipRect(Position.x - 6, Position.y + 3, 5, 3, Ink);
+            }
+'''
+          )
+
+          replace_once(
+              map_path,
+              '''            const glm::vec3 Color =
+                Marker.Kind == MapMarkerKind::ExitPowered
+                    ? glm::vec3{0.16f, 0.95f, 0.42f}
+                    : glm::vec3{0.96f, 0.94f, 0.80f};
+            const int Radius = Detailed ? 8 : 4;
+            FillCircle(Position.x, Position.y, Radius + 2, Ink);
+            FillCircle(Position.x, Position.y, Radius, Color);
+            ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
+            ClipRect(Position.x + 2, Position.y, 2, 2, Ink);
+''',
+              '''            const glm::vec3 Color =
+                Marker.Kind == MapMarkerKind::ExitPowered
+                    ? glm::vec3{0.16f, 0.95f, 0.42f}
+                    : glm::vec3{0.96f, 0.94f, 0.80f};
+
+            if (!Detailed)
+            {
+                ClipRect(Position.x - 4, Position.y - 4, 9, 9, Ink);
+                ClipRect(Position.x - 3, Position.y - 3, 7, 7, Color);
+                ClipRect(Position.x + 1, Position.y - 2, 1, 5, Ink);
+            }
+            else
+            {
+                const int Radius = 8;
+                FillCircle(Position.x, Position.y, Radius + 2, Ink);
+                FillCircle(Position.x, Position.y, Radius, Color);
+                ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
+                ClipRect(Position.x + 2, Position.y, 2, 2, Ink);
+            }
+'''
+          )
+
+          replace_once(
+              map_path,
+              '''            const bool RedPhase = std::fmod(Time * 5.0f, 1.0f) < 0.58f;
+            const glm::vec3 Threat = RedPhase
+                ? glm::vec3{1.0f, 0.035f, 0.02f}
+                : glm::vec3{0.50f, 0.015f, 0.012f};
+            const int Radius = Detailed ? 9 : 5;
+            const glm::ivec2 Top{Position.x, Position.y - Radius};
+            const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
+            const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
+            FillTriangle(
+                {Top.x + 1, Top.y + 2},
+                {LeftPoint.x + 1, LeftPoint.y + 2},
+                {RightPoint.x + 1, RightPoint.y + 2},
+                Ink
+            );
+            FillTriangle(Top, LeftPoint, RightPoint, Threat);
+            ClipRect(Position.x - 1, Position.y - 2, 2, 6, Yellow);
+            FillCircle(Position.x, Position.y + 6, 1, Yellow);
+''',
+              '''            const bool RedPhase = std::fmod(Time * 5.0f, 1.0f) < 0.58f;
+            const glm::vec3 Threat = RedPhase
+                ? glm::vec3{1.0f, 0.035f, 0.02f}
+                : glm::vec3{0.50f, 0.015f, 0.012f};
+
+            if (!Detailed)
+            {
+                const int Radius = 4;
+                const glm::ivec2 Top{Position.x, Position.y - Radius};
+                const glm::ivec2 LeftPoint{Position.x - Radius, Position.y};
+                const glm::ivec2 Bottom{Position.x, Position.y + Radius};
+                const glm::ivec2 RightPoint{Position.x + Radius, Position.y};
+                FillTriangle(Top, LeftPoint, RightPoint, Threat);
+                FillTriangle(Bottom, LeftPoint, RightPoint, Threat);
+                ClipRect(Position.x, Position.y, 1, 1, Yellow);
+            }
+            else
+            {
+                const int Radius = 9;
+                const glm::ivec2 Top{Position.x, Position.y - Radius};
+                const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
+                const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
+                FillTriangle(
+                    {Top.x + 1, Top.y + 2},
+                    {LeftPoint.x + 1, LeftPoint.y + 2},
+                    {RightPoint.x + 1, RightPoint.y + 2},
+                    Ink
+                );
+                FillTriangle(Top, LeftPoint, RightPoint, Threat);
+                ClipRect(Position.x - 1, Position.y - 2, 2, 6, Yellow);
+                FillCircle(Position.x, Position.y + 6, 1, Yellow);
+            }
+'''
+          )
+
+          replace_once(map_path, '    const int WallThickness = Detailed ? 1 : 2;', '    const int WallThickness = 1;')
+          replace_once(map_path, '    const int ArrowLength = Detailed ? 14 : 9;', '    const int ArrowLength = Detailed ? 14 : 7;')
+          replace_once(map_path, '    const int ArrowWidth = Detailed ? 8 : 5;', '    const int ArrowWidth = Detailed ? 8 : 4;')
+          replace_once(map_path, '    const float TailLength = Detailed ? 5.0f : 3.0f;', '    const float TailLength = Detailed ? 5.0f : 2.0f;')
+
+          for path in ['CMakeLists.txt', 'src/Core/Version.h']:
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if '0.3.32' not in text:
+                  raise RuntimeError(f'{path}: V0.3.32 marker missing')
+              p.write_text(text.replace('0.3.32', '0.3.33'), encoding='utf-8', newline='\n')
+
+          rc = Path('src/Platform/Windows/Backrooms.rc')
+          text = rc.read_text(encoding='utf-8')
+          if '0,3,32,0' not in text or '0.3.32' not in text:
+              raise RuntimeError('Backrooms.rc V0.3.32 markers missing')
+          rc.write_text(text.replace('0,3,32,0', '0,3,33,0').replace('0.3.32', '0.3.33'), encoding='utf-8', newline='\n')
+
+          Path('update/release_notes.txt').write_text(
+              'V0.3.33 cleans up the gameplay minimap presentation. Gameplay minimap markers no longer disappear when their center leaves the viewport; they are drawn normally and clipped by the minimap bounds so partially visible icons remain at the edge. Breaker, exit, entity, and player markers were redesigned into smaller, simpler shapes, and local maze walls use a thinner one-pixel stroke to reduce the chunky appearance while the camera-relative rotation remains unchanged.\n',
+              encoding='utf-8',
+              newline='\n'
+          )
+          '@ | Set-Content apply_v033.py
+          python apply_v033.py
+          Remove-Item apply_v033.py
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (!(Test-Path "build\Release\Backrooms Offical.exe")) {
+            throw "Backrooms Offical.exe was not produced"
+          }
+
+      - name: Commit tested fixes
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt src/Core/Version.h src/Platform/Windows/Backrooms.rc src/Rendering/MapOverlay.cpp update/release_notes.txt
+          git commit -m "Fix V0.3.33 minimap icon clipping and marker design [patch-applied]"
+          git push origin HEAD:work/v0.3.33-minimap-icons
