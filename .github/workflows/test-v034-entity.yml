@@ -1,0 +1,47 @@
+name: Test V0.3.34 Entity Replacement
+
+on:
+  push:
+    branches:
+      - work/v0.3.34-entity-replacement
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[v034-tested]') }}
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: work/v0.3.34-entity-replacement
+          fetch-depth: 0
+
+      - name: Apply patch
+        run: python tools/apply_v034.py
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 2
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $Exe = Get-ChildItem -Path build -Recurse -Filter "Backrooms Offical.exe" | Select-Object -First 1
+          if (-not $Exe) { throw "Backrooms Offical.exe was not produced" }
+          Write-Host $Exe.FullName
+
+      - name: Commit tested source
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src CMakeLists.txt update/release_notes.txt
+          if (git diff --cached --quiet) { exit 0 }
+          git commit -m "Replace entity and simplify minimap for V0.3.34 [v034-tested]"
+          git push origin HEAD:work/v0.3.34-entity-replacement
