@@ -45,6 +45,16 @@ jobs:
         shell: pwsh
         run: |
           curl.exe -L --fail "https://raw.githubusercontent.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/work/v0.3.35-user-entity/.v035/patch/00.txt" -o apply_v035.py
+          @'
+          from pathlib import Path
+          path = Path('apply_v035.py')
+          text = path.read_text(encoding='utf-8')
+          old = "new_text, count = re.subn(pattern, repl, text, count=1, flags=flags)"
+          new = "new_text, count = re.subn(pattern, lambda _match: repl, text, count=1, flags=flags)"
+          if old not in text:
+              raise SystemExit('regex helper line not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+          '@ | python -
           python apply_v035.py
           Remove-Item apply_v035.py
 
