@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.35
-manifest_revision=34058377866
-published_at=2026-09-06T20:37:14Z
+version=0.3.36
+manifest_revision=34060774970
+published_at=2026-09-06T21:23:56Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.35&run=34058377866
-sha256=d97d40de66ea26b8713340b209719d1a610d0eaf3ffdaffb5019f509314a4f37
-notes=V0.3.35 uses the supplied Backrooms Entity mesh as the gameplay hunter, replaces the streamed-chunk-only chase with route generation spanning the hunter and player, adds spatial running footsteps tied to actual hunter movement, removes the old random metallic/shift scare cues, converts compact minimap marker styling from the original CSS source into antialiased native glyphs, removes the jagged compact route line, and makes ESC/menu open directly into the map with RESUME and MAIN MENU actions instead of a separate pause-tab layer.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.36&run=34060774970
+sha256=c13a58355f79feea8b18aa6bf82584dfbcfaf08a3cdf53847ea1ff0c2e8d3d45
+notes=V0.3.36 rebuilds the map and minimap renderer with sub-pixel vector walls/routes, camera-stable player placement, reachable waypoint validation, edge-clamped off-screen markers, restored minimap route tracking, and CSS-driven modern map typography.
