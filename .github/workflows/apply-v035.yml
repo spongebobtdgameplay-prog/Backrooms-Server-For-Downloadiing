@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   apply-build-commit:
+    if: ${{ !contains(github.event.head_commit.message, '[v035-built]') }}
     runs-on: windows-2022
     steps:
       - name: Checkout
@@ -23,22 +24,29 @@ jobs:
         run: |
           @'
           from pathlib import Path
-          import base64, lzma
+          import base64, hashlib, lzma
           parts = []
           for path in sorted(Path('.v035/model').glob('*.txt')):
               parts.append(path.read_text(encoding='utf-8').strip())
           if not parts:
               raise SystemExit('No model chunks found')
           raw = lzma.decompress(base64.b64decode(''.join(parts)))
+          expected = '975f9a1a764b49f26e9d7ca96648c7c03398a2678706c70ae0d970d682a04c4d'
+          actual = hashlib.sha256(raw).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'Entity model SHA mismatch: {actual}')
           out = Path('assets/models/backrooms_entity.glb')
           out.parent.mkdir(parents=True, exist_ok=True)
           out.write_bytes(raw)
-          print(f'wrote {out} ({len(raw)} bytes)')
+          print(f'wrote {out} ({len(raw)} bytes, sha256={actual})')
           '@ | python -
 
-      - name: Apply source patch
+      - name: Fetch and apply source patch
         shell: pwsh
-        run: python .v035/patch/00.txt
+        run: |
+          curl.exe -L --fail "https://raw.githubusercontent.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/work/v0.3.35-user-entity/.v035/patch/00.txt" -o apply_v035.py
+          python apply_v035.py
+          Remove-Item apply_v035.py
 
       - name: Regenerate native CSS constants
         shell: pwsh
@@ -59,6 +67,8 @@ jobs:
           if (!(Test-Path "build\Release\assets\models\backrooms_entity.glb")) { throw "Supplied entity model was not packaged" }
           $Version = Get-Content "src\Core\Version.h" -Raw
           if ($Version -notmatch '0\.3\.35') { throw "Version was not updated to 0.3.35" }
+          $ModelHash = (Get-FileHash "build\Release\assets\models\backrooms_entity.glb" -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($ModelHash -ne "975f9a1a764b49f26e9d7ca96648c7c03398a2678706c70ae0d970d682a04c4d") { throw "Packaged entity model hash mismatch" }
 
       - name: Remove temporary staging files
         shell: pwsh
@@ -72,5 +82,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Build V0.3.35 entity chase, audio, minimap and menu"
+          git commit -m "Build V0.3.35 entity chase, audio, minimap and menu [v035-built]"
           git push origin HEAD:tmp-v035-publish3
