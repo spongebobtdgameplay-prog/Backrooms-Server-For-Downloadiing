@@ -1,8 +1,8 @@
 # Generated after every successful Windows release. Do not hand-edit.
-version=0.3.30
-manifest_revision=33994207622
-published_at=2026-09-05T21:54:17Z
+version=0.3.31
+manifest_revision=34009642513
+published_at=2026-09-06T03:45:15Z
 package=Backrooms-Offical-Windows-x64.exe
-url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.30&run=33994207622
-sha256=1d3b71c7aaaf3c4fdde9b7c65368f2ee887ce04fb478eabaa227112240393f6a
-notes=V0.3.30 repairs the gameplay minimap layout. The minimap is smaller and more local, uses a dedicated header instead of drawing labels over the maze, leaves more visual space below the sprint HUD, and uses safe marker bounds so breaker and threat markers are no longer sliced by the panel edges. The map hotkey is separated into a small M hint, waypoint text receives its own footer strip, and minimap text uses the same outlined gameplay text treatment introduced in V0.3.29.
+url=https://github.com/spongebobtdgameplay-prog/Backrooms-Server-For-Downloadiing/releases/download/latest-windows/Backrooms-Offical-Windows-x64.exe?v=0.3.31&run=34009642513
+sha256=5148891c71fe896f798d1227c9cf1f33075777202cd0f1b763321c2ad28419da
+notes=V0.3.31 rebuilds the gameplay minimap presentation. The minimap is larger and uses a clean dark HUD frame with a dedicated MAP / LEVEL 0 header, a separate waypoint footer, an inset maze viewport, stronger local zoom, thicker readable maze walls, larger breaker/entity/player markers, and a clearer blue route. Marker clipping is prevented by safe inner bounds. The sprint meter is positioned from the minimap top so the two HUD elements always keep deliberate spacing. The center reticle is also larger with separated high-contrast ticks and a stronger center dot.
