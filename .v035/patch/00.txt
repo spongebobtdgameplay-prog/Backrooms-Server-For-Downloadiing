@@ -1,0 +1,924 @@
+from pathlib import Path
+import re
+
+
+def read(path):
+    return Path(path).read_text(encoding='utf-8')
+
+
+def write(path, text):
+    Path(path).write_text(text, encoding='utf-8', newline='\n')
+
+
+def replace_once(path, old, new):
+    text = read(path)
+    if old not in text:
+        raise SystemExit(f'missing replacement in {path}: {old[:120]!r}')
+    text = text.replace(old, new, 1)
+    write(path, text)
+
+
+def regex_once(path, pattern, repl, flags=re.S):
+    text = read(path)
+    new_text, count = re.subn(pattern, repl, text, count=1, flags=flags)
+    if count != 1:
+        raise SystemExit(f'regex count {count} in {path}: {pattern[:120]!r}')
+    write(path, new_text)
+
+
+replace_once('CMakeLists.txt', 'project(BackroomsOffical VERSION 0.3.34 LANGUAGES C CXX)', 'project(BackroomsOffical VERSION 0.3.35 LANGUAGES C CXX)')
+replace_once('src/Core/Version.h', 'inline constexpr const char* Text = "0.3.34";', 'inline constexpr const char* Text = "0.3.35";')
+
+rc = read('src/Platform/Windows/Backrooms.rc')
+rc = rc.replace('FILEVERSION 0,3,33,0', 'FILEVERSION 0,3,35,0')
+rc = rc.replace('PRODUCTVERSION 0,3,33,0', 'PRODUCTVERSION 0,3,35,0')
+rc = rc.replace('"0.3.34\\0"', '"0.3.35\\0"')
+write('src/Platform/Windows/Backrooms.rc', rc)
+
+write('update/release_notes.txt', 'V0.3.35 uses the supplied Backrooms Entity mesh as the gameplay hunter, replaces the streamed-chunk-only chase with route generation spanning the hunter and player, adds spatial running footsteps tied to actual hunter movement, removes the old random metallic/shift scare cues, converts compact minimap marker styling from the original CSS source into antialiased native glyphs, removes the jagged compact route line, and makes ESC/menu open directly into the map with RESUME and MAIN MENU actions instead of a separate pause-tab layer.\n')
+
+write('assets/models/backrooms_entity.LICENSE.txt', '''Backrooms Entity\nAuthor: lol's studios\nSource: https://sketchfab.com/3d-models/backrooms-entity-fcd3af4ee1a34588a5436cbf11837d29\nLicense: Creative Commons Attribution 4.0 International (CC BY 4.0)\nLicense URL: https://creativecommons.org/licenses/by/4.0/\n\nThe author, source, and license above are embedded in the supplied GLB metadata.\n''')
+
+write('src/Entity/Entity.h', '''#pragma once\n\n#include "../World/WorldTypes.h"\n\n#include <glm/glm.hpp>\n\n#include <cstdint>\n#include <vector>\n\nclass Entity\n{\npublic:\n    void Reset(const glm::vec3& StartPosition, uint32_t WorldSeed);\n    void Release();\n\n    bool Update(\n        float DeltaTime,\n        const glm::vec3& PlayerPosition,\n        const WorldData& World\n    );\n\n    float DistanceTo(const glm::vec3& Point) const;\n    std::vector<SceneBox> BuildRenderBoxes() const;\n\n    bool IsActive() const { return Active; }\n    bool IsDemonForm() const { return DemonForm; }\n    bool PreviousWasDemonForm() const { return PreviousDemonForm; }\n    float ShiftAmount() const { return ShiftProgress; }\n    const glm::vec3& Position() const { return EntityPosition; }\n    const glm::vec3& Forward() const { return Direction; }\n\n    bool ConsumeShifted()\n    {\n        const bool Result = ShiftedThisFrame;\n        ShiftedThisFrame = false;\n        return Result;\n    }\n\nprivate:\n    int CellIndex(\n        const glm::vec3& Position,\n        const WorldData& World\n    ) const;\n\n    std::vector<int> Neighbors(\n        int CellIndex,\n        const WorldData& World\n    ) const;\n\n    void BuildPath(\n        const glm::vec3& Target,\n        const WorldData& CollisionWorld\n    );\n\n    glm::vec3 EntityPosition{0.0f};\n    glm::vec3 Direction{0.0f, 0.0f, -1.0f};\n\n    uint32_t Seed = 1;\n    float Radius = 0.28f;\n    float RepathTimer = 0.0f;\n    float RepathInterval = 0.11f;\n    float StuckTimer = 0.0f;\n\n    float ShiftTimer = 7.0f;\n    float ShiftProgress = 1.0f;\n    float ReleaseGraceTimer = 0.0f;\n    float EncounterAge = 0.0f;\n\n    bool Active = false;\n    bool DemonForm = false;\n    bool PreviousDemonForm = false;\n    bool ShiftedThisFrame = false;\n\n    int TargetWorldX = 0;\n    int TargetWorldZ = 0;\n    std::vector<glm::vec3> Path;\n    std::size_t PathIndex = 0;\n};\n''')
+
+write('src/Entity/Entity.cpp', r'''#include "Entity.h"
+
+#include "../Physics/Collision.h"
+#include "../World/WorldGenerator.h"
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <queue>
+
+void Entity::Reset(const glm::vec3& StartPosition, uint32_t WorldSeed)
+{
+    EntityPosition = StartPosition;
+    EntityPosition.y = 0.0f;
+    Direction = {0.0f, 0.0f, -1.0f};
+    Seed = WorldSeed == 0 ? 1 : WorldSeed;
+    RepathTimer = 0.0f;
+    StuckTimer = 0.0f;
+    ShiftTimer = 7.0f;
+    ShiftProgress = 1.0f;
+    ReleaseGraceTimer = 0.0f;
+    EncounterAge = 0.0f;
+    Active = false;
+    DemonForm = false;
+    PreviousDemonForm = false;
+    ShiftedThisFrame = false;
+    TargetWorldX = 0;
+    TargetWorldZ = 0;
+    Path.clear();
+    PathIndex = 0;
+}
+
+void Entity::Release()
+{
+    Active = true;
+    RepathTimer = 0.0f;
+    StuckTimer = 0.0f;
+    ReleaseGraceTimer = 0.45f;
+    EncounterAge = 0.0f;
+}
+
+float Entity::DistanceTo(const glm::vec3& Point) const
+{
+    const float DX = Point.x - EntityPosition.x;
+    const float DZ = Point.z - EntityPosition.z;
+    return std::sqrt(DX * DX + DZ * DZ);
+}
+
+int Entity::CellIndex(
+    const glm::vec3& Position,
+    const WorldData& World
+) const
+{
+    const int WorldX = static_cast<int>(std::round(Position.x / World.CellSize));
+    const int WorldZ = static_cast<int>(std::round(Position.z / World.CellSize));
+    const int LocalX = std::clamp(WorldX - World.OriginCellX, 0, World.Columns - 1);
+    const int LocalZ = std::clamp(WorldZ - World.OriginCellZ, 0, World.Rows - 1);
+    return LocalZ * World.Columns + LocalX;
+}
+
+std::vector<int> Entity::Neighbors(int Index, const WorldData& World) const
+{
+    const MazeCell& Cell = World.Cells[static_cast<std::size_t>(Index)];
+    const int LocalX = Index % World.Columns;
+    const int LocalZ = Index / World.Columns;
+    std::vector<int> Result;
+    if (!Cell.Walls[0] && LocalZ > 0) Result.push_back(Index - World.Columns);
+    if (!Cell.Walls[1] && LocalX < World.Columns - 1) Result.push_back(Index + 1);
+    if (!Cell.Walls[2] && LocalZ < World.Rows - 1) Result.push_back(Index + World.Columns);
+    if (!Cell.Walls[3] && LocalX > 0) Result.push_back(Index - 1);
+    return Result;
+}
+
+void Entity::BuildPath(const glm::vec3& Target, const WorldData& CollisionWorld)
+{
+    const glm::vec2 Start2{EntityPosition.x, EntityPosition.z};
+    const glm::vec2 Target2{Target.x, Target.z};
+    const glm::vec2 Midpoint = (Start2 + Target2) * 0.5f;
+    const float Span = std::max(
+        std::abs(Target2.x - Start2.x),
+        std::abs(Target2.y - Start2.y)
+    );
+    const float ChunkMeters = std::max(
+        CollisionWorld.CellSize * static_cast<float>(CollisionWorld.ChunkCells),
+        1.0f
+    );
+    const int Radius = std::clamp(
+        static_cast<int>(std::ceil(Span * 0.5f / ChunkMeters)) + 3,
+        1,
+        16
+    );
+
+    WorldGenerator Generator(Seed);
+    const WorldData NavigationWorld = Generator.BuildMapRegion(
+        {Midpoint.x, 0.0f, Midpoint.y},
+        Radius
+    );
+
+    const int Start = CellIndex(EntityPosition, NavigationWorld);
+    const int Goal = CellIndex(Target, NavigationWorld);
+    TargetWorldX = static_cast<int>(std::round(Target.x / NavigationWorld.CellSize));
+    TargetWorldZ = static_cast<int>(std::round(Target.z / NavigationWorld.CellSize));
+
+    if (Start == Goal)
+    {
+        Path = {{Target.x, 0.0f, Target.z}};
+        PathIndex = 0;
+        return;
+    }
+
+    const int Count = NavigationWorld.Columns * NavigationWorld.Rows;
+    std::vector<float> G(static_cast<std::size_t>(Count), std::numeric_limits<float>::infinity());
+    std::vector<float> F(static_cast<std::size_t>(Count), std::numeric_limits<float>::infinity());
+    std::vector<int> Parent(static_cast<std::size_t>(Count), -1);
+
+    struct Node
+    {
+        int Index = -1;
+        float Score = 0.0f;
+        bool operator<(const Node& Other) const { return Score > Other.Score; }
+    };
+
+    const MazeCell& GoalCell = NavigationWorld.Cells[static_cast<std::size_t>(Goal)];
+    auto Heuristic = [&](int Index)
+    {
+        const MazeCell& Cell = NavigationWorld.Cells[static_cast<std::size_t>(Index)];
+        return static_cast<float>(
+            std::abs(Cell.X - GoalCell.X) +
+            std::abs(Cell.Z - GoalCell.Z)
+        );
+    };
+
+    std::priority_queue<Node> Open;
+    G[static_cast<std::size_t>(Start)] = 0.0f;
+    F[static_cast<std::size_t>(Start)] = Heuristic(Start);
+    Open.push({Start, F[static_cast<std::size_t>(Start)]});
+    bool Found = false;
+
+    while (!Open.empty())
+    {
+        const Node CurrentNode = Open.top();
+        Open.pop();
+        const int Current = CurrentNode.Index;
+        if (Current == Goal)
+        {
+            Found = true;
+            break;
+        }
+
+        for (int Next : Neighbors(Current, NavigationWorld))
+        {
+            const float Tentative = G[static_cast<std::size_t>(Current)] + 1.0f;
+            if (Tentative >= G[static_cast<std::size_t>(Next)])
+                continue;
+            Parent[static_cast<std::size_t>(Next)] = Current;
+            G[static_cast<std::size_t>(Next)] = Tentative;
+            F[static_cast<std::size_t>(Next)] = Tentative + Heuristic(Next);
+            Open.push({Next, F[static_cast<std::size_t>(Next)]});
+        }
+    }
+
+    Path.clear();
+    PathIndex = 0;
+    if (!Found)
+        return;
+
+    std::vector<int> CellPath;
+    int Cursor = Goal;
+    while (Cursor != -1)
+    {
+        CellPath.push_back(Cursor);
+        if (Cursor == Start)
+            break;
+        Cursor = Parent[static_cast<std::size_t>(Cursor)];
+    }
+
+    std::reverse(CellPath.begin(), CellPath.end());
+    if (CellPath.size() > 1)
+        CellPath.erase(CellPath.begin());
+
+    Path.reserve(CellPath.size() + 1);
+    for (int Index : CellPath)
+    {
+        const MazeCell& Cell = NavigationWorld.Cells[static_cast<std::size_t>(Index)];
+        Path.push_back({
+            static_cast<float>(Cell.X) * NavigationWorld.CellSize,
+            0.0f,
+            static_cast<float>(Cell.Z) * NavigationWorld.CellSize
+        });
+    }
+    Path.push_back({Target.x, 0.0f, Target.z});
+}
+
+bool Entity::Update(float DeltaTime, const glm::vec3& PlayerPosition, const WorldData& World)
+{
+    ShiftedThisFrame = false;
+    if (!Active)
+        return false;
+
+    const float SafeDelta = std::max(DeltaTime, 0.0f);
+    EncounterAge += SafeDelta;
+    ReleaseGraceTimer = std::max(0.0f, ReleaseGraceTimer - SafeDelta);
+
+    const float DistanceBeforeMove = DistanceTo(PlayerPosition);
+    const float ChaseBlend = std::clamp(
+        1.0f - (DistanceBeforeMove - 7.0f) / 30.0f,
+        0.0f,
+        1.0f
+    );
+    float MoveSpeed = 3.75f + ChaseBlend * 2.55f;
+    if (ReleaseGraceTimer > 0.0f)
+        MoveSpeed = std::min(MoveSpeed, 2.65f);
+    if (DemonForm && ReleaseGraceTimer <= 0.0f)
+        MoveSpeed += 0.45f;
+
+    RepathTimer -= SafeDelta;
+    const int PlayerWorldX = static_cast<int>(std::round(PlayerPosition.x / World.CellSize));
+    const int PlayerWorldZ = static_cast<int>(std::round(PlayerPosition.z / World.CellSize));
+
+    if (
+        RepathTimer <= 0.0f ||
+        PlayerWorldX != TargetWorldX ||
+        PlayerWorldZ != TargetWorldZ ||
+        PathIndex >= Path.size()
+    )
+    {
+        RepathTimer = RepathInterval;
+        BuildPath(PlayerPosition, World);
+    }
+
+    if (PathIndex < Path.size())
+    {
+        glm::vec3 Target = Path[PathIndex];
+        Target.y = 0.0f;
+        glm::vec3 Delta = Target - EntityPosition;
+        Delta.y = 0.0f;
+        float Distance = glm::length(Delta);
+
+        while (Distance < 0.72f && PathIndex + 1 < Path.size())
+        {
+            ++PathIndex;
+            Target = Path[PathIndex];
+            Delta = Target - EntityPosition;
+            Delta.y = 0.0f;
+            Distance = glm::length(Delta);
+        }
+
+        if (Distance > 0.001f)
+        {
+            Direction = Delta / Distance;
+            const float Step = std::min(MoveSpeed * SafeDelta, Distance);
+            const glm::vec3 Desired = Direction * Step;
+            const glm::vec3 Previous = EntityPosition;
+            EntityPosition = Collision::ResolveHorizontalMove(
+                EntityPosition,
+                Desired,
+                Radius,
+                World.Colliders
+            );
+            const glm::vec3 Actual = EntityPosition - Previous;
+            const float DesiredSq = glm::dot(Desired, Desired);
+            const float ActualSq = glm::dot(Actual, Actual);
+
+            if (DesiredSq > 0.000001f && ActualSq < DesiredSq * 0.08f)
+            {
+                StuckTimer += SafeDelta;
+                RepathTimer = 0.0f;
+                if (StuckTimer > 0.38f && PathIndex + 1 < Path.size())
+                {
+                    ++PathIndex;
+                    StuckTimer = 0.0f;
+                }
+            }
+            else
+            {
+                StuckTimer = std::max(0.0f, StuckTimer - SafeDelta * 3.0f);
+            }
+        }
+    }
+
+    const float Distance = DistanceTo(PlayerPosition);
+    ShiftTimer -= SafeDelta;
+    bool DesiredDemon = DemonForm;
+    if (Distance < 9.0f)
+        DesiredDemon = true;
+    else if (Distance > 16.0f)
+        DesiredDemon = false;
+    else if (ShiftTimer <= 0.0f)
+        DesiredDemon = !DemonForm;
+
+    if (DesiredDemon != DemonForm)
+    {
+        PreviousDemonForm = DemonForm;
+        DemonForm = DesiredDemon;
+        ShiftProgress = 0.0f;
+        ShiftTimer = 6.0f;
+        ShiftedThisFrame = true;
+    }
+
+    ShiftProgress = std::min(1.0f, ShiftProgress + SafeDelta / 0.42f);
+    return ReleaseGraceTimer <= 0.0f && DistanceTo(PlayerPosition) < 0.78f;
+}
+
+std::vector<SceneBox> Entity::BuildRenderBoxes() const
+{
+    return {};
+}
+''')
+
+replace_once('src/Game/Game.cpp', 'Hunter.Reset(EntityPosition);', 'Hunter.Reset(EntityPosition, Seed);')
+
+replace_once(
+    'src/Game/Game.cpp',
+    '''        if (KeyDown && Event.key.scancode == SDL_SCANCODE_ESCAPE)\n        {\n            CloseMap(true);\n            return;\n        }''',
+    '''        if (KeyDown && Event.key.scancode == SDL_SCANCODE_ESCAPE)\n        {\n            CloseMap(false);\n            return;\n        }'''
+)
+replace_once(
+    'src/Game/Game.cpp',
+    '''        if (\n            Event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN &&\n            (\n                Event.gbutton.button == SDL_GAMEPAD_BUTTON_START ||\n                Event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST\n            )\n        )\n        {\n            CloseMap(true);\n            return;\n        }''',
+    '''        if (\n            Event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN &&\n            (\n                Event.gbutton.button == SDL_GAMEPAD_BUTTON_START ||\n                Event.gbutton.button == SDL_GAMEPAD_BUTTON_EAST\n            )\n        )\n        {\n            CloseMap(false);\n            return;\n        }'''
+)
+replace_once(
+    'src/Game/Game.cpp',
+    '''            if (Action == MapUiAction::Back)\n            {\n                CloseMap(true);\n                return;\n            }''',
+    '''            if (Action == MapUiAction::Back)\n            {\n                CloseMap(false);\n                return;\n            }\n\n            if (Action == MapUiAction::MainMenu)\n            {\n                MapOpen = false;\n                MapReturnToPause = false;\n                State.Paused = false;\n                State.MainMenuOpen = true;\n                GameRenderer.ClearMenuPointer();\n                return;\n            }'''
+)
+replace_once(
+    'src/Game/Game.cpp',
+    '''            if (Action == MapUiAction::Back)\n            {\n                CloseMap(true);\n                return;\n            }''',
+    '''            if (Action == MapUiAction::Back)\n            {\n                CloseMap(false);\n                return;\n            }\n\n            if (Action == MapUiAction::MainMenu)\n            {\n                MapOpen = false;\n                MapReturnToPause = false;\n                State.Paused = false;\n                State.MainMenuOpen = true;\n                GameRenderer.ClearMenuPointer();\n                return;\n            }'''
+)
+
+regex_once(
+    'src/Game/Game.cpp',
+    r'''    if \(\n        State\.Started &&\n        !State\.Ended &&\n        \(\n            \(\n                KeyDown &&\n                Event\.key\.scancode == SDL_SCANCODE_ESCAPE\n            \) \|\|\n            \(\n                Event\.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN &&\n                Event\.gbutton\.button == SDL_GAMEPAD_BUTTON_START\n            \) \|\|\n            \(\n                Event\.type == SDL_EVENT_FINGER_DOWN &&\n                Event\.tfinger\.x > 0\.82f &&\n                Event\.tfinger\.y < 0\.22f\n            \)\n        \)\n    \)\n    \{\n        State\.Paused = true;\n        GameRenderer\.ClearMenuPointer\(\);\n        return;\n    \}''',
+    '''    if (\n        State.Started &&\n        !State.Ended &&\n        (\n            (\n                KeyDown &&\n                Event.key.scancode == SDL_SCANCODE_ESCAPE\n            ) ||\n            (\n                Event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN &&\n                Event.gbutton.button == SDL_GAMEPAD_BUTTON_START\n            ) ||\n            (\n                Event.type == SDL_EVENT_FINGER_DOWN &&\n                Event.tfinger.x > 0.82f &&\n                Event.tfinger.y < 0.22f\n            )\n        )\n    )\n    {\n        OpenMap(false);\n        return;\n    }'''
+)
+
+write('src/Audio/AudioSystem.h', '''#pragma once\n\n#include <glm/glm.hpp>\n\n#include <array>\n\nstruct ma_engine;\nstruct ma_sound;\n\nclass AudioSystem\n{\npublic:\n    AudioSystem();\n    ~AudioSystem();\n\n    bool Initialize();\n    void Shutdown();\n\n    void Update(\n        float DeltaTime,\n        const glm::vec3& ListenerPosition,\n        const glm::vec3& ListenerForward,\n        const glm::vec3& EntityPosition,\n        bool EntityActive\n    );\n\n    void PlayBreaker(const glm::vec3& Position);\n    void PlayEntityRelease(const glm::vec3& Position);\n    void PlayFootstep(const glm::vec3& Position);\n    void PlayShift(bool DemonForm, const glm::vec3& Position);\n    void PlayDeath();\n\nprivate:\n    ma_sound* LoadSound(\n        const char* Path,\n        bool Looping,\n        bool Spatial,\n        float Volume\n    );\n\n    void RestartSpatial(\n        ma_sound* Sound,\n        const glm::vec3& Position,\n        float Volume,\n        float Pitch = 1.0f\n    );\n\n    void PlayEntityStep(const glm::vec3& Position, float Threat);\n\n    ma_engine* Engine = nullptr;\n    ma_sound* Hum = nullptr;\n    ma_sound* BreakerTrip = nullptr;\n    std::array<ma_sound*, 4> Footsteps{};\n    std::array<ma_sound*, 4> EntityFootsteps{};\n\n    glm::vec3 PreviousEntityPosition{0.0f};\n    float EntityFootstepDistance = 0.0f;\n    int EntityFootstepIndex = 0;\n    int FootstepIndex = 0;\n    bool TrackingEntity = false;\n    bool Started = false;\n};\n''')
+
+write('src/Audio/AudioSystem.cpp', r'''#define MINIAUDIO_IMPLEMENTATION
+#include <miniaudio.h>
+
+#include "AudioSystem.h"
+
+#include <algorithm>
+#include <cmath>
+#include <filesystem>
+#include <string>
+
+AudioSystem::AudioSystem() = default;
+AudioSystem::~AudioSystem() { Shutdown(); }
+
+ma_sound* AudioSystem::LoadSound(const char* Path, bool Looping, bool Spatial, float Volume)
+{
+    if (Engine == nullptr || Path == nullptr || !std::filesystem::exists(Path))
+        return nullptr;
+
+    ma_sound* Sound = new ma_sound;
+    if (ma_sound_init_from_file(Engine, Path, 0, nullptr, nullptr, Sound) != MA_SUCCESS)
+    {
+        delete Sound;
+        return nullptr;
+    }
+
+    ma_sound_set_looping(Sound, Looping ? MA_TRUE : MA_FALSE);
+    ma_sound_set_spatialization_enabled(Sound, Spatial ? MA_TRUE : MA_FALSE);
+    ma_sound_set_volume(Sound, Volume);
+    if (Spatial)
+    {
+        ma_sound_set_attenuation_model(Sound, ma_attenuation_model_inverse);
+        ma_sound_set_min_distance(Sound, 1.2f);
+        ma_sound_set_max_distance(Sound, 34.0f);
+        ma_sound_set_rolloff(Sound, 0.85f);
+    }
+    return Sound;
+}
+
+bool AudioSystem::Initialize()
+{
+    if (Started)
+        return true;
+
+    Engine = new ma_engine;
+    if (ma_engine_init(nullptr, Engine) != MA_SUCCESS)
+    {
+        delete Engine;
+        Engine = nullptr;
+        return false;
+    }
+
+    Hum = LoadSound("assets/audio/fluorescent-hum.wav", true, false, 0.24f);
+    if (Hum == nullptr)
+        Hum = LoadSound("assets/audio/hum.wav", true, false, 0.18f);
+    BreakerTrip = LoadSound("assets/audio/breaker-trip.wav", false, true, 0.65f);
+
+    for (std::size_t I = 0; I < Footsteps.size(); ++I)
+    {
+        const std::string Path = "assets/audio/footstep-carpet-" + std::to_string(I + 1) + ".wav";
+        Footsteps[I] = LoadSound(Path.c_str(), false, true, 0.32f);
+        EntityFootsteps[I] = LoadSound(Path.c_str(), false, true, 0.64f);
+
+        if (Footsteps[I] != nullptr)
+        {
+            ma_sound_set_min_distance(Footsteps[I], 0.5f);
+            ma_sound_set_max_distance(Footsteps[I], 12.0f);
+            ma_sound_set_rolloff(Footsteps[I], 0.65f);
+        }
+        if (EntityFootsteps[I] != nullptr)
+        {
+            ma_sound_set_min_distance(EntityFootsteps[I], 1.4f);
+            ma_sound_set_max_distance(EntityFootsteps[I], 50.0f);
+            ma_sound_set_rolloff(EntityFootsteps[I], 0.48f);
+        }
+    }
+
+    if (Hum != nullptr)
+        ma_sound_start(Hum);
+
+    PreviousEntityPosition = {0.0f, 0.0f, 0.0f};
+    EntityFootstepDistance = 0.0f;
+    EntityFootstepIndex = 0;
+    FootstepIndex = 0;
+    TrackingEntity = false;
+    Started = true;
+    return true;
+}
+
+void AudioSystem::Shutdown()
+{
+    if (!Started)
+        return;
+
+    auto Release = [](ma_sound*& Sound)
+    {
+        if (Sound == nullptr)
+            return;
+        ma_sound_uninit(Sound);
+        delete Sound;
+        Sound = nullptr;
+    };
+
+    Release(Hum);
+    Release(BreakerTrip);
+    for (ma_sound*& Sound : Footsteps) Release(Sound);
+    for (ma_sound*& Sound : EntityFootsteps) Release(Sound);
+
+    if (Engine != nullptr)
+    {
+        ma_engine_uninit(Engine);
+        delete Engine;
+        Engine = nullptr;
+    }
+    Started = false;
+}
+
+void AudioSystem::RestartSpatial(ma_sound* Sound, const glm::vec3& Position, float Volume, float Pitch)
+{
+    if (!Started || Sound == nullptr)
+        return;
+    ma_sound_stop(Sound);
+    ma_sound_seek_to_pcm_frame(Sound, 0);
+    ma_sound_set_position(Sound, Position.x, Position.y, Position.z);
+    ma_sound_set_volume(Sound, Volume);
+    ma_sound_set_pitch(Sound, Pitch);
+    ma_sound_start(Sound);
+}
+
+void AudioSystem::PlayEntityStep(const glm::vec3& Position, float Threat)
+{
+    ma_sound* Sound = EntityFootsteps[static_cast<std::size_t>(EntityFootstepIndex % static_cast<int>(EntityFootsteps.size()))];
+    const float Pitch = 0.72f + static_cast<float>(EntityFootstepIndex % 3) * 0.035f;
+    const float Volume = 0.52f + std::clamp(Threat, 0.0f, 1.0f) * 0.30f;
+    ++EntityFootstepIndex;
+    RestartSpatial(Sound, Position + glm::vec3{0.0f, 0.08f, 0.0f}, Volume, Pitch);
+}
+
+void AudioSystem::Update(
+    float DeltaTime,
+    const glm::vec3& ListenerPosition,
+    const glm::vec3& ListenerForward,
+    const glm::vec3& EntityPosition,
+    bool EntityActive
+)
+{
+    if (!Started || Engine == nullptr)
+        return;
+
+    ma_engine_listener_set_position(Engine, 0, ListenerPosition.x, ListenerPosition.y, ListenerPosition.z);
+    ma_engine_listener_set_direction(Engine, 0, ListenerForward.x, ListenerForward.y, ListenerForward.z);
+    ma_engine_listener_set_world_up(Engine, 0, 0.0f, 1.0f, 0.0f);
+
+    float Distance = 100.0f;
+    if (EntityActive)
+        Distance = glm::length(EntityPosition - ListenerPosition);
+    const float Threat = EntityActive
+        ? std::clamp(1.0f - (Distance - 3.0f) / 34.0f, 0.0f, 1.0f)
+        : 0.0f;
+
+    if (Hum != nullptr)
+        ma_sound_set_volume(Hum, 0.22f + Threat * 0.025f);
+
+    if (!EntityActive)
+    {
+        TrackingEntity = false;
+        EntityFootstepDistance = 0.0f;
+        return;
+    }
+
+    if (!TrackingEntity)
+    {
+        PreviousEntityPosition = EntityPosition;
+        TrackingEntity = true;
+        return;
+    }
+
+    glm::vec3 Travel = EntityPosition - PreviousEntityPosition;
+    Travel.y = 0.0f;
+    const float TravelDistance = glm::length(Travel);
+    PreviousEntityPosition = EntityPosition;
+
+    if (TravelDistance > 0.0001f && TravelDistance < 4.0f)
+    {
+        EntityFootstepDistance += TravelDistance;
+        const float StepSpacing = 0.86f + (1.0f - Threat) * 0.16f;
+        while (EntityFootstepDistance >= StepSpacing)
+        {
+            EntityFootstepDistance -= StepSpacing;
+            PlayEntityStep(EntityPosition, Threat);
+        }
+    }
+
+    static_cast<void>(DeltaTime);
+}
+
+void AudioSystem::PlayEntityRelease(const glm::vec3& Position)
+{
+    PreviousEntityPosition = Position;
+    EntityFootstepDistance = 0.0f;
+    TrackingEntity = true;
+    PlayEntityStep(Position, 0.25f);
+}
+
+void AudioSystem::PlayBreaker(const glm::vec3& Position)
+{
+    RestartSpatial(BreakerTrip, Position + glm::vec3{0.0f, 0.55f, 0.0f}, 0.70f, 0.93f);
+}
+
+void AudioSystem::PlayFootstep(const glm::vec3& Position)
+{
+    if (!Started)
+        return;
+    ma_sound* Sound = Footsteps[static_cast<std::size_t>(FootstepIndex % static_cast<int>(Footsteps.size()))];
+    const float Pitch = 0.95f + static_cast<float>(FootstepIndex % 3) * 0.035f;
+    ++FootstepIndex;
+    RestartSpatial(Sound, Position - glm::vec3{0.0f, 1.45f, 0.0f}, 0.32f, Pitch);
+}
+
+void AudioSystem::PlayShift(bool DemonForm, const glm::vec3& Position)
+{
+    static_cast<void>(DemonForm);
+    static_cast<void>(Position);
+}
+
+void AudioSystem::PlayDeath()
+{
+    if (!Started || Engine == nullptr)
+        return;
+    if (std::filesystem::exists("assets/audio/entity-death.wav"))
+    {
+        ma_engine_play_sound(Engine, "assets/audio/entity-death.wav", nullptr);
+        return;
+    }
+    if (std::filesystem::exists("assets/audio/death.wav"))
+        ma_engine_play_sound(Engine, "assets/audio/death.wav", nullptr);
+}
+''')
+
+replace_once(
+    'src/Rendering/Renderer.cpp',
+    '''    GhostEntityModel.Load(\n        "assets/models/entity-ghost.glb",\n        2.18f\n    );\n\n    DemonEntityModel.Load(\n        "assets/models/entity-demon.glb",\n        2.35f\n    );''',
+    '''    GhostEntityModel.Load(\n        "assets/models/backrooms_entity.glb",\n        2.62f\n    );\n\n    DemonEntityModel.Shutdown();'''
+)
+
+regex_once(
+    'src/Rendering/Renderer.cpp',
+    r'''bool Renderer::HasEntityModels\(\) const\n\{.*?\n\}\n\nvoid Renderer::DrawCrosshair\(\)''',
+    r'''bool Renderer::HasEntityModels() const
+{
+    return GhostEntityModel.IsReady();
+}
+
+void Renderer::DrawEntity(
+    const glm::vec3& Position,
+    const glm::vec3& Forward,
+    bool DemonForm,
+    bool PreviousDemonForm,
+    float ShiftProgress
+)
+{
+    if (!GhostEntityModel.IsReady())
+        return;
+
+    glm::vec3 Direction = Forward;
+    Direction.y = 0.0f;
+    if (glm::length(Direction) < 0.001f)
+        Direction = {0.0f, 0.0f, -1.0f};
+    else
+        Direction = glm::normalize(Direction);
+
+    const glm::vec3 Right{Direction.z, 0.0f, -Direction.x};
+    const float Gait = std::sin(RenderTime * 9.4f);
+    const float Bob = std::abs(Gait) * 0.035f;
+    const float Sway = std::sin(RenderTime * 4.7f) * 0.022f;
+    const float TurnSway = std::sin(RenderTime * 3.1f) * 0.028f;
+    glm::vec3 AnimatedForward = Direction + Right * TurnSway;
+    AnimatedForward = glm::normalize(AnimatedForward);
+
+    const float Shift = std::clamp(ShiftProgress, 0.0f, 1.0f);
+    const float Stretch = 1.0f + std::abs(Gait) * 0.018f + (DemonForm ? 0.018f : 0.0f);
+    const glm::vec3 VisualScale{
+        1.0f - std::abs(Gait) * 0.008f,
+        Stretch,
+        1.0f
+    };
+
+    GhostEntityModel.Draw(
+        View,
+        Projection,
+        CameraPosition,
+        Position + Right * Sway + glm::vec3{0.0f, Bob, 0.0f},
+        AnimatedForward,
+        VisualScale,
+        ActiveLightPositions,
+        ActiveLightColors,
+        ActiveLightCount
+    );
+
+    static_cast<void>(PreviousDemonForm);
+    static_cast<void>(Shift);
+}
+
+void Renderer::DrawCrosshair()'''
+)
+
+replace_once(
+    'src/Rendering/Renderer.h',
+    '''enum class MapUiAction\n{\n    None,\n    Back,\n    RandomDestination,\n    ClearWaypoint\n};''',
+    '''enum class MapUiAction\n{\n    None,\n    Back,\n    MainMenu,\n    RandomDestination,\n    ClearWaypoint\n};'''
+)
+replace_once(
+    'src/Rendering/Renderer.h',
+    '''    UiRect FullMapBackRect;\n    UiRect FullMapRandomRect;''',
+    '''    UiRect FullMapBackRect;\n    UiRect FullMapMainMenuRect;\n    UiRect FullMapRandomRect;'''
+)
+replace_once(
+    'src/Rendering/Renderer.h',
+    '''    float FullMapBackHover = 0.0f;\n    float FullMapRandomHover = 0.0f;''',
+    '''    float FullMapBackHover = 0.0f;\n    float FullMapMainMenuHover = 0.0f;\n    float FullMapRandomHover = 0.0f;'''
+)
+
+replace_once(
+    'src/Rendering/InteractiveMenu.cpp',
+    '''    MoveToward(\n        FullMapBackHover,\n        FullMapBackRect.Contains(MenuPointerX, MenuPointerY)\n    );\n\n    MoveToward(\n        FullMapRandomHover,''',
+    '''    MoveToward(\n        FullMapBackHover,\n        FullMapBackRect.Contains(MenuPointerX, MenuPointerY)\n    );\n\n    MoveToward(\n        FullMapMainMenuHover,\n        FullMapMainMenuRect.Contains(MenuPointerX, MenuPointerY)\n    );\n\n    MoveToward(\n        FullMapRandomHover,'''
+)
+
+css_add = '''\n#MiniMapNative .Route {\n  height: 0px;\n  color: #3e8bf6;\n}\n\n#MiniMapNative .PlayerMarker {\n  font-size: 13px;\n  color: #fffbd4;\n}\n\n#MiniMapNative .BreakerMarker {\n  font-size: 13px;\n  color: #ff4630;\n}\n\n#MiniMapNative .BreakerMarkerActive {\n  font-size: 13px;\n  color: #2fea59;\n}\n\n#MiniMapNative .ExitMarker {\n  font-size: 13px;\n  color: #f5f0cc;\n}\n\n#MiniMapNative .ExitMarkerPowered {\n  font-size: 13px;\n  color: #2ff06b;\n}\n\n#MiniMapNative .ThreatMarker {\n  font-size: 14px;\n  color: #ff2f20;\n}\n\n#MiniMapNative .WaypointMarker {\n  font-size: 14px;\n  color: #3e8bf6;\n}\n'''
+style = read('assets/ui/original/style.css')
+if '#MiniMapNative .PlayerMarker' not in style:
+    marker = '\n.Hidden {\n  display: none !important;\n}\n'
+    if marker not in style:
+        raise SystemExit('style insertion marker missing')
+    style = style.replace(marker, css_add + marker, 1)
+write('assets/ui/original/style.css', style)
+
+replace_once(
+    'tools/convert_web_ui.py',
+    '''    mobile_margin = px(prop(mobile_css, ".MenuTop", "left", "20px"))\n    mobile_content_left = px(prop(mobile_css, ".MenuContent", "left", "24px"))\n\n    out = f\'\'\'''' ,
+    '''    mobile_margin = px(prop(mobile_css, ".MenuTop", "left", "20px"))\n    mobile_content_left = px(prop(mobile_css, ".MenuContent", "left", "24px"))\n\n    minimap_route_thickness = px(prop(base_css, "#MiniMapNative .Route", "height", "0px"))\n    minimap_route_color = rgba(prop(base_css, "#MiniMapNative .Route", "color", "#3e8bf6"))\n    minimap_player_font = px(prop(base_css, "#MiniMapNative .PlayerMarker", "font-size", "13px"))\n    minimap_player_color = rgba(prop(base_css, "#MiniMapNative .PlayerMarker", "color", "#fffbd4"))\n    minimap_breaker_font = px(prop(base_css, "#MiniMapNative .BreakerMarker", "font-size", "13px"))\n    minimap_breaker_color = rgba(prop(base_css, "#MiniMapNative .BreakerMarker", "color", "#ff4630"))\n    minimap_breaker_active_color = rgba(prop(base_css, "#MiniMapNative .BreakerMarkerActive", "color", "#2fea59"))\n    minimap_exit_font = px(prop(base_css, "#MiniMapNative .ExitMarker", "font-size", "13px"))\n    minimap_exit_color = rgba(prop(base_css, "#MiniMapNative .ExitMarker", "color", "#f5f0cc"))\n    minimap_exit_powered_color = rgba(prop(base_css, "#MiniMapNative .ExitMarkerPowered", "color", "#2ff06b"))\n    minimap_threat_font = px(prop(base_css, "#MiniMapNative .ThreatMarker", "font-size", "14px"))\n    minimap_threat_color = rgba(prop(base_css, "#MiniMapNative .ThreatMarker", "color", "#ff2f20"))\n    minimap_waypoint_font = px(prop(base_css, "#MiniMapNative .WaypointMarker", "font-size", "14px"))\n    minimap_waypoint_color = rgba(prop(base_css, "#MiniMapNative .WaypointMarker", "color", "#3e8bf6"))\n\n    out = f\'\'\''''
+)
+
+replace_once(
+    'tools/convert_web_ui.py',
+    '''inline constexpr float LoadTracking = {fmt(em(prop(base_css, '#LoadStatus', 'letter-spacing', '0.16em')))};\n\n{color('Background', background_color)}''',
+    '''inline constexpr float LoadTracking = {fmt(em(prop(base_css, '#LoadStatus', 'letter-spacing', '0.16em')))};\n\ninline constexpr int MiniMapRouteThickness = {minimap_route_thickness};\ninline constexpr int MiniMapPlayerFont = {minimap_player_font};\ninline constexpr int MiniMapBreakerFont = {minimap_breaker_font};\ninline constexpr int MiniMapExitFont = {minimap_exit_font};\ninline constexpr int MiniMapThreatFont = {minimap_threat_font};\ninline constexpr int MiniMapWaypointFont = {minimap_waypoint_font};\n\n{color('MiniMapRouteColor', minimap_route_color)}\n{color('MiniMapPlayerColor', minimap_player_color)}\n{color('MiniMapBreakerColor', minimap_breaker_color)}\n{color('MiniMapBreakerActiveColor', minimap_breaker_active_color)}\n{color('MiniMapExitColor', minimap_exit_color)}\n{color('MiniMapExitPoweredColor', minimap_exit_powered_color)}\n{color('MiniMapThreatColor', minimap_threat_color)}\n{color('MiniMapWaypointColor', minimap_waypoint_color)}\n\n{color('Background', background_color)}'''
+)
+
+replace_once('src/Rendering/MapOverlay.cpp', '#include "Renderer.h"\n', '#include "Renderer.h"\n#include "GeneratedWebUi.h"\n')
+
+replace_once(
+    'src/Rendering/MapOverlay.cpp',
+    '''    if (Route.size() >= 2)\n    {\n        for (std::size_t I = 1; I < Route.size(); ++I)\n        {\n            const glm::ivec2 A = ToScreen(Route[I - 1].x, Route[I - 1].y);\n            const glm::ivec2 B = ToScreen(Route[I].x, Route[I].y);\n            Line(A, B, Detailed ? 6 : 3, RouteOuter);\n            Line(A, B, Detailed ? 3 : 1, RouteColor);\n        }\n    }''',
+    '''    if (Detailed && Route.size() >= 2)\n    {\n        for (std::size_t I = 1; I < Route.size(); ++I)\n        {\n            const glm::ivec2 A = ToScreen(Route[I - 1].x, Route[I - 1].y);\n            const glm::ivec2 B = ToScreen(Route[I].x, Route[I].y);\n            Line(A, B, 6, RouteOuter);\n            Line(A, B, 3, RouteColor);\n        }\n    }\n\n    auto CssColor = [](const GeneratedWebUi::CssColor& Color)\n    {\n        return glm::vec3{Color.R, Color.G, Color.B};\n    };\n\n    auto DrawMiniGlyph = [&](\n        const std::string& Glyph,\n        const glm::ivec2& Position,\n        int FontSize,\n        const glm::vec3& Color\n    )\n    {\n        if (Detailed || !GameplayTextRenderer.IsReady())\n            return;\n\n        const int GlyphWidth = GameplayTextRenderer.Measure(Glyph, FontSize, 800, 0.0f);\n        GameplayTextRenderer.Draw(\n            Glyph,\n            Position.x - GlyphWidth / 2,\n            Position.y - FontSize / 2 - 4,\n            FontSize,\n            800,\n            0.0f,\n            Color,\n            1.0f,\n            false\n        );\n    };\n\n    if (!Detailed)\n    {\n        glEnable(GL_SCISSOR_TEST);\n        glScissor(\n            X,\n            static_cast<int>(Height) - (Y + PanelHeight),\n            PanelWidth,\n            PanelHeight\n        );\n    }'''
+)
+
+regex_once(
+    'src/Rendering/MapOverlay.cpp',
+    r'''    for \(const MapMarker& Marker : Markers\)\n    \{.*?\n    \}\n\n    if \(Waypoint\.Active\)''',
+    r'''    for (const MapMarker& Marker : Markers)
+    {
+        const glm::ivec2 Position = ToScreen(Marker.Position.x, Marker.Position.y);
+
+        if (!Detailed)
+        {
+            if (Marker.Kind == MapMarkerKind::Breaker)
+            {
+                DrawMiniGlyph("\xE2\x97\x8B", Position, GeneratedWebUi::MiniMapBreakerFont, CssColor(GeneratedWebUi::MiniMapBreakerColor));
+            }
+            else if (Marker.Kind == MapMarkerKind::BreakerActive)
+            {
+                DrawMiniGlyph("\xE2\x97\x8F", Position, GeneratedWebUi::MiniMapBreakerFont, CssColor(GeneratedWebUi::MiniMapBreakerActiveColor));
+            }
+            else if (Marker.Kind == MapMarkerKind::Exit)
+            {
+                DrawMiniGlyph("\xE2\x96\xA1", Position, GeneratedWebUi::MiniMapExitFont, CssColor(GeneratedWebUi::MiniMapExitColor));
+            }
+            else if (Marker.Kind == MapMarkerKind::ExitPowered)
+            {
+                DrawMiniGlyph("\xE2\x96\xA0", Position, GeneratedWebUi::MiniMapExitFont, CssColor(GeneratedWebUi::MiniMapExitPoweredColor));
+            }
+            else
+            {
+                DrawMiniGlyph("\xE2\x97\x86", Position, GeneratedWebUi::MiniMapThreatFont, CssColor(GeneratedWebUi::MiniMapThreatColor));
+            }
+            continue;
+        }
+
+        if (Marker.Kind == MapMarkerKind::Breaker || Marker.Kind == MapMarkerKind::BreakerActive)
+        {
+            const bool Active = Marker.Kind == MapMarkerKind::BreakerActive;
+            const glm::vec3 Glow = Active
+                ? glm::vec3{0.16f, 0.92f, 0.34f}
+                : glm::vec3{1.0f, 0.13f, 0.08f};
+            const int Radius = 8;
+            FillCircle(Position.x, Position.y, Radius + 3, Ink);
+            FillCircle(Position.x, Position.y, Radius + 1, Glow);
+            FillCircle(Position.x, Position.y, Radius - 2, Yellow);
+            Line({Position.x - 4, Position.y + 4}, {Position.x + 4, Position.y - 4}, 2, Ink);
+            FillCircle(Position.x + 4, Position.y - 4, 2, Ink);
+            ClipRect(Position.x - 6, Position.y + 3, 5, 3, Ink);
+        }
+        else if (Marker.Kind == MapMarkerKind::Exit || Marker.Kind == MapMarkerKind::ExitPowered)
+        {
+            const glm::vec3 Color = Marker.Kind == MapMarkerKind::ExitPowered
+                ? glm::vec3{0.16f, 0.95f, 0.42f}
+                : glm::vec3{0.96f, 0.94f, 0.80f};
+            const int Radius = 8;
+            FillCircle(Position.x, Position.y, Radius + 2, Ink);
+            FillCircle(Position.x, Position.y, Radius, Color);
+            ClipRect(Position.x - 1, Position.y - 3, 2, 6, Ink);
+            ClipRect(Position.x + 2, Position.y, 2, 2, Ink);
+        }
+        else
+        {
+            const bool RedPhase = std::fmod(Time * 5.0f, 1.0f) < 0.58f;
+            const glm::vec3 Threat = RedPhase
+                ? glm::vec3{1.0f, 0.035f, 0.02f}
+                : glm::vec3{0.50f, 0.015f, 0.012f};
+            const int Radius = 9;
+            const glm::ivec2 Top{Position.x, Position.y - Radius};
+            const glm::ivec2 LeftPoint{Position.x - Radius, Position.y + Radius - 2};
+            const glm::ivec2 RightPoint{Position.x + Radius, Position.y + Radius - 2};
+            FillTriangle({Top.x + 1, Top.y + 2}, {LeftPoint.x + 1, LeftPoint.y + 2}, {RightPoint.x + 1, RightPoint.y + 2}, Ink);
+            FillTriangle(Top, LeftPoint, RightPoint, Threat);
+            ClipRect(Position.x - 1, Position.y - 2, 2, 6, Yellow);
+            FillCircle(Position.x, Position.y + 6, 1, Yellow);
+        }
+
+        const float DeltaX = static_cast<float>(Position.x) - MenuPointerX;
+        const float DeltaY = static_cast<float>(Position.y) - MenuPointerY;
+        const float Distance = std::sqrt(DeltaX * DeltaX + DeltaY * DeltaY);
+        if (Distance < 18.0f && Distance < HoverDistance)
+        {
+            HoverDistance = Distance;
+            const float Meters = glm::distance(PlayerPosition, Marker.Position);
+            std::ostringstream Label;
+            Label << MarkerName(Marker.Kind) << "   " << std::fixed << std::setprecision(0) << Meters << " M";
+            HoverLabel = Label.str();
+            HoverScreen = Position;
+        }
+    }
+
+    if (Waypoint.Active)'''
+)
+
+regex_once(
+    'src/Rendering/MapOverlay.cpp',
+    r'''    if \(Waypoint\.Active\)\n    \{\n        const glm::ivec2 Position = ToScreen\(Waypoint\.Position\.x, Waypoint\.Position\.y\);.*?\n    \}\n\n    const glm::ivec2 PlayerScreen''',
+    r'''    if (Waypoint.Active)
+    {
+        const glm::ivec2 Position = ToScreen(Waypoint.Position.x, Waypoint.Position.y);
+        if (!Detailed)
+        {
+            DrawMiniGlyph("\xE2\x97\x89", Position, GeneratedWebUi::MiniMapWaypointFont, CssColor(GeneratedWebUi::MiniMapWaypointColor));
+        }
+        else
+        {
+            const int Pulse = 9 + static_cast<int>((std::sin(Time * 5.0f) + 1.0f) * 2.0f);
+            Ring(Position.x, Position.y, Pulse + 3, 2, Ink);
+            Ring(Position.x, Position.y, Pulse, 2, RouteColor);
+            Line({Position.x - 5, Position.y}, {Position.x + 5, Position.y}, 2, RouteColor);
+            Line({Position.x, Position.y - 5}, {Position.x, Position.y + 5}, 2, RouteColor);
+
+            const float DeltaX = static_cast<float>(Position.x) - MenuPointerX;
+            const float DeltaY = static_cast<float>(Position.y) - MenuPointerY;
+            const float Distance = std::sqrt(DeltaX * DeltaX + DeltaY * DeltaY);
+            if (Distance < 20.0f && Distance < HoverDistance)
+            {
+                std::ostringstream Label;
+                Label << "WAYPOINT   " << std::fixed << std::setprecision(0) << Waypoint.DistanceMeters << " M";
+                HoverLabel = Label.str();
+                HoverScreen = Position;
+            }
+        }
+    }
+
+    const glm::ivec2 PlayerScreen'''
+)
+
+regex_once(
+    'src/Rendering/MapOverlay.cpp',
+    r'''    glm::vec2 Direction = Detailed \? PlayerForward : glm::vec2\{0\.0f, -1\.0f\};.*?FillCircle\(PlayerScreen\.x, PlayerScreen\.y, Detailed \? 3 : 1, RouteColor\);''',
+    r'''    glm::vec2 Direction = Detailed ? PlayerForward : glm::vec2{0.0f, -1.0f};
+
+    if (glm::length(Direction) < 0.001f)
+        Direction = {0.0f, -1.0f};
+    else
+        Direction = glm::normalize(Direction);
+
+    if (!Detailed)
+    {
+        DrawMiniGlyph("\xE2\x96\xB2", PlayerScreen, GeneratedWebUi::MiniMapPlayerFont, CssColor(GeneratedWebUi::MiniMapPlayerColor));
+        glDisable(GL_SCISSOR_TEST);
+    }
+    else
+    {
+        const glm::vec2 Right{-Direction.y, Direction.x};
+        const int ArrowLength = 14;
+        const int ArrowWidth = 8;
+        const float TailLength = 5.0f;
+        const glm::ivec2 Tip{
+            PlayerScreen.x + static_cast<int>(std::round(Direction.x * ArrowLength)),
+            PlayerScreen.y + static_cast<int>(std::round(Direction.y * ArrowLength))
+        };
+        const glm::ivec2 Left{
+            PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) + static_cast<int>(std::round(Right.x * ArrowWidth)),
+            PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) + static_cast<int>(std::round(Right.y * ArrowWidth))
+        };
+        const glm::ivec2 RightPoint{
+            PlayerScreen.x - static_cast<int>(std::round(Direction.x * TailLength)) - static_cast<int>(std::round(Right.x * ArrowWidth)),
+            PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) - static_cast<int>(std::round(Right.y * ArrowWidth))
+        };
+        FillTriangle({Tip.x + 2, Tip.y + 2}, {Left.x + 2, Left.y + 2}, {RightPoint.x + 2, RightPoint.y + 2}, Ink);
+        FillTriangle(Tip, Left, RightPoint, {0.98f, 0.97f, 0.86f});
+        FillCircle(PlayerScreen.x, PlayerScreen.y, 3, RouteColor);
+    }'''
+)
+
+replace_once(
+    'src/Rendering/MapOverlay.cpp',
+    '''    const int BackWidth = Compact ? 112 : 142;\n    const int RandomWidth = Compact ? 148 : 190;\n    const int ClearWidth = Compact ? 116 : 148;\n\n    FullMapBackRect = {Margin, ButtonY, BackWidth, ButtonHeight};\n    FullMapClearRect = {''',
+    '''    const int BackWidth = Compact ? 112 : 142;\n    const int MainMenuWidth = Compact ? 122 : 156;\n    const int RandomWidth = Compact ? 148 : 190;\n    const int ClearWidth = Compact ? 116 : 148;\n\n    FullMapBackRect = {Margin, ButtonY, BackWidth, ButtonHeight};\n    FullMapMainMenuRect = {Margin + BackWidth + Gap, ButtonY, MainMenuWidth, ButtonHeight};\n    FullMapClearRect = {'''
+)
+replace_once(
+    'src/Rendering/MapOverlay.cpp',
+    '''    DrawButton(FullMapBackRect, "\\xE2\\x86\\x90  BACK", FullMapBackHover);\n    DrawButton(FullMapRandomRect, "RANDOM DESTINATION", FullMapRandomHover);''',
+    '''    DrawButton(FullMapBackRect, "RESUME", FullMapBackHover);\n    DrawButton(FullMapMainMenuRect, "MAIN MENU", FullMapMainMenuHover);\n    DrawButton(FullMapRandomRect, "RANDOM DESTINATION", FullMapRandomHover);'''
+)
+replace_once(
+    'src/Rendering/MapOverlay.cpp',
+    '"ESC BACK   /   CLICK WAYPOINT   /   DRAG PAN   /   WHEEL ZOOM   /   R RECENTER   /   G RANDOM"',
+    '"ESC RESUME   /   CLICK WAYPOINT   /   DRAG PAN   /   WHEEL ZOOM   /   R RECENTER   /   G RANDOM"'
+)
+replace_once(
+    'src/Rendering/MapOverlay.cpp',
+    '''    if (FullMapBackRect.Contains(MenuPointerX, MenuPointerY))\n        return MapUiAction::Back;\n    if (FullMapRandomRect.Contains(MenuPointerX, MenuPointerY))''',
+    '''    if (FullMapBackRect.Contains(MenuPointerX, MenuPointerY))\n        return MapUiAction::Back;\n    if (FullMapMainMenuRect.Contains(MenuPointerX, MenuPointerY))\n        return MapUiAction::MainMenu;\n    if (FullMapRandomRect.Contains(MenuPointerX, MenuPointerY))'''
+)
+
+print('V0.3.35 patch applied')
