@@ -72,11 +72,10 @@ void main()
     const wchar_t* ResolveGameplayFontFace(HDC DeviceContext)
     {
         static constexpr const wchar_t* FontStack[] = {
-            L"Bahnschrift SemiCondensed",
-            L"Bahnschrift",
-            L"Franklin Gothic Medium",
-            L"Arial Narrow",
-            L"Arial"
+            L"Segoe UI Variable",
+            L"Segoe UI",
+            L"Arial",
+            L"Tahoma"
         };
 
         for (const wchar_t* Face : FontStack)
@@ -85,7 +84,7 @@ void main()
                 return Face;
         }
 
-        return L"Arial";
+        return L"Segoe UI";
     }
 #endif
 

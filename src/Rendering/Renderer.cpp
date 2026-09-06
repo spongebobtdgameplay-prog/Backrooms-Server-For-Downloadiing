@@ -90,6 +90,31 @@ void main()
 }
 )GLSL";
 
+    const char* UiShapeVertexShaderSource = R"GLSL(
+#version 410 core
+layout(location = 0) in vec2 aPixelPosition;
+uniform vec2 uViewport;
+void main()
+{
+    vec2 SafeViewport = max(uViewport, vec2(1.0));
+    vec2 Ndc = vec2(
+        aPixelPosition.x / SafeViewport.x * 2.0 - 1.0,
+        1.0 - aPixelPosition.y / SafeViewport.y * 2.0
+    );
+    gl_Position = vec4(Ndc, 0.0, 1.0);
+}
+)GLSL";
+
+    const char* UiShapeFragmentShaderSource = R"GLSL(
+#version 410 core
+uniform vec3 uColor;
+out vec4 FragColor;
+void main()
+{
+    FragColor = vec4(uColor, 1.0);
+}
+)GLSL";
+
     const char* FragmentShaderSource = R"GLSL(
 #version 410 core
 
@@ -413,6 +438,113 @@ bool Renderer::CreateShader()
     ShadowEnabledLocation = glGetUniformLocation(Program, "uShadowEnabled");
 
     return true;
+}
+
+bool Renderer::CreateUiShapeResources()
+{
+    const GLuint Vertex = CompileShader(GL_VERTEX_SHADER, UiShapeVertexShaderSource);
+    const GLuint Fragment = CompileShader(GL_FRAGMENT_SHADER, UiShapeFragmentShaderSource);
+
+    if (Vertex == 0 || Fragment == 0)
+    {
+        if (Vertex != 0)
+            glDeleteShader(Vertex);
+        if (Fragment != 0)
+            glDeleteShader(Fragment);
+        return false;
+    }
+
+    UiShapeProgram = glCreateProgram();
+    glAttachShader(UiShapeProgram, Vertex);
+    glAttachShader(UiShapeProgram, Fragment);
+    glLinkProgram(UiShapeProgram);
+
+    glDeleteShader(Vertex);
+    glDeleteShader(Fragment);
+
+    GLint Success = GL_FALSE;
+    glGetProgramiv(UiShapeProgram, GL_LINK_STATUS, &Success);
+    if (Success == GL_FALSE)
+    {
+        glDeleteProgram(UiShapeProgram);
+        UiShapeProgram = 0;
+        return false;
+    }
+
+    UiShapeViewportLocation = glGetUniformLocation(UiShapeProgram, "uViewport");
+    UiShapeColorLocation = glGetUniformLocation(UiShapeProgram, "uColor");
+
+    glGenVertexArrays(1, &UiShapeVertexArray);
+    glGenBuffers(1, &UiShapeVertexBuffer);
+
+    glBindVertexArray(UiShapeVertexArray);
+    glBindBuffer(GL_ARRAY_BUFFER, UiShapeVertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 6, nullptr, GL_STREAM_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(
+        0,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(glm::vec2),
+        reinterpret_cast<void*>(0)
+    );
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    return true;
+}
+
+void Renderer::DestroyUiShapeResources()
+{
+    if (UiShapeVertexBuffer != 0)
+        glDeleteBuffers(1, &UiShapeVertexBuffer);
+    if (UiShapeVertexArray != 0)
+        glDeleteVertexArrays(1, &UiShapeVertexArray);
+    if (UiShapeProgram != 0)
+        glDeleteProgram(UiShapeProgram);
+
+    UiShapeVertexBuffer = 0;
+    UiShapeVertexArray = 0;
+    UiShapeProgram = 0;
+    UiShapeViewportLocation = -1;
+    UiShapeColorLocation = -1;
+}
+
+void Renderer::DrawUiTriangles(
+    const std::vector<glm::vec2>& Vertices,
+    const glm::vec3& Color
+)
+{
+    if (Vertices.empty() || UiShapeProgram == 0)
+        return;
+
+    const GLboolean CullWasEnabled = glIsEnabled(GL_CULL_FACE);
+    if (CullWasEnabled)
+        glDisable(GL_CULL_FACE);
+
+    glUseProgram(UiShapeProgram);
+    glUniform2f(
+        UiShapeViewportLocation,
+        static_cast<float>(std::max(Width, 1u)),
+        static_cast<float>(std::max(Height, 1u))
+    );
+    glUniform3f(UiShapeColorLocation, Color.r, Color.g, Color.b);
+
+    glBindVertexArray(UiShapeVertexArray);
+    glBindBuffer(GL_ARRAY_BUFFER, UiShapeVertexBuffer);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        static_cast<GLsizeiptr>(Vertices.size() * sizeof(glm::vec2)),
+        Vertices.data(),
+        GL_STREAM_DRAW
+    );
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(Vertices.size()));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    if (CullWasEnabled)
+        glEnable(GL_CULL_FACE);
 }
 
 bool Renderer::CreateShadowResources()
@@ -800,6 +932,9 @@ bool Renderer::Initialize()
     if (!CreateCube())
         return false;
 
+    if (!CreateUiShapeResources())
+        return false;
+
     if (!CreateShadowResources())
         return false;
 
@@ -847,6 +982,7 @@ void Renderer::Shutdown()
     DemonEntityModel.Shutdown();
 
     DestroyShadowResources();
+    DestroyUiShapeResources();
 
     if (InstanceBuffer != 0)
         glDeleteBuffers(1, &InstanceBuffer);

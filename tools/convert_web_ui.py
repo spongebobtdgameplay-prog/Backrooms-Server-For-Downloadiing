@@ -225,9 +225,31 @@ def main() -> None:
     mobile_margin = px(prop(mobile_css, ".MenuTop", "left", "20px"))
     mobile_content_left = px(prop(mobile_css, ".MenuContent", "left", "24px"))
 
-    minimap_route_thickness = px(prop(base_css, "#MiniMapNative .Route", "height", "0px"))
-    minimap_route_color = rgba(prop(base_css, "#MiniMapNative .Route", "color", "#3e8bf6"))
-    minimap_player_font = px(prop(base_css, "#MiniMapNative .PlayerMarker", "font-size", "13px"))
+    map_background = rgba(prop(base_css, "#MapNative", "background-color", "#d1c66f"))
+    map_frame_color = rgba(prop(base_css, "#MapNative", "border-color", "#514a22"))
+    map_grid_color = rgba(prop(base_css, "#MapNative .Grid", "color", "#b8ad5e"))
+    map_wall_color = rgba(prop(base_css, "#MapNative .Wall", "color", "#292611"))
+    map_route_outer_color = rgba(prop(base_css, "#MapNative .RouteOuter", "color", "#4a4524"))
+    map_route_outer_thickness = px(prop(base_css, "#MapNative .RouteOuter", "height", "4px"))
+    fullmap_route_thickness = px(prop(base_css, "#FullMapNative .Route", "height", "2px"))
+    fullmap_route_color = rgba(prop(base_css, "#FullMapNative .Route", "color", "#2f7ed8"))
+    fullmap_title_font = px(prop(base_css, "#FullMapNative .Title", "font-size", "26px"))
+    fullmap_title_weight = int(number(prop(base_css, "#FullMapNative .Title", "font-weight", "700")))
+    fullmap_title_tracking = em(prop(base_css, "#FullMapNative .Title", "letter-spacing", "0.01em"))
+    fullmap_title_color = rgba(prop(base_css, "#FullMapNative .Title", "color", "#25210e"))
+    fullmap_meta_font = px(prop(base_css, "#FullMapNative .Meta", "font-size", "11px"))
+    fullmap_meta_weight = int(number(prop(base_css, "#FullMapNative .Meta", "font-weight", "600")))
+    fullmap_meta_tracking = em(prop(base_css, "#FullMapNative .Meta", "letter-spacing", "0.06em"))
+    fullmap_meta_color = rgba(prop(base_css, "#FullMapNative .Meta", "color", "#655e31"))
+    fullmap_player_size = px(prop(base_css, "#FullMapNative .PlayerMarker", "font-size", "16px"))
+    fullmap_player_color = rgba(prop(base_css, "#FullMapNative .PlayerMarker", "color", "#fffbe3"))
+    fullmap_waypoint_size = px(prop(base_css, "#FullMapNative .WaypointMarker", "font-size", "18px"))
+    fullmap_waypoint_color = rgba(prop(base_css, "#FullMapNative .WaypointMarker", "color", "#2588ef"))
+
+    minimap_wall_thickness = px(prop(base_css, "#MiniMapNative .Wall", "height", "1px"))
+    minimap_route_thickness = px(prop(base_css, "#MiniMapNative .Route", "height", "2px"))
+    minimap_route_color = rgba(prop(base_css, "#MiniMapNative .Route", "color", "#2f86ee"))
+    minimap_player_font = px(prop(base_css, "#MiniMapNative .PlayerMarker", "font-size", "14px"))
     minimap_player_color = rgba(prop(base_css, "#MiniMapNative .PlayerMarker", "color", "#fffbd4"))
     minimap_breaker_font = px(prop(base_css, "#MiniMapNative .BreakerMarker", "font-size", "13px"))
     minimap_breaker_color = rgba(prop(base_css, "#MiniMapNative .BreakerMarker", "color", "#ff4630"))
@@ -304,12 +326,35 @@ inline constexpr int LoadMarginTop = {px(prop(base_css, '#LoadStatus', 'margin-t
 inline constexpr int LoadFont = {px(prop(base_css, '#LoadStatus', 'font-size', '10px'))};
 inline constexpr float LoadTracking = {fmt(em(prop(base_css, '#LoadStatus', 'letter-spacing', '0.16em')))};
 
+inline constexpr int MapRouteOuterThickness = {map_route_outer_thickness};
+inline constexpr int FullMapRouteThickness = {fullmap_route_thickness};
+inline constexpr int FullMapTitleFont = {fullmap_title_font};
+inline constexpr int FullMapTitleWeight = {fullmap_title_weight};
+inline constexpr float FullMapTitleTracking = {fmt(fullmap_title_tracking)};
+inline constexpr int FullMapMetaFont = {fullmap_meta_font};
+inline constexpr int FullMapMetaWeight = {fullmap_meta_weight};
+inline constexpr float FullMapMetaTracking = {fmt(fullmap_meta_tracking)};
+inline constexpr int FullMapPlayerSize = {fullmap_player_size};
+inline constexpr int FullMapWaypointSize = {fullmap_waypoint_size};
+
+inline constexpr int MiniMapWallThickness = {minimap_wall_thickness};
 inline constexpr int MiniMapRouteThickness = {minimap_route_thickness};
 inline constexpr int MiniMapPlayerFont = {minimap_player_font};
 inline constexpr int MiniMapBreakerFont = {minimap_breaker_font};
 inline constexpr int MiniMapExitFont = {minimap_exit_font};
 inline constexpr int MiniMapThreatFont = {minimap_threat_font};
 inline constexpr int MiniMapWaypointFont = {minimap_waypoint_font};
+
+{color('MapBackgroundColor', map_background)}
+{color('MapFrameColor', map_frame_color)}
+{color('MapGridColor', map_grid_color)}
+{color('MapWallColor', map_wall_color)}
+{color('MapRouteOuterColor', map_route_outer_color)}
+{color('FullMapRouteColor', fullmap_route_color)}
+{color('FullMapTitleColor', fullmap_title_color)}
+{color('FullMapMetaColor', fullmap_meta_color)}
+{color('FullMapPlayerColor', fullmap_player_color)}
+{color('FullMapWaypointColor', fullmap_waypoint_color)}
 
 {color('MiniMapRouteColor', minimap_route_color)}
 {color('MiniMapPlayerColor', minimap_player_color)}
