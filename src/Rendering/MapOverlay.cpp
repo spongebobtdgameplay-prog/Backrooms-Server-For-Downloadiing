@@ -318,8 +318,8 @@ void Renderer::DrawMapPanelV2(
         {
             const glm::ivec2 A = ToScreen(Route[I - 1].x, Route[I - 1].y);
             const glm::ivec2 B = ToScreen(Route[I].x, Route[I].y);
-            Line(A, B, Detailed ? 6 : 5, RouteOuter);
-            Line(A, B, 3, RouteColor);
+            Line(A, B, Detailed ? 6 : 3, RouteOuter);
+            Line(A, B, Detailed ? 3 : 1, RouteColor);
         }
     }
 
@@ -340,9 +340,8 @@ void Renderer::DrawMapPanelV2(
 
             if (!Detailed)
             {
-                FillCircle(Position.x, Position.y, 4, Ink);
-                FillCircle(Position.x, Position.y, 3, Glow);
-                ClipRect(Position.x - 1, Position.y - 1, 2, 2, Ink);
+                FillCircle(Position.x, Position.y, 3, Ink);
+                FillCircle(Position.x, Position.y, 2, Glow);
             }
             else
             {
@@ -369,9 +368,9 @@ void Renderer::DrawMapPanelV2(
 
             if (!Detailed)
             {
-                ClipRect(Position.x - 4, Position.y - 4, 9, 9, Ink);
-                ClipRect(Position.x - 3, Position.y - 3, 7, 7, Color);
-                ClipRect(Position.x + 1, Position.y - 2, 1, 5, Ink);
+                ClipRect(Position.x - 3, Position.y - 3, 7, 7, Ink);
+                ClipRect(Position.x - 2, Position.y - 2, 5, 5, Color);
+                ClipRect(Position.x, Position.y - 1, 1, 3, Ink);
             }
             else
             {
@@ -391,14 +390,8 @@ void Renderer::DrawMapPanelV2(
 
             if (!Detailed)
             {
-                const int Radius = 4;
-                const glm::ivec2 Top{Position.x, Position.y - Radius};
-                const glm::ivec2 LeftPoint{Position.x - Radius, Position.y};
-                const glm::ivec2 Bottom{Position.x, Position.y + Radius};
-                const glm::ivec2 RightPoint{Position.x + Radius, Position.y};
-                FillTriangle(Top, LeftPoint, RightPoint, Threat);
-                FillTriangle(Bottom, LeftPoint, RightPoint, Threat);
-                ClipRect(Position.x, Position.y, 1, 1, Yellow);
+                ClipRect(Position.x - 3, Position.y - 3, 7, 7, Ink);
+                ClipRect(Position.x - 2, Position.y - 2, 5, 5, Threat);
             }
             else
             {
@@ -439,13 +432,19 @@ void Renderer::DrawMapPanelV2(
     if (Waypoint.Active)
     {
         const glm::ivec2 Position = ToScreen(Waypoint.Position.x, Waypoint.Position.y);
-        const int Pulse = Detailed
-            ? 9 + static_cast<int>((std::sin(Time * 5.0f) + 1.0f) * 2.0f)
-            : 5 + static_cast<int>((std::sin(Time * 5.0f) + 1.0f) * 1.0f);
-        Ring(Position.x, Position.y, Pulse + 3, 2, Ink);
-        Ring(Position.x, Position.y, Pulse, 2, RouteColor);
-        Line({Position.x - 5, Position.y}, {Position.x + 5, Position.y}, 2, RouteColor);
-        Line({Position.x, Position.y - 5}, {Position.x, Position.y + 5}, 2, RouteColor);
+        if (!Detailed)
+        {
+            Ring(Position.x, Position.y, 4, 1, Ink);
+            ClipRect(Position.x - 1, Position.y - 1, 3, 3, RouteColor);
+        }
+        else
+        {
+            const int Pulse = 9 + static_cast<int>((std::sin(Time * 5.0f) + 1.0f) * 2.0f);
+            Ring(Position.x, Position.y, Pulse + 3, 2, Ink);
+            Ring(Position.x, Position.y, Pulse, 2, RouteColor);
+            Line({Position.x - 5, Position.y}, {Position.x + 5, Position.y}, 2, RouteColor);
+            Line({Position.x, Position.y - 5}, {Position.x, Position.y + 5}, 2, RouteColor);
+        }
 
         if (Detailed)
         {
@@ -472,9 +471,9 @@ void Renderer::DrawMapPanelV2(
         Direction = glm::normalize(Direction);
 
     const glm::vec2 Right{-Direction.y, Direction.x};
-    const int ArrowLength = Detailed ? 14 : 7;
-    const int ArrowWidth = Detailed ? 8 : 4;
-    const float TailLength = Detailed ? 5.0f : 2.0f;
+    const int ArrowLength = Detailed ? 14 : 5;
+    const int ArrowWidth = Detailed ? 8 : 3;
+    const float TailLength = Detailed ? 5.0f : 1.0f;
     const glm::ivec2 Tip{
         PlayerScreen.x + static_cast<int>(std::round(Direction.x * ArrowLength)),
         PlayerScreen.y + static_cast<int>(std::round(Direction.y * ArrowLength))
@@ -488,14 +487,17 @@ void Renderer::DrawMapPanelV2(
         PlayerScreen.y - static_cast<int>(std::round(Direction.y * TailLength)) - static_cast<int>(std::round(Right.y * ArrowWidth))
     };
 
-    FillTriangle(
-        {Tip.x + 2, Tip.y + 2},
-        {Left.x + 2, Left.y + 2},
-        {RightPoint.x + 2, RightPoint.y + 2},
-        Ink
-    );
+    if (Detailed)
+    {
+        FillTriangle(
+            {Tip.x + 2, Tip.y + 2},
+            {Left.x + 2, Left.y + 2},
+            {RightPoint.x + 2, RightPoint.y + 2},
+            Ink
+        );
+    }
     FillTriangle(Tip, Left, RightPoint, {0.98f, 0.97f, 0.86f});
-    FillCircle(PlayerScreen.x, PlayerScreen.y, Detailed ? 3 : 2, RouteColor);
+    FillCircle(PlayerScreen.x, PlayerScreen.y, Detailed ? 3 : 1, RouteColor);
 
     if (Detailed && !HoverLabel.empty() && GameplayTextRenderer.IsReady())
     {

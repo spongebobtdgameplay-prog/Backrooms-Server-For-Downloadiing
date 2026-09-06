@@ -336,4 +336,5 @@ private:
     std::array<glm::vec4, 8> ActiveLightPositions{};
     std::array<glm::vec4, 8> ActiveLightColors{};
     int ActiveLightCount = 0;
+    float RenderTime = 0.0f;
 };
